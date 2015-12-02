@@ -1479,6 +1479,17 @@ type NodeStatus struct {
 	DaemonEndpoints NodeDaemonEndpoints `json:"daemonEndpoints,omitempty"`
 	// Set of ids/uuids to uniquely identify the node.
 	NodeInfo NodeSystemInfo `json:"nodeInfo,omitempty"`
+	// Array of docker images pulled on the node
+	NodeImages []DockerImage `json:"nodeImages,omitempty"`
+}
+
+// Describe a docker image
+type DockerImage struct {
+	ID          string   `json:"id"`
+	RepoTags    []string `json:"repo_tags"` // repository name and tags.
+	Created     int64    `json:"created"`   // unix time since creation.
+	VirtualSize int64    `json:"virtual_size"`
+	Size        int64    `json:"size"`
 }
 
 type NodePhase string

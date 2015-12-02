@@ -33,6 +33,7 @@ import (
 
 	cadvisorapi "github.com/google/cadvisor/info/v1"
 	cadvisorapiv2 "github.com/google/cadvisor/info/v2"
+	"github.com/google/cadvisor/manager"
 	"k8s.io/kubernetes/pkg/api"
 	apierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/resource"
@@ -2853,6 +2854,18 @@ func TestUpdateExistingNodeStatus(t *testing.T) {
 	}
 	mockCadvisor.On("VersionInfo").Return(versionInfo, nil)
 
+	// TODO harryz To test the node images
+	dockerImages := []manager.DockerImage{
+		{
+			ID:          "abc",
+			RepoTags:    []string{"testTag1.1", "testTag1.2"},
+			Created:     1234,
+			VirtualSize: 12,
+			Size:        13,
+		},
+	}
+	mockCadvisor.On("DockerImages").Return(dockerImages, nil)
+
 	// Create a new DiskSpaceManager with a new policy. This new manager along with the mock FsInfo
 	// values added to Cadvisor should make the kubelet report that it is out of disk space.
 	dockerimagesFsInfo := cadvisorapiv2.FsInfo{Capacity: 500 * mb, Available: 70 * mb}
@@ -2909,9 +2922,19 @@ func TestUpdateExistingNodeStatus(t *testing.T) {
 				{Type: api.NodeLegacyHostIP, Address: "127.0.0.1"},
 				{Type: api.NodeInternalIP, Address: "127.0.0.1"},
 			},
+			NodeImages: []api.DockerImage{
+				{
+					ID:          "abc",
+					RepoTags:    []string{"testTag1.1", "testTag1.2"},
+					Created:     1234,
+					VirtualSize: 12,
+					Size:        13,
+				},
+			},
 		},
 	}
 
+	// TODO how to test that?
 	kubelet.updateRuntimeUp()
 	if err := kubelet.updateNodeStatus(); err != nil {
 		t.Errorf("unexpected error: %v", err)

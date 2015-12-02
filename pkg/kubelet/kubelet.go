@@ -2779,6 +2779,25 @@ func (kl *Kubelet) setNodeStatus(node *api.Node) error {
 		node.Status.NodeInfo.KubeProxyVersion = version.Get().String()
 	}
 
+	// Update the docker images pulled on this node
+	// We can do this only when init or new image pulled, but that will omit user's images
+	dockerImages, err := kl.cadvisor.DockerImages()
+	var nodeImages *[]api.DockerImage
+	if err != nil {
+		glog.Errorf("Error getting docker images on host: %v", err)
+	} else {
+		for index, image := range dockerImages {
+			nodeImages[index] = &api.DockerImage{
+				ID:          image.ID,
+				RepoTags:    image.RepoTags,
+				Created:     image.Created,
+				VirtualSize: image.VirtualSize,
+				Size:        image.Size,
+			}
+		}
+		node.Status.NodeImages = nodeImages
+	}
+
 	node.Status.DaemonEndpoints = *kl.daemonEndpoints
 
 	currentTime := unversioned.Now()
