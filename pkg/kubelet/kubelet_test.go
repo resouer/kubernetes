@@ -90,6 +90,18 @@ type TestKubelet struct {
 func newTestKubelet(t *testing.T) *TestKubelet {
 	fakeRuntime := &kubecontainer.FakeRuntime{}
 	fakeRuntime.VersionInfo = "1.15"
+	fakeRuntime.ImageList = []kubecontainer.Image{
+		{
+			ID:   "abc",
+			Tags: []string{"v1", "v2"},
+			Size: 123,
+		},
+		{
+			ID:   "efg",
+			Tags: []string{"v3", "v4"},
+			Size: 456,
+		},
+	}
 	fakeRecorder := &record.FakeRecorder{}
 	fakeKubeClient := &testclient.Fake{}
 	kubelet := &Kubelet{}
@@ -2908,6 +2920,18 @@ func TestUpdateExistingNodeStatus(t *testing.T) {
 			Addresses: []api.NodeAddress{
 				{Type: api.NodeLegacyHostIP, Address: "127.0.0.1"},
 				{Type: api.NodeInternalIP, Address: "127.0.0.1"},
+			},
+			Images: []api.DockerImage{
+				{
+					ID:   "abc",
+					Tags: []string{"v1", "v2"},
+					Size: 123,
+				},
+				{
+					ID:   "efg",
+					Tags: []string{"v3", "v4"},
+					Size: 456,
+				},
 			},
 		},
 	}

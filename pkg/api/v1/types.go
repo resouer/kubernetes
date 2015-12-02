@@ -1861,6 +1861,18 @@ type NodeStatus struct {
 	// Set of ids/uuids to uniquely identify the node.
 	// More info: http://releases.k8s.io/HEAD/docs/admin/node.md#node-info
 	NodeInfo NodeSystemInfo `json:"nodeInfo,omitempty"`
+	// List of docker images on this node
+	Images []DockerImage `json:"images",omitempty`
+}
+
+// Describe a docker image
+type DockerImage struct {
+	// ID of the image.
+	ID string
+	// Other names by which this image is known.
+	Tags []string
+	// The size of the image in bytes.
+	Size int64
 }
 
 type NodePhase string

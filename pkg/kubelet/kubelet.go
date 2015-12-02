@@ -2781,6 +2781,22 @@ func (kl *Kubelet) setNodeStatus(node *api.Node) error {
 
 	node.Status.DaemonEndpoints = *kl.daemonEndpoints
 
+	// Update image list of this node
+	var imagesOnNode []api.DockerImage
+	containerImages, err := kl.imageManager.GetImageList()
+	if err != nil {
+		glog.Errorf("Error getting image list: %v", err)
+	} else {
+		for index, image := range containerImages {
+			imagesOnNode[index] = api.DockerImage{
+				ID:   image.ID,
+				Tags: image.Tags,
+				Size: image.Size,
+			}
+		}
+	}
+	node.Status.Images = imagesOnNode
+
 	currentTime := unversioned.Now()
 	var nodeOODCondition *api.NodeCondition
 
