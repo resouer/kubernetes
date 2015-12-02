@@ -90,6 +90,18 @@ type TestKubelet struct {
 func newTestKubelet(t *testing.T) *TestKubelet {
 	fakeRuntime := &kubecontainer.FakeRuntime{}
 	fakeRuntime.VersionInfo = "1.15"
+	fakeRuntime.ImageList = []kubecontainer.Image{
+		{
+			ID:   "abc",
+			Tags: []string{"gcr.io/google_containers:v1", "gcr.io/google_containers:v2"},
+			Size: 123,
+		},
+		{
+			ID:   "efg",
+			Tags: []string{"gcr.io/google_containers:v3", "gcr.io/google_containers:v4"},
+			Size: 456,
+		},
+	}
 	fakeRecorder := &record.FakeRecorder{}
 	fakeKubeClient := &testclient.Fake{}
 	kubelet := &Kubelet{}
@@ -143,6 +155,17 @@ func newTestKubelet(t *testing.T) *TestKubelet {
 
 	kubelet.volumeManager = newVolumeManager()
 	kubelet.containerManager = cm.NewStubContainerManager()
+	fakeNodeRef := &api.ObjectReference{
+		Kind:      "Node",
+		Name:      testKubeletHostname,
+		UID:       types.UID(testKubeletHostname),
+		Namespace: "",
+	}
+	fakeImageGCPolicy := ImageGCPolicy{
+		HighThresholdPercent: 90,
+		LowThresholdPercent:  80,
+	}
+	kubelet.imageManager, err = newImageManager(fakeRuntime, mockCadvisor, fakeRecorder, fakeNodeRef, fakeImageGCPolicy)
 	fakeClock := &util.FakeClock{Time: time.Now()}
 	kubelet.backOff = util.NewBackOff(time.Second, time.Minute)
 	kubelet.backOff.Clock = fakeClock
@@ -2506,6 +2529,16 @@ func TestUpdateNewNodeStatus(t *testing.T) {
 				{Type: api.NodeLegacyHostIP, Address: "127.0.0.1"},
 				{Type: api.NodeInternalIP, Address: "127.0.0.1"},
 			},
+			Images: []api.ContainerImage{
+				{
+					Tags: []string{"gcr.io/google_containers:v1", "gcr.io/google_containers:v2"},
+					Size: 123,
+				},
+				{
+					Tags: []string{"gcr.io/google_containers:v3", "gcr.io/google_containers:v4"},
+					Size: 456,
+				},
+			},
 		},
 	}
 
@@ -2626,6 +2659,16 @@ func testDockerRuntimeVersion(t *testing.T) {
 			Addresses: []api.NodeAddress{
 				{Type: api.NodeLegacyHostIP, Address: "127.0.0.1"},
 				{Type: api.NodeInternalIP, Address: "127.0.0.1"},
+			},
+			Images: []api.ContainerImage{
+				{
+					Tags: []string{"gcr.io/google_containers:v1", "gcr.io/google_containers:v2"},
+					Size: 123,
+				},
+				{
+					Tags: []string{"gcr.io/google_containers:v3", "gcr.io/google_containers:v4"},
+					Size: 456,
+				},
 			},
 		},
 	}
@@ -2797,6 +2840,16 @@ func TestUpdateExistingNodeStatus(t *testing.T) {
 				{Type: api.NodeLegacyHostIP, Address: "127.0.0.1"},
 				{Type: api.NodeInternalIP, Address: "127.0.0.1"},
 			},
+			Images: []api.ContainerImage{
+				{
+					Tags: []string{"gcr.io/google_containers:v1", "gcr.io/google_containers:v2"},
+					Size: 123,
+				},
+				{
+					Tags: []string{"gcr.io/google_containers:v3", "gcr.io/google_containers:v4"},
+					Size: 456,
+				},
+			},
 		},
 	}
 
@@ -2923,6 +2976,16 @@ func TestUpdateNodeStatusWithoutContainerRuntime(t *testing.T) {
 			Addresses: []api.NodeAddress{
 				{Type: api.NodeLegacyHostIP, Address: "127.0.0.1"},
 				{Type: api.NodeInternalIP, Address: "127.0.0.1"},
+			},
+			Images: []api.ContainerImage{
+				{
+					Tags: []string{"gcr.io/google_containers:v1", "gcr.io/google_containers:v2"},
+					Size: 123,
+				},
+				{
+					Tags: []string{"gcr.io/google_containers:v3", "gcr.io/google_containers:v4"},
+					Size: 456,
+				},
 			},
 		},
 	}

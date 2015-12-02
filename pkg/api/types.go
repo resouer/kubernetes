@@ -1519,6 +1519,16 @@ type NodeStatus struct {
 	DaemonEndpoints NodeDaemonEndpoints `json:"daemonEndpoints,omitempty"`
 	// Set of ids/uuids to uniquely identify the node.
 	NodeInfo NodeSystemInfo `json:"nodeInfo,omitempty"`
+	// List of container images on this node
+	Images []ContainerImage `json:"images",omitempty`
+}
+
+// Describe a container image
+type ContainerImage struct {
+	// Names by which this image is known.
+	Tags []string
+	// The size of the image in bytes.
+	Size int64
 }
 
 type NodePhase string

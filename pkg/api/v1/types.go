@@ -1885,6 +1885,17 @@ type NodeStatus struct {
 	// Set of ids/uuids to uniquely identify the node.
 	// More info: http://releases.k8s.io/HEAD/docs/admin/node.md#node-info
 	NodeInfo NodeSystemInfo `json:"nodeInfo,omitempty"`
+	// List of container images on this node
+	Images []ContainerImage `json:"images",omitempty`
+}
+
+// Describe a container image
+type ContainerImage struct {
+	// Names by which this image is known.
+	// e.g. ["gcr.io/google_containers/hyperkube:v1.0.7", "dockerhub.io/google_containers/hyperkube:v1.0.7"]
+	Tags []string
+	// The size of the image in bytes.
+	Size int64
 }
 
 type NodePhase string
