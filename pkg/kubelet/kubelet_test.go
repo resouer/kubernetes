@@ -155,6 +155,7 @@ func newTestKubelet(t *testing.T) *TestKubelet {
 
 	kubelet.volumeManager = newVolumeManager()
 	kubelet.containerManager = cm.NewStubContainerManager()
+	kubelet.imageManager = NewStubImageManager(fakeRuntime)
 	fakeClock := &util.FakeClock{Time: time.Now()}
 	kubelet.backOff = util.NewBackOff(time.Second, time.Minute)
 	kubelet.backOff.Clock = fakeClock

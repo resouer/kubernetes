@@ -2787,12 +2787,12 @@ func (kl *Kubelet) setNodeStatus(node *api.Node) error {
 	if err != nil {
 		glog.Errorf("Error getting image list: %v", err)
 	} else {
-		for index, image := range containerImages {
-			imagesOnNode[index] = api.DockerImage{
+		for _, image := range containerImages {
+			append(imagesOnNode, api.DockerImage{
 				ID:   image.ID,
 				Tags: image.Tags,
 				Size: image.Size,
-			}
+			})
 		}
 	}
 	node.Status.Images = imagesOnNode

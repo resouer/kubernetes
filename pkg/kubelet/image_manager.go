@@ -314,3 +314,27 @@ func isImageUsed(image container.Image, imagesInUse sets.String) bool {
 	}
 	return false
 }
+
+type imageManagerStub struct {
+	runtime kubecontainer.FakeRuntime
+}
+
+var _ imageManager = &imageManagerStub{}
+
+func (im *imageManagerStub) GarbageCollect() error {
+	glog.V(2).Infof("Image manager collect garbage")
+	return nil
+}
+
+func (im *imageManagerStub) Start() error {
+	glog.V(2).Infof("Starting stub image manager")
+	return nil
+}
+
+func (im *imageManagerStub) GetImageList() ([]kubecontainer.Image, error) {
+	return im.runtime.ListImages()
+}
+
+func NewStubImageManager(fakeRuntime *kubecontainer.FakeRuntime) imageManager {
+	return &imageManagerStub{runtime: *fakeRuntime}
+}
