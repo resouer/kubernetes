@@ -25,10 +25,6 @@ import (
 	"path"
 )
 
-const (
-	randomLength = 5
-)
-
 // Volume represents a directory used by pods or hosts on a node.
 // All method implementations of methods in the volume interface must be idempotent.
 type Volume interface {
