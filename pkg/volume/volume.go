@@ -17,7 +17,6 @@ limitations under the License.
 package volume
 
 import (
-	"fmt"
 	"io/ioutil"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/resource"
@@ -132,23 +131,4 @@ func RenameDirectory(oldPath, newName string) (string, error) {
 		return "", err
 	}
 	return newPath, nil
-}
-
-// Return the wrapper volume spec of specific volume plugin
-func GetWrappedVolumeSpec(volName string, pluginName string) *Spec {
-	// The name of wrapper volume is set to "wrapped_{wrapped_volume_name}"
-	wrapperVolumeName := fmt.Sprintf("wrapped_%v", volName)
-
-	var volumeSpec *Spec
-	switch pluginName {
-	case "kubernetes.io/downward-api", "kubernetes.io/secret":
-		volumeSpec = &Spec{
-			Volume: &api.Volume{Name: wrapperVolumeName, VolumeSource: api.VolumeSource{EmptyDir: &api.EmptyDirVolumeSource{Medium: api.StorageMediumMemory}}},
-		}
-	case "kubernetes.io/git-repo":
-		volumeSpec = &Spec{
-			Volume: &api.Volume{Name: wrapperVolumeName, VolumeSource: api.VolumeSource{EmptyDir: &api.EmptyDirVolumeSource{}}},
-		}
-	}
-	return volumeSpec
 }

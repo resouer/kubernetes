@@ -17,15 +17,18 @@ limitations under the License.
 package e2e
 
 import (
-	"fmt"
-
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/intstr"
+
+	"strconv"
 
 	. "github.com/onsi/ginkgo"
 )
 
-var _ = Describe("Pod with multiple empty_dir wrapper volumes", func() {
+// This test will create a pod with a secret volume and gitRepo volume
+// Thus requests a secret, a git server pod, and a git server service
+var _ = Describe("EmptyDir wrapper volumes", func() {
 	f := NewFramework("secrets")
 
 	It("should becomes running [Conformance]", func() {
@@ -40,25 +43,89 @@ var _ = Describe("Pod with multiple empty_dir wrapper volumes", func() {
 			},
 			Data: map[string][]byte{
 				"data-1": []byte("value-1\n"),
-				"data-2": []byte("value-2\n"),
-				"data-3": []byte("value-3\n"),
 			},
 		}
 
-		By(fmt.Sprintf("Creating secret with name %s", secret.Name))
-		defer func() {
-			By("Cleaning up the secret")
-			if err := f.Client.Secrets(f.Namespace.Name).Delete(secret.Name); err != nil {
-				Failf("unable to delete secret %v: %v", secret.Name, err)
-			}
-		}()
 		var err error
 		if secret, err = f.Client.Secrets(f.Namespace.Name).Create(secret); err != nil {
 			Failf("unable to create test secret %s: %v", secret.Name, err)
 		}
 
+		gitServerPodName := "git-server-" + string(util.NewUUID())
+
+		labels := map[string]string{"name": gitServerPodName}
+
+		gitServerPod := &api.Pod{
+			ObjectMeta: api.ObjectMeta{
+				Name:   gitServerPodName,
+				Labels: labels,
+			},
+			Spec: api.PodSpec{
+				Containers: []api.Container{
+					{
+						Name:            "git-repo",
+						Image:           "gcr.io/google_containers/gitolite-http:604c51b84bd5",
+						ImagePullPolicy: "IfNotPresent",
+						Ports: []api.ContainerPort{
+							{ContainerPort: 80},
+							{ContainerPort: 22},
+						},
+						Lifecycle: &api.Lifecycle{
+							PostStart: &api.Handler{
+								Exec: &api.ExecAction{
+									Command: []string{
+										"htpasswd",
+										"-cb",
+										"/data/.htpasswd",
+										"admin",
+										"password",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+
+		if gitServerPod, err = f.Client.Pods(f.Namespace.Name).Create(gitServerPod); err != nil {
+			Failf("unable to create test git server pod %s: %v", gitServerPod.Name, err)
+		}
+
+		// Portal IP and port
+		clusterIP := "10.0.0.2"
+		httpPort := 80
+		sshPort := 22
+
+		gitServerSvc := &api.Service{
+			ObjectMeta: api.ObjectMeta{
+				Name: "git-server-svc",
+			},
+			Spec: api.ServiceSpec{
+				Selector: labels,
+				Ports: []api.ServicePort{
+					{
+						Name:       "http",
+						Port:       httpPort,
+						TargetPort: intstr.FromInt(httpPort),
+					},
+					{
+						Name:       "ssh",
+						Port:       sshPort,
+						TargetPort: intstr.FromInt(sshPort),
+					},
+				},
+				ClusterIP: clusterIP,
+			},
+		}
+
+		if gitServerSvc, err = f.Client.Services(f.Namespace.Name).Create(gitServerSvc); err != nil {
+			Failf("unable to create test git server service %s: %v", gitServerSvc.Name, err)
+		}
+
 		gitVolumeName := "git-volume"
 		gitVolumeMountPath := "/etc/git-volume"
+		gitURL := "http://admin:password@" + clusterIP + ":" + strconv.Itoa(httpPort) + "/git/testing"
 
 		pod := &api.Pod{
 			ObjectMeta: api.ObjectMeta{
@@ -78,7 +145,7 @@ var _ = Describe("Pod with multiple empty_dir wrapper volumes", func() {
 						Name: gitVolumeName,
 						VolumeSource: api.VolumeSource{
 							GitRepo: &api.GitRepoVolumeSource{
-								Repository: "https://github.com/kubernetes/kubedash",
+								Repository: gitURL,
 							},
 						},
 					},
@@ -106,16 +173,28 @@ var _ = Describe("Pod with multiple empty_dir wrapper volumes", func() {
 			},
 		}
 
-		defer func() {
-			By("Cleaning up the pod")
-			if err = f.Client.Pods(f.Namespace.Name).Delete(pod.Name, api.NewDeleteOptions(0)); err != nil {
-				Failf("unable to delete pod %v: %v", pod.Name, err)
-			}
-		}()
-
-		if _, err = f.Client.Pods(f.Namespace.Name).Create(pod); err != nil {
+		if pod, err = f.Client.Pods(f.Namespace.Name).Create(pod); err != nil {
 			Failf("unable to create pod %v: %v", pod.Name, err)
 		}
+
+		defer func() {
+			By("Cleaning up the secret")
+			if err := f.Client.Secrets(f.Namespace.Name).Delete(secret.Name); err != nil {
+				Failf("unable to delete secret %v: %v", secret.Name, err)
+			}
+			By("Cleaning up the git server pod")
+			if err = f.Client.Pods(f.Namespace.Name).Delete(gitServerPod.Name, api.NewDeleteOptions(0)); err != nil {
+				Failf("unable to delete git server pod %v: %v", gitServerPod.Name, err)
+			}
+			By("Cleaning up the git server svc")
+			if err = f.Client.Services(f.Namespace.Name).Delete(gitServerSvc.Name); err != nil {
+				Failf("unable to delete git server svc %v: %v", gitServerSvc.Name, err)
+			}
+			By("Cleaning up the git vol pod")
+			if err = f.Client.Pods(f.Namespace.Name).Delete(pod.Name, api.NewDeleteOptions(0)); err != nil {
+				Failf("unable to delete git vol pod %v: %v", pod.Name, err)
+			}
+		}()
 
 		expectNoError(waitForPodRunningInNamespace(f.Client, pod.Name, f.Namespace.Name))
 	})
