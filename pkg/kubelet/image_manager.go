@@ -310,7 +310,7 @@ func isImageUsed(image container.Image, imagesInUse sets.String) bool {
 	if _, ok := imagesInUse[image.ID]; ok {
 		return true
 	}
-	for _, tag := range image.Tags {
+	for _, tag := range image.RepoTags {
 		if _, ok := imagesInUse[tag]; ok {
 			return true
 		}

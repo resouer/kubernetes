@@ -92,14 +92,14 @@ func newTestKubelet(t *testing.T) *TestKubelet {
 	fakeRuntime.VersionInfo = "1.15"
 	fakeRuntime.ImageList = []kubecontainer.Image{
 		{
-			ID:   "abc",
-			Tags: []string{"gcr.io/google_containers:v1", "gcr.io/google_containers:v2"},
-			Size: 123,
+			ID:       "abc",
+			RepoTags: []string{"gcr.io/google_containers:v1", "gcr.io/google_containers:v2"},
+			Size:     123,
 		},
 		{
-			ID:   "efg",
-			Tags: []string{"gcr.io/google_containers:v3", "gcr.io/google_containers:v4"},
-			Size: 456,
+			ID:       "efg",
+			RepoTags: []string{"gcr.io/google_containers:v3", "gcr.io/google_containers:v4"},
+			Size:     456,
 		},
 	}
 	fakeRecorder := &record.FakeRecorder{}
@@ -2531,12 +2531,12 @@ func TestUpdateNewNodeStatus(t *testing.T) {
 			},
 			Images: []api.ContainerImage{
 				{
-					Tags: []string{"gcr.io/google_containers:v1", "gcr.io/google_containers:v2"},
-					Size: 123,
+					RepoTags: []string{"gcr.io/google_containers:v1", "gcr.io/google_containers:v2"},
+					Size:     123,
 				},
 				{
-					Tags: []string{"gcr.io/google_containers:v3", "gcr.io/google_containers:v4"},
-					Size: 456,
+					RepoTags: []string{"gcr.io/google_containers:v3", "gcr.io/google_containers:v4"},
+					Size:     456,
 				},
 			},
 		},
@@ -2662,12 +2662,12 @@ func testDockerRuntimeVersion(t *testing.T) {
 			},
 			Images: []api.ContainerImage{
 				{
-					Tags: []string{"gcr.io/google_containers:v1", "gcr.io/google_containers:v2"},
-					Size: 123,
+					RepoTags: []string{"gcr.io/google_containers:v1", "gcr.io/google_containers:v2"},
+					Size:     123,
 				},
 				{
-					Tags: []string{"gcr.io/google_containers:v3", "gcr.io/google_containers:v4"},
-					Size: 456,
+					RepoTags: []string{"gcr.io/google_containers:v3", "gcr.io/google_containers:v4"},
+					Size:     456,
 				},
 			},
 		},
@@ -2842,12 +2842,12 @@ func TestUpdateExistingNodeStatus(t *testing.T) {
 			},
 			Images: []api.ContainerImage{
 				{
-					Tags: []string{"gcr.io/google_containers:v1", "gcr.io/google_containers:v2"},
-					Size: 123,
+					RepoTags: []string{"gcr.io/google_containers:v1", "gcr.io/google_containers:v2"},
+					Size:     123,
 				},
 				{
-					Tags: []string{"gcr.io/google_containers:v3", "gcr.io/google_containers:v4"},
-					Size: 456,
+					RepoTags: []string{"gcr.io/google_containers:v3", "gcr.io/google_containers:v4"},
+					Size:     456,
 				},
 			},
 		},
@@ -2979,12 +2979,12 @@ func TestUpdateNodeStatusWithoutContainerRuntime(t *testing.T) {
 			},
 			Images: []api.ContainerImage{
 				{
-					Tags: []string{"gcr.io/google_containers:v1", "gcr.io/google_containers:v2"},
-					Size: 123,
+					RepoTags: []string{"gcr.io/google_containers:v1", "gcr.io/google_containers:v2"},
+					Size:     123,
 				},
 				{
-					Tags: []string{"gcr.io/google_containers:v3", "gcr.io/google_containers:v4"},
-					Size: 456,
+					RepoTags: []string{"gcr.io/google_containers:v3", "gcr.io/google_containers:v4"},
+					Size:     456,
 				},
 			},
 		},

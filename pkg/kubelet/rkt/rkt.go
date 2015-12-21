@@ -1469,7 +1469,7 @@ func (r *Runtime) getImageByName(imageName string) (*kubecontainer.Image, error)
 	}
 
 	for _, img := range images {
-		for _, t := range img.Tags {
+		for _, t := range img.RepoTags {
 			if t == imageName {
 				return &img, nil
 			}
@@ -1488,8 +1488,8 @@ func (r *Runtime) ListImages() ([]kubecontainer.Image, error) {
 	images := make([]kubecontainer.Image, len(listResp.Images))
 	for i, image := range listResp.Images {
 		images[i] = kubecontainer.Image{
-			ID:   image.Id,
-			Tags: []string{image.Name},
+			ID:       image.Id,
+			RepoTags: []string{image.Name},
 			//TODO: fill in the size of the image
 		}
 	}

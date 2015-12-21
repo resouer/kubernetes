@@ -307,7 +307,7 @@ func TestListImages(t *testing.T) {
 		assert.Equal(t, len(images), len(tt.images), fmt.Sprintf("test case %d: mismatched number of images", i))
 		for i, image := range images {
 			assert.Equal(t, image.ID, tt.images[i].Id, fmt.Sprintf("test case %d: mismatched image IDs", i))
-			assert.Equal(t, []string{tt.images[i].Name}, image.Tags, fmt.Sprintf("test case %d: mismatched image tags", i))
+			assert.Equal(t, []string{tt.images[i].Name}, image.RepoTags, fmt.Sprintf("test case %d: mismatched image tags", i))
 		}
 
 		assert.Equal(t, fr.called, []string{"ListImages"}, fmt.Sprintf("test case %d: unexpected called list", i))

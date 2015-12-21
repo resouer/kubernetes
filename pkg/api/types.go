@@ -1526,7 +1526,7 @@ type NodeStatus struct {
 // Describe a container image
 type ContainerImage struct {
 	// Names by which this image is known.
-	Tags []string
+	RepoTags []string
 	// The size of the image in bytes.
 	Size int64
 }
