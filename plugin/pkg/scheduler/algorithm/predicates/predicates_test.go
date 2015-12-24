@@ -54,6 +54,14 @@ func makeResources(milliCPU int64, memory int64, pods int64) api.NodeResources {
 	}
 }
 
+func makeAllocatableResources(milliCPU int64, memory int64, pods int64) api.ResourceList {
+	return api.ResourceList{
+		api.ResourceCPU:    *resource.NewMilliQuantity(milliCPU, resource.DecimalSI),
+		api.ResourceMemory: *resource.NewQuantity(memory, resource.BinarySI),
+		api.ResourcePods:   *resource.NewQuantity(pods, resource.DecimalSI),
+	}
+}
+
 func newResourcePod(usage ...resourceRequest) *api.Pod {
 	containers := []api.Container{}
 	for _, req := range usage {
@@ -124,16 +132,8 @@ func TestPodFitsResources(t *testing.T) {
 	}
 
 	for _, test := range enoughPodsTests {
-		node := api.Node{Status: api.NodeStatus{Capacity: makeResources(10, 20, 32).Capacity}}
-
-		fit := ResourceFit{FakeNodeInfo(node)}
-		fits, err := fit.PodFitsResources(test.pod, test.existingPods, "machine")
-		if err != nil {
-			t.Errorf("unexpected error: %v", err)
-		}
-		if fits != test.fits {
-			t.Errorf("%s: expected: %v got %v", test.test, test.fits, fits)
-		}
+		node := api.Node{Status: api.NodeStatus{Capacity: api.ResourceList{}, Allocatable: makeAllocatableResources(10, 20, 32)}}
+		doTestAgaistNode(test, node, t)
 	}
 
 	notEnoughPodsTests := []struct {
@@ -168,16 +168,29 @@ func TestPodFitsResources(t *testing.T) {
 		},
 	}
 	for _, test := range notEnoughPodsTests {
-		node := api.Node{Status: api.NodeStatus{Capacity: makeResources(10, 20, 1).Capacity}}
+		node := api.Node{Status: api.NodeStatus{Capacity: api.ResourceList{}, Allocatable: makeAllocatableResources(10, 20, 1)}}
+		doTestAgaistNode(test, node, t)
+	}
 
-		fit := ResourceFit{FakeNodeInfo(node)}
-		fits, err := fit.PodFitsResources(test.pod, test.existingPods, "machine")
-		if err != nil {
-			t.Errorf("unexpected error: %v", err)
-		}
-		if fits != test.fits {
-			t.Errorf("%s: expected: %v got %v", test.test, test.fits, fits)
-		}
+}
+
+func doTestAgaistNode(test struct {
+	pod          *api.Pod
+	existingPods []*api.Pod
+	fits         bool
+	test         string
+}, node api.Node, t *testing.T) {
+	var flag string
+	if node.Status.Allocatable != nil {
+		flag = "with allocatable"
+	}
+	fit := ResourceFit{FakeNodeInfo(node)}
+	fits, err := fit.PodFitsResources(test.pod, test.existingPods, "machine")
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	if fits != test.fits {
+		t.Errorf("%s failed on node %s: expected: %v got %v", test.test, flag, test.fits, fits)
 	}
 }
 
