@@ -52,6 +52,7 @@ var _ = Describe("EmptyDir wrapper volumes", func() {
 		}
 
 		gitServerPodName := "git-server-" + string(util.NewUUID())
+		containerPort := 8000
 
 		labels := map[string]string{"name": gitServerPodName}
 
@@ -64,24 +65,10 @@ var _ = Describe("EmptyDir wrapper volumes", func() {
 				Containers: []api.Container{
 					{
 						Name:            "git-repo",
-						Image:           "gcr.io/google_containers/gitolite-http:604c51b84bd5",
+						Image:           "resouer/fakegitserver:v1",
 						ImagePullPolicy: "IfNotPresent",
 						Ports: []api.ContainerPort{
-							{ContainerPort: 80},
-							{ContainerPort: 22},
-						},
-						Lifecycle: &api.Lifecycle{
-							PostStart: &api.Handler{
-								Exec: &api.ExecAction{
-									Command: []string{
-										"htpasswd",
-										"-cb",
-										"/data/.htpasswd",
-										"admin",
-										"password",
-									},
-								},
-							},
+							{ContainerPort: containerPort},
 						},
 					},
 				},
@@ -93,9 +80,7 @@ var _ = Describe("EmptyDir wrapper volumes", func() {
 		}
 
 		// Portal IP and port
-		clusterIP := "10.0.0.2"
-		httpPort := 80
-		sshPort := 22
+		httpPort := 2345
 
 		gitServerSvc := &api.Service{
 			ObjectMeta: api.ObjectMeta{
@@ -107,15 +92,9 @@ var _ = Describe("EmptyDir wrapper volumes", func() {
 					{
 						Name:       "http",
 						Port:       httpPort,
-						TargetPort: intstr.FromInt(httpPort),
-					},
-					{
-						Name:       "ssh",
-						Port:       sshPort,
-						TargetPort: intstr.FromInt(sshPort),
+						TargetPort: intstr.FromInt(containerPort),
 					},
 				},
-				ClusterIP: clusterIP,
 			},
 		}
 
@@ -125,7 +104,8 @@ var _ = Describe("EmptyDir wrapper volumes", func() {
 
 		gitVolumeName := "git-volume"
 		gitVolumeMountPath := "/etc/git-volume"
-		gitURL := "http://admin:password@" + clusterIP + ":" + strconv.Itoa(httpPort) + "/git/testing"
+		gitURL := "http://" + gitServerSvc.Spec.ClusterIP + ":" + strconv.Itoa(httpPort)
+		gitRepo := "test"
 
 		pod := &api.Pod{
 			ObjectMeta: api.ObjectMeta{
@@ -146,6 +126,7 @@ var _ = Describe("EmptyDir wrapper volumes", func() {
 						VolumeSource: api.VolumeSource{
 							GitRepo: &api.GitRepoVolumeSource{
 								Repository: gitURL,
+								Directory:  gitRepo,
 							},
 						},
 					},
