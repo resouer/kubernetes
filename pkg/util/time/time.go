@@ -17,7 +17,7 @@ limitations under the License.
 package time
 
 import (
-	// "k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util"
 	"time"
 )
 
@@ -51,7 +51,7 @@ func Until(f func(), period time.Duration, stopCh <-chan struct{}) {
 
 	for {
 		func() {
-			// defer util.HandleCrash()
+			defer util.HandleCrash()
 			f()
 		}()
 		select {
