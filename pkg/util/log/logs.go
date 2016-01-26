@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package util
+package log
 
 import (
 	"flag"
@@ -23,6 +23,7 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/spf13/pflag"
+	"k8s.io/kubernetes/pkg/util"
 )
 
 var logFlushFreq = pflag.Duration("log-flush-frequency", 5*time.Second, "Maximum number of seconds between log flushes")
@@ -46,7 +47,7 @@ func InitLogs() {
 	log.SetOutput(GlogWriter{})
 	log.SetFlags(0)
 	// The default glog flush interval is 30 seconds, which is frighteningly long.
-	go Until(glog.Flush, *logFlushFreq, NeverStop)
+	go util.Until(glog.Flush, *logFlushFreq, util.NeverStop)
 }
 
 // FlushLogs flushes logs immediately.

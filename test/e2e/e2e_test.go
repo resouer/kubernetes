@@ -36,7 +36,7 @@ import (
 	"k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	"k8s.io/kubernetes/pkg/cloudprovider"
 	gcecloud "k8s.io/kubernetes/pkg/cloudprovider/providers/gce"
-	"k8s.io/kubernetes/pkg/util"
+    "k8s.io/kubernetes/pkg/util/log"
 )
 
 const (
@@ -95,8 +95,8 @@ func init() {
 
 func TestE2E(t *testing.T) {
 	util.ReallyCrash = true
-	util.InitLogs()
-	defer util.FlushLogs()
+	log.InitLogs()
+	defer log.FlushLogs()
 	if testContext.ReportDir != "" {
 		if err := os.MkdirAll(testContext.ReportDir, 0755); err != nil {
 			glog.Errorf("Failed creating report directory: %v", err)

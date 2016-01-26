@@ -24,7 +24,7 @@ import (
 	"k8s.io/kubernetes/cmd/kube-proxy/app"
 	"k8s.io/kubernetes/cmd/kube-proxy/app/options"
 	"k8s.io/kubernetes/pkg/healthz"
-	"k8s.io/kubernetes/pkg/util"
+    "k8s.io/kubernetes/pkg/util/log"
 	"k8s.io/kubernetes/pkg/version/verflag"
 
 	"github.com/spf13/pflag"
@@ -40,8 +40,8 @@ func main() {
 	config.AddFlags(pflag.CommandLine)
 
 	util.InitFlags()
-	util.InitLogs()
-	defer util.FlushLogs()
+	log.InitLogs()
+	defer log.FlushLogs()
 
 	verflag.PrintAndExitIfRequested()
 
