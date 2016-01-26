@@ -61,6 +61,7 @@ import (
 	"k8s.io/kubernetes/pkg/client/record"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/util"
+    utiltime "k8s.io/kubernetes/pkg/util/time"
 	"k8s.io/kubernetes/pkg/util/wait"
 
 	"github.com/golang/glog"
@@ -203,7 +204,7 @@ func (le *LeaderElector) IsLeader() bool {
 // acquire loops calling tryAcquireOrRenew and returns immediately when tryAcquireOrRenew succeeds.
 func (le *LeaderElector) acquire() {
 	stop := make(chan struct{})
-	util.Until(func() {
+	utiltime.Until(func() {
 		succeeded := le.tryAcquireOrRenew()
 		le.maybeReportTransition()
 		if !succeeded {
@@ -220,7 +221,7 @@ func (le *LeaderElector) acquire() {
 // renew loops calling tryAcquireOrRenew and returns immediately when tryAcquireOrRenew fails.
 func (le *LeaderElector) renew() {
 	stop := make(chan struct{})
-	util.Until(func() {
+	utiltime.Until(func() {
 		err := wait.Poll(le.config.RetryPeriod, le.config.RenewDeadline, func() (bool, error) {
 			return le.tryAcquireOrRenew(), nil
 		})

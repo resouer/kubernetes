@@ -24,7 +24,7 @@ import (
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
 	"k8s.io/kubernetes/pkg/kubelet/metrics"
 	"k8s.io/kubernetes/pkg/types"
-	"k8s.io/kubernetes/pkg/util"
+    utiltime "k8s.io/kubernetes/pkg/util/time"
 	"k8s.io/kubernetes/pkg/util/sets"
 )
 
@@ -110,7 +110,7 @@ func (g *GenericPLEG) Watch() chan *PodLifecycleEvent {
 
 // Start spawns a goroutine to relist periodically.
 func (g *GenericPLEG) Start() {
-	go util.Until(g.relist, g.relistPeriod, util.NeverStop)
+	go utiltime.Until(g.relist, g.relistPeriod, utiltime.NeverStop)
 }
 
 func generateEvent(podID types.UID, cid string, oldState, newState plegContainerState) *PodLifecycleEvent {

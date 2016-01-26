@@ -21,6 +21,7 @@ import (
 
 	"github.com/golang/glog"
 	"k8s.io/kubernetes/pkg/util"
+    utiltime "k8s.io/kubernetes/pkg/util/time"
 )
 
 // ExpirationCache implements the store interface
@@ -32,7 +33,7 @@ import (
 type ExpirationCache struct {
 	cacheStorage     ThreadSafeStore
 	keyFunc          KeyFunc
-	clock            util.Clock
+	clock            utiltime.Clock
 	expirationPolicy ExpirationPolicy
 }
 
@@ -49,7 +50,7 @@ type TTLPolicy struct {
 	Ttl time.Duration
 
 	// Clock used to calculate ttl expiration
-	Clock util.Clock
+	Clock utiltime.Clock
 }
 
 // IsExpired returns true if the given object is older than the ttl, or it can't
@@ -186,7 +187,7 @@ func NewTTLStore(keyFunc KeyFunc, ttl time.Duration) Store {
 	return &ExpirationCache{
 		cacheStorage:     NewThreadSafeStore(Indexers{}, Indices{}),
 		keyFunc:          keyFunc,
-		clock:            util.RealClock{},
-		expirationPolicy: &TTLPolicy{ttl, util.RealClock{}},
+		clock:            utiltime.RealClock{},
+		expirationPolicy: &TTLPolicy{ttl, utiltime.RealClock{}},
 	}
 }

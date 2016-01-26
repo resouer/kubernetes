@@ -34,6 +34,7 @@ import (
 	replicationcontroller "k8s.io/kubernetes/pkg/controller/replication"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util"
+    utiltime "k8s.io/kubernetes/pkg/util/time"
 	"k8s.io/kubernetes/pkg/util/workqueue"
 	"k8s.io/kubernetes/pkg/watch"
 )
@@ -137,7 +138,7 @@ func (jm *JobController) Run(workers int, stopCh <-chan struct{}) {
 	go jm.jobController.Run(stopCh)
 	go jm.podController.Run(stopCh)
 	for i := 0; i < workers; i++ {
-		go util.Until(jm.worker, time.Second, stopCh)
+		go utiltime.Until(jm.worker, time.Second, stopCh)
 	}
 	<-stopCh
 	glog.Infof("Shutting down Job Manager")

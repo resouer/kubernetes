@@ -36,6 +36,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util"
+    utiltime "k8s.io/kubernetes/pkg/util/time"
 	"k8s.io/kubernetes/pkg/watch"
 )
 
@@ -156,13 +157,13 @@ outer:
 // Run starts a watch and handles watch events. Will restart the watch if it is closed.
 // Run starts a goroutine and returns immediately.
 func (r *Reflector) Run() {
-	go util.Until(func() { r.ListAndWatch(util.NeverStop) }, r.period, util.NeverStop)
+	go utiltime.Until(func() { r.ListAndWatch(utiltime.NeverStop) }, r.period, utiltime.NeverStop)
 }
 
 // RunUntil starts a watch and handles watch events. Will restart the watch if it is closed.
 // RunUntil starts a goroutine and returns immediately. It will exit when stopCh is closed.
 func (r *Reflector) RunUntil(stopCh <-chan struct{}) {
-	go util.Until(func() { r.ListAndWatch(stopCh) }, r.period, stopCh)
+	go utiltime.Until(func() { r.ListAndWatch(stopCh) }, r.period, stopCh)
 }
 
 var (

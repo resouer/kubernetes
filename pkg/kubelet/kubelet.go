@@ -67,6 +67,7 @@ import (
 	"k8s.io/kubernetes/pkg/securitycontext"
 	"k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/util"
+    utiltime "k8s.io/kubernetes/pkg/util/time"
 	"k8s.io/kubernetes/pkg/util/atomic"
 	"k8s.io/kubernetes/pkg/util/bandwidth"
 	"k8s.io/kubernetes/pkg/util/chmod"
@@ -312,7 +313,7 @@ func NewMainKubelet(
 		flannelExperimentalOverlay:     flannelExperimentalOverlay,
 		flannelHelper:                  NewFlannelHelper(),
 		nodeIP:                         nodeIP,
-		clock:                          util.RealClock{},
+		clock:                          utiltime.RealClock{},
 		outOfDiskTransitionFrequency: outOfDiskTransitionFrequency,
 		reservation:                  reservation,
 	}
@@ -654,7 +655,7 @@ type Kubelet struct {
 
 	// clock is an interface that provides time related functionality in a way that makes it
 	// easy to test the code.
-	clock util.Clock
+	clock utiltime.Clock
 
 	// outOfDiskTransitionFrequency specifies the amount of time the kubelet has to be actually
 	// not out of disk before it can transition the node condition status from out-of-disk to
@@ -857,17 +858,17 @@ func (kl *Kubelet) GetNode() (*api.Node, error) {
 
 // Starts garbage collection threads.
 func (kl *Kubelet) StartGarbageCollection() {
-	go util.Until(func() {
+	go utiltime.Until(func() {
 		if err := kl.containerGC.GarbageCollect(); err != nil {
 			glog.Errorf("Container garbage collection failed: %v", err)
 		}
-	}, time.Minute, util.NeverStop)
+	}, time.Minute, utiltime.NeverStop)
 
-	go util.Until(func() {
+	go utiltime.Until(func() {
 		if err := kl.imageManager.GarbageCollect(); err != nil {
 			glog.Errorf("Image garbage collection failed: %v", err)
 		}
-	}, 5*time.Minute, util.NeverStop)
+	}, 5*time.Minute, utiltime.NeverStop)
 }
 
 // initializeModules will initialize internal modules that do not require the container runtime to be up.
@@ -938,14 +939,14 @@ func (kl *Kubelet) Run(updates <-chan kubetypes.PodUpdate) {
 
 	if kl.kubeClient != nil {
 		// Start syncing node status immediately, this may set up things the runtime needs to run.
-		go util.Until(kl.syncNodeStatus, kl.nodeStatusUpdateFrequency, util.NeverStop)
+		go utiltime.Until(kl.syncNodeStatus, kl.nodeStatusUpdateFrequency, utiltime.NeverStop)
 	}
-	go util.Until(kl.syncNetworkStatus, 30*time.Second, util.NeverStop)
-	go util.Until(kl.updateRuntimeUp, 5*time.Second, util.NeverStop)
+	go utiltime.Until(kl.syncNetworkStatus, 30*time.Second, utiltime.NeverStop)
+	go utiltime.Until(kl.updateRuntimeUp, 5*time.Second, utiltime.NeverStop)
 
 	// Start a goroutine responsible for killing pods (that are not properly
 	// handled by pod workers).
-	go util.Until(kl.podKiller, 1*time.Second, util.NeverStop)
+	go utiltime.Until(kl.podKiller, 1*time.Second, utiltime.NeverStop)
 
 	// Start component sync loops.
 	kl.statusManager.Start()

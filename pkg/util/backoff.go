@@ -20,6 +20,8 @@ import (
 	"math"
 	"sync"
 	"time"
+
+	utiltime "k8s.io/kubernetes/pkg/util/time"
 )
 
 type backoffEntry struct {
@@ -29,7 +31,7 @@ type backoffEntry struct {
 
 type Backoff struct {
 	sync.Mutex
-	Clock           Clock
+	Clock           utiltime.Clock
 	defaultDuration time.Duration
 	maxDuration     time.Duration
 	perItemBackoff  map[string]*backoffEntry
@@ -38,7 +40,7 @@ type Backoff struct {
 func NewBackOff(initial, max time.Duration) *Backoff {
 	return &Backoff{
 		perItemBackoff:  map[string]*backoffEntry{},
-		Clock:           RealClock{},
+		Clock:           utiltime.RealClock{},
 		defaultDuration: initial,
 		maxDuration:     max,
 	}

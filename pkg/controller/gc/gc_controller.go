@@ -30,6 +30,7 @@ import (
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util"
+    utiltime "k8s.io/kubernetes/pkg/util/time"
 	"k8s.io/kubernetes/pkg/watch"
 
 	"github.com/golang/glog"
@@ -78,7 +79,7 @@ func New(kubeClient client.Interface, resyncPeriod controller.ResyncPeriodFunc, 
 
 func (gcc *GCController) Run(stop <-chan struct{}) {
 	go gcc.podStoreSyncer.Run(stop)
-	go util.Until(gcc.gc, gcCheckPeriod, stop)
+	go utiltime.Until(gcc.gc, gcCheckPeriod, stop)
 	<-stop
 }
 

@@ -21,6 +21,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubelet"
 	kubetypes "k8s.io/kubernetes/pkg/kubelet/types"
 	"k8s.io/kubernetes/pkg/util"
+    "k8s.io/kubernetes/pkg/util/time"
 )
 
 // executorKubelet decorates the kubelet with a Run function that notifies the
@@ -75,7 +76,7 @@ func (kl *executorKubelet) Run(mergedUpdates <-chan kubetypes.PodUpdate) {
 	// will not take very long. Peeking into the future (current k8s master) it
 	// seems that the backlog has grown from 1 to 50 -- this may negatively impact
 	// us going forward, time will tell.
-	util.Until(func() { kl.Kubelet.Run(closableUpdates) }, 0, kl.executorDone)
+	time.Until(func() { kl.Kubelet.Run(closableUpdates) }, 0, kl.executorDone)
 
 	//TODO(jdef) revisit this if/when executor failover lands
 	// Force kubelet to delete all pods.

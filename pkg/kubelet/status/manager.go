@@ -32,6 +32,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubelet/util/format"
 	"k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/util"
+    utiltime "k8s.io/kubernetes/pkg/util/time"
 )
 
 // A wrapper around api.PodStatus that includes a version to enforce that stale pod statuses are
@@ -124,7 +125,7 @@ func (m *manager) Start() {
 	glog.Info("Starting to sync pod status with apiserver")
 	syncTicker := time.Tick(syncPeriod)
 	// syncPod and syncBatch share the same go routine to avoid sync races.
-	go util.Forever(func() {
+	go utiltime.Forever(func() {
 		select {
 		case syncRequest := <-m.podStatusChannel:
 			m.syncPod(syncRequest.podUID, syncRequest.status)

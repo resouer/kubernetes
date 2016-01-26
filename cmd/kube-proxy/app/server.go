@@ -37,6 +37,7 @@ import (
 	"k8s.io/kubernetes/pkg/proxy/userspace"
 	"k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/util"
+    utiltime "k8s.io/kubernetes/pkg/util/time"
 	utildbus "k8s.io/kubernetes/pkg/util/dbus"
 	"k8s.io/kubernetes/pkg/util/exec"
 	utiliptables "k8s.io/kubernetes/pkg/util/iptables"
@@ -258,12 +259,12 @@ func (s *ProxyServer) Run() error {
 
 	// Start up Healthz service if requested
 	if s.Config.HealthzPort > 0 {
-		go util.Until(func() {
+		go utiltime.Until(func() {
 			err := http.ListenAndServe(s.Config.HealthzBindAddress.String()+":"+strconv.Itoa(s.Config.HealthzPort), nil)
 			if err != nil {
 				glog.Errorf("Starting health server failed: %v", err)
 			}
-		}, 5*time.Second, util.NeverStop)
+		}, 5*time.Second, utiltime.NeverStop)
 	}
 
 	// Tune conntrack, if requested

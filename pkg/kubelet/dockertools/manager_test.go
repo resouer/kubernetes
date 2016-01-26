@@ -43,6 +43,7 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/util"
+    utiltime "k8s.io/kubernetes/pkg/util/time"
 	uexec "k8s.io/kubernetes/pkg/util/exec"
 	"k8s.io/kubernetes/pkg/util/intstr"
 	"k8s.io/kubernetes/pkg/util/sets"
@@ -1152,7 +1153,7 @@ func TestGetAPIPodStatusWithLastTermination(t *testing.T) {
 }
 
 func TestSyncPodBackoff(t *testing.T) {
-	var fakeClock = &util.FakeClock{Time: time.Now()}
+	var fakeClock = &utiltime.FakeClock{Time: time.Now()}
 	startTime := fakeClock.Now()
 
 	dm, fakeDocker := newTestDockerManager()

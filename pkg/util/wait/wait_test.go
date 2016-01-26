@@ -24,7 +24,7 @@ import (
 	"testing"
 	"time"
 
-	"k8s.io/kubernetes/pkg/util"
+    utiltime "k8s.io/kubernetes/pkg/util/time"
 )
 
 func TestExponentialBackoff(t *testing.T) {
@@ -87,7 +87,7 @@ DRAIN:
 				break DRAIN
 			}
 			count++
-		case <-time.After(util.ForeverTestTimeout):
+		case <-time.After(utiltime.ForeverTestTimeout):
 			t.Errorf("unexpected timeout after poll")
 		}
 	}
@@ -233,7 +233,7 @@ func TestPollForever(t *testing.T) {
 			if !open {
 				t.Fatalf("did not expect channel to be closed")
 			}
-		case <-time.After(util.ForeverTestTimeout):
+		case <-time.After(utiltime.ForeverTestTimeout):
 			t.Fatalf("channel did not return at least once within the poll interval")
 		}
 	}
@@ -313,14 +313,14 @@ func TestWaitFor(t *testing.T) {
 func TestWaitForWithDelay(t *testing.T) {
 	done := make(chan struct{})
 	defer close(done)
-	WaitFor(poller(time.Millisecond, util.ForeverTestTimeout), func() (bool, error) {
+	WaitFor(poller(time.Millisecond, utiltime.ForeverTestTimeout), func() (bool, error) {
 		time.Sleep(10 * time.Millisecond)
 		return true, nil
 	}, done)
 	// If polling goroutine doesn't see the done signal it will leak timers.
 	select {
 	case done <- struct{}{}:
-	case <-time.After(util.ForeverTestTimeout):
+	case <-time.After(utiltime.ForeverTestTimeout):
 		t.Errorf("expected an ack of the done signal.")
 	}
 }

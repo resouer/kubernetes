@@ -23,7 +23,7 @@ import (
 	"time"
 
 	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/util"
+    utiltime "k8s.io/kubernetes/pkg/util/time"
 )
 
 type myType struct {
@@ -113,7 +113,7 @@ func TestBroadcasterWatcherStopDeadlock(t *testing.T) {
 	}(m.Watch(), m.Watch())
 	m.Action(Added, &myType{})
 	select {
-	case <-time.After(util.ForeverTestTimeout):
+	case <-time.After(utiltime.ForeverTestTimeout):
 		t.Error("timeout: deadlocked")
 	case <-done:
 	}

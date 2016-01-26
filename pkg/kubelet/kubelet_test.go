@@ -56,6 +56,7 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/util"
+    utiltime "k8s.io/kubernetes/pkg/util/time"
 	"k8s.io/kubernetes/pkg/util/bandwidth"
 	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/version"
@@ -88,7 +89,7 @@ type TestKubelet struct {
 	fakeCadvisor     *cadvisor.Mock
 	fakeKubeClient   *testclient.Fake
 	fakeMirrorClient *kubepod.FakeMirrorClient
-	fakeClock        *util.FakeClock
+	fakeClock        *utiltime.FakeClock
 }
 
 func newTestKubelet(t *testing.T) *TestKubelet {
@@ -170,7 +171,7 @@ func newTestKubelet(t *testing.T) *TestKubelet {
 		LowThresholdPercent:  80,
 	}
 	kubelet.imageManager, err = newImageManager(fakeRuntime, mockCadvisor, fakeRecorder, fakeNodeRef, fakeImageGCPolicy)
-	fakeClock := &util.FakeClock{Time: time.Now()}
+	fakeClock := &utiltime.FakeClock{Time: time.Now()}
 	kubelet.backOff = util.NewBackOff(time.Second, time.Minute)
 	kubelet.backOff.Clock = fakeClock
 	kubelet.podKillingCh = make(chan *kubecontainer.Pod, 20)
@@ -3719,7 +3720,7 @@ func TestRegisterExistingNodeWithApiserver(t *testing.T) {
 		done <- struct{}{}
 	}()
 	select {
-	case <-time.After(util.ForeverTestTimeout):
+	case <-time.After(utiltime.ForeverTestTimeout):
 		t.Errorf("timed out waiting for registration")
 	case <-done:
 		return

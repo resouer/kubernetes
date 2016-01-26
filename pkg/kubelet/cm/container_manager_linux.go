@@ -33,7 +33,7 @@ import (
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/kubelet/cadvisor"
-	"k8s.io/kubernetes/pkg/util"
+    utiltime "k8s.io/kubernetes/pkg/util/time"
 	utilerrors "k8s.io/kubernetes/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/util/mount"
 	"k8s.io/kubernetes/pkg/util/oom"
@@ -265,7 +265,7 @@ func (cm *containerManagerImpl) Start(nodeConfig NodeConfig) error {
 	}
 
 	// Run ensure state functions every minute.
-	go util.Until(func() {
+	go utiltime.Until(func() {
 		for _, cont := range cm.systemContainers {
 			if cont.ensureStateFunc != nil {
 				if err := cont.ensureStateFunc(cont.manager); err != nil {
@@ -273,7 +273,7 @@ func (cm *containerManagerImpl) Start(nodeConfig NodeConfig) error {
 				}
 			}
 		}
-	}, time.Minute, util.NeverStop)
+	}, time.Minute, utiltime.NeverStop)
 
 	return nil
 }

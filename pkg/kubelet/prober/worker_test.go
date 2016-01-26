@@ -31,6 +31,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubelet/status"
 	"k8s.io/kubernetes/pkg/probe"
 	"k8s.io/kubernetes/pkg/util"
+    utiltime "k8s.io/kubernetes/pkg/util/time"
 	"k8s.io/kubernetes/pkg/util/exec"
 	"k8s.io/kubernetes/pkg/util/wait"
 )
@@ -231,7 +232,7 @@ func TestCleanUp(t *testing.T) {
 			return ready == results.Success, nil
 		}
 		if ready, _ := condition(); !ready {
-			if err := wait.Poll(100*time.Millisecond, util.ForeverTestTimeout, condition); err != nil {
+			if err := wait.Poll(100*time.Millisecond, utiltime.ForeverTestTimeout, condition); err != nil {
 				t.Fatalf("[%s] Error waiting for worker ready: %v", probeType, err)
 			}
 		}

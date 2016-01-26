@@ -26,6 +26,7 @@ import (
 	"time"
 
 	"k8s.io/kubernetes/pkg/util"
+    utiltime "k8s.io/kubernetes/pkg/util/time"
 
 	"github.com/golang/glog"
 	"github.com/prometheus/client_golang/prometheus"
@@ -51,7 +52,7 @@ type SSHTunneler struct {
 	tunnelsLock    sync.Mutex
 	lastSync       int64 // Seconds since Epoch
 	lastSyncMetric prometheus.GaugeFunc
-	clock          util.Clock
+	clock          utiltime.Clock
 
 	getAddresses AddressFunc
 	stopChan     chan struct{}
@@ -63,7 +64,7 @@ func NewSSHTunneler(sshUser string, sshKeyfile string, installSSHKey InstallSSHK
 		SSHKeyfile:    sshKeyfile,
 		InstallSSHKey: installSSHKey,
 
-		clock: util.RealClock{},
+		clock: utiltime.RealClock{},
 	}
 }
 
@@ -192,7 +193,7 @@ func (c *SSHTunneler) refreshTunnels(user, keyfile string) error {
 
 func (c *SSHTunneler) setupSecureProxy(user, privateKeyfile, publicKeyfile string) {
 	// Sync loop to ensure that the SSH key has been installed.
-	go util.Until(func() {
+	go utiltime.Until(func() {
 		if c.InstallSSHKey == nil {
 			glog.Error("Won't attempt to install ssh key: InstallSSHKey function is nil")
 			return
@@ -213,7 +214,7 @@ func (c *SSHTunneler) setupSecureProxy(user, privateKeyfile, publicKeyfile strin
 	}, 5*time.Minute, c.stopChan)
 	// Sync loop for tunnels
 	// TODO: switch this to watch.
-	go util.Until(func() {
+	go utiltime.Until(func() {
 		if err := c.loadTunnels(user, privateKeyfile); err != nil {
 			glog.Errorf("Failed to load SSH Tunnels: %v", err)
 		}
@@ -225,7 +226,7 @@ func (c *SSHTunneler) setupSecureProxy(user, privateKeyfile, publicKeyfile strin
 	}, 1*time.Second, c.stopChan)
 	// Refresh loop for tunnels
 	// TODO: could make this more controller-ish
-	go util.Until(func() {
+	go utiltime.Until(func() {
 		time.Sleep(5 * time.Minute)
 		if err := c.refreshTunnels(user, privateKeyfile); err != nil {
 			glog.Errorf("Failed to refresh SSH Tunnels: %v", err)

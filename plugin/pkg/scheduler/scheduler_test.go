@@ -28,6 +28,7 @@ import (
 	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/client/record"
 	"k8s.io/kubernetes/pkg/util"
+    utiltime "k8s.io/kubernetes/pkg/util/time"
 	"k8s.io/kubernetes/plugin/pkg/scheduler/algorithm"
 	"k8s.io/kubernetes/plugin/pkg/scheduler/algorithm/predicates"
 )
@@ -176,7 +177,7 @@ func TestSchedulerForgetAssumedPodAfterDelete(t *testing.T) {
 	// all entries inserted with fakeTime will expire.
 	ttl := 30 * time.Second
 	fakeTime := time.Date(2009, time.November, 10, 23, 0, 0, 0, time.UTC)
-	fakeClock := &util.FakeClock{Time: fakeTime}
+	fakeClock := &utiltime.FakeClock{Time: fakeTime}
 	ttlPolicy := &cache.TTLPolicy{Ttl: ttl, Clock: fakeClock}
 	assumedPodsStore := cache.NewFakeExpirationStore(
 		cache.MetaNamespaceKeyFunc, nil, ttlPolicy, fakeClock)

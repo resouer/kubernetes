@@ -29,6 +29,7 @@ import (
 	"runtime"
 
     "k8s.io/kubernetes/pkg/util/log"
+    "k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/version/verflag"
 
 	"github.com/spf13/pflag"

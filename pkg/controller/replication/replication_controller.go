@@ -32,6 +32,7 @@ import (
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util"
+    utiltime "k8s.io/kubernetes/pkg/util/time"
 	"k8s.io/kubernetes/pkg/util/workqueue"
 	"k8s.io/kubernetes/pkg/watch"
 )
@@ -185,7 +186,7 @@ func (rm *ReplicationManager) Run(workers int, stopCh <-chan struct{}) {
 	go rm.rcController.Run(stopCh)
 	go rm.podController.Run(stopCh)
 	for i := 0; i < workers; i++ {
-		go util.Until(rm.worker, time.Second, stopCh)
+		go utiltime.Until(rm.worker, time.Second, stopCh)
 	}
 	<-stopCh
 	glog.Infof("Shutting down RC Manager")

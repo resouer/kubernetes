@@ -23,7 +23,7 @@ import (
 	"sync"
 	"time"
 
-	"k8s.io/kubernetes/pkg/util"
+    utiltime "k8s.io/kubernetes/pkg/util/time"
 	"k8s.io/kubernetes/pkg/util/net"
 )
 
@@ -83,7 +83,7 @@ func newPortRangeAllocator(r net.PortRange) PortAllocator {
 		ports:     make(chan int, portsBufSize),
 		rand:      rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
-	go util.Until(func() { ra.fillPorts(util.NeverStop) }, nextFreePortCooldown, util.NeverStop)
+	go utiltime.Until(func() { ra.fillPorts(utiltime.NeverStop) }, nextFreePortCooldown, utiltime.NeverStop)
 	return ra
 }
 

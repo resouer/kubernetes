@@ -26,6 +26,7 @@ import (
 	"k8s.io/kubernetes/pkg/registry/service"
 	"k8s.io/kubernetes/pkg/registry/service/portallocator"
 	"k8s.io/kubernetes/pkg/util"
+    utiltime "k8s.io/kubernetes/pkg/util/time"
 	"k8s.io/kubernetes/pkg/util/net"
 )
 
@@ -50,7 +51,7 @@ func NewRepair(interval time.Duration, registry service.Registry, portRange net.
 
 // RunUntil starts the controller until the provided ch is closed.
 func (c *Repair) RunUntil(ch chan struct{}) {
-	util.Until(func() {
+	utiltime.Until(func() {
 		if err := c.RunOnce(); err != nil {
 			util.HandleError(err)
 		}

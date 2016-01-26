@@ -28,7 +28,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubelet/cadvisor"
 	"k8s.io/kubernetes/pkg/kubelet/container"
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
-	"k8s.io/kubernetes/pkg/util"
+    utiltime "k8s.io/kubernetes/pkg/util/time"
 	"k8s.io/kubernetes/pkg/util/sets"
 )
 
@@ -130,7 +130,7 @@ func newImageManager(runtime container.Runtime, cadvisorInterface cadvisor.Inter
 }
 
 func (im *realImageManager) Start() error {
-	go util.Until(func() {
+	go utiltime.Until(func() {
 		// Initial detection make detected time "unknown" in the past.
 		var ts time.Time
 		if im.initialized {
@@ -142,7 +142,7 @@ func (im *realImageManager) Start() error {
 		} else {
 			im.initialized = true
 		}
-	}, 5*time.Minute, util.NeverStop)
+	}, 5*time.Minute, utiltime.NeverStop)
 
 	return nil
 }

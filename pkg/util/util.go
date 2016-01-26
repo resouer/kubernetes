@@ -25,7 +25,6 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
-	"time"
 
 	"k8s.io/kubernetes/pkg/util/intstr"
 
@@ -34,15 +33,6 @@ import (
 
 // For testing, bypass HandleCrash.
 var ReallyCrash bool
-
-// For any test of the style:
-//   ...
-//   <- time.After(timeout):
-//      t.Errorf("Timed out")
-// The value for timeout should effectively be "forever." Obviously we don't want our tests to truly lock up forever, but 30s
-// is long enough that it is effectively forever for the things that can slow down a run on a heavily contended machine
-// (GC, seeks, etc), but not so long as to make a developer ctrl-c a test run if they do happen to break that test.
-var ForeverTestTimeout = time.Second * 30
 
 // PanicHandlers is a list of functions which will be invoked when a panic happens.
 var PanicHandlers = []func(interface{}){logPanic}
@@ -93,38 +83,6 @@ func HandleError(err error) {
 // logError prints an error with the call stack of the location it was reported
 func logError(err error) {
 	glog.ErrorDepth(2, err)
-}
-
-// NeverStop may be passed to Until to make it never stop.
-var NeverStop <-chan struct{} = make(chan struct{})
-
-// Forever is syntactic sugar on top of Until
-func Forever(f func(), period time.Duration) {
-	Until(f, period, NeverStop)
-}
-
-// Until loops until stop channel is closed, running f every period.
-// Catches any panics, and keeps going. f may not be invoked if
-// stop channel is already closed. Pass NeverStop to Until if you
-// don't want it stop.
-func Until(f func(), period time.Duration, stopCh <-chan struct{}) {
-	select {
-	case <-stopCh:
-		return
-	default:
-	}
-
-	for {
-		func() {
-			defer HandleCrash()
-			f()
-		}()
-		select {
-		case <-stopCh:
-			return
-		case <-time.After(period):
-		}
-	}
 }
 
 func GetIntOrPercentValue(intOrStr *intstr.IntOrString) (int, bool, error) {

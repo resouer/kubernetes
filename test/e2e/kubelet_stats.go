@@ -36,7 +36,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubelet/metrics"
 	"k8s.io/kubernetes/pkg/kubelet/server/stats"
 	"k8s.io/kubernetes/pkg/master/ports"
-	"k8s.io/kubernetes/pkg/util"
+    utiltime "k8s.io/kubernetes/pkg/util/time"
 	"k8s.io/kubernetes/pkg/util/sets"
 )
 
@@ -397,7 +397,7 @@ func (r *resourceCollector) Start() {
 	r.stopCh = make(chan struct{}, 1)
 	// Keep the last observed stats for comparison.
 	oldStats := make(map[string]*cadvisorapi.ContainerStats)
-	go util.Until(func() { r.collectStats(oldStats) }, r.pollingInterval, r.stopCh)
+	go utiltime.Until(func() { r.collectStats(oldStats) }, r.pollingInterval, r.stopCh)
 }
 
 // Stop sends a signal to terminate the stats collecting goroutine.

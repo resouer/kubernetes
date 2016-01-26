@@ -24,6 +24,7 @@ import (
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/record"
 	"k8s.io/kubernetes/pkg/util"
+    utiltime "k8s.io/kubernetes/pkg/util/time"
 )
 
 type imagePullRequest struct {
@@ -59,7 +60,7 @@ func NewSerializedImagePuller(recorder record.EventRecorder, runtime Runtime, im
 		backOff:      imageBackOff,
 		pullRequests: make(chan *imagePullRequest, 10),
 	}
-	go util.Until(imagePuller.pullImages, time.Second, util.NeverStop)
+	go utiltime.Until(imagePuller.pullImages, time.Second, utiltime.NeverStop)
 	return imagePuller
 }
 

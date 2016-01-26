@@ -25,6 +25,7 @@ import (
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/record"
 	"k8s.io/kubernetes/pkg/util"
+    utiltime "k8s.io/kubernetes/pkg/util/time"
 )
 
 func TestPuller(t *testing.T) {
@@ -98,7 +99,7 @@ func TestPuller(t *testing.T) {
 		}
 
 		backOff := util.NewBackOff(time.Second, time.Minute)
-		fakeClock := &util.FakeClock{Time: time.Now()}
+		fakeClock := &utiltime.FakeClock{Time: time.Now()}
 		backOff.Clock = fakeClock
 
 		fakeRuntime := &FakeRuntime{}

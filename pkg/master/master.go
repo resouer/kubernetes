@@ -69,7 +69,7 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/storage"
 	etcdutil "k8s.io/kubernetes/pkg/storage/etcd/util"
-	"k8s.io/kubernetes/pkg/util"
+    utiltime "k8s.io/kubernetes/pkg/util/time"
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	daemonetcd "k8s.io/kubernetes/pkg/registry/daemonset/etcd"
@@ -600,7 +600,7 @@ func (m *Master) getExtensionResources(c *Config) map[string]rest.Storage {
 			thirdPartyResourceRegistry: thirdPartyResourceStorage,
 		}
 		go func() {
-			util.Forever(func() {
+			utiltime.Forever(func() {
 				if err := thirdPartyControl.SyncResources(); err != nil {
 					glog.Warningf("third party resource sync failed: %v", err)
 				}
