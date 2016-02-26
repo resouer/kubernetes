@@ -148,6 +148,9 @@ type DockerManager struct {
 	// A false value means the kubelet just backs off from setting it,
 	// it might already be true.
 	configureHairpinMode bool
+
+	// The api version of docker daemon.
+	apiVersion kubecontainer.Version
 }
 
 func PodInfraContainerEnv(env map[string]string) kubecontainer.Option {
@@ -1414,17 +1417,7 @@ func (dm *DockerManager) applyOOMScoreAdj(container *api.Container, containerInf
 		}
 		return err
 	}
-	// Set OOM score of the container based on the priority of the container.
-	// Processes in lower-priority pods should be killed first if the system runs out of memory.
-	// The main pod infrastructure container is considered high priority, since if it is killed the
-	// whole pod will die.
-	// TODO: Cache this value.
-	var oomScoreAdj int
-	if containerInfo.Name == PodInfraContainerName {
-		oomScoreAdj = qos.PodInfraOOMAdj
-	} else {
-		oomScoreAdj = qos.GetContainerOOMScoreAdjust(container, int64(dm.machineInfo.MemoryCapacity))
-	}
+	oomScoreAdj := dm.calculateOomScoreAdj(container)
 	if err = dm.oomAdjuster.ApplyOOMScoreAdjContainer(cgroupName, oomScoreAdj, 5); err != nil {
 		if err == os.ErrNotExist {
 			// Container exited. We cannot do anything about it. Ignore this error.
@@ -1459,17 +1452,7 @@ func (dm *DockerManager) runContainerInPod(pod *api.Pod, container *api.Containe
 		utsMode = namespaceModeHost
 	}
 
-	// Set OOM score of the container based on the priority of the container.
-	// Processes in lower-priority pods should be killed first if the system runs out of memory.
-	// The main pod infrastructure container is considered high priority, since if it is killed the
-	// whole pod will die.
-	var oomScoreAdj int
-	if container.Name == PodInfraContainerName {
-		oomScoreAdj = qos.PodInfraOOMAdj
-	} else {
-		oomScoreAdj = qos.GetContainerOOMScoreAdjust(container, int64(dm.machineInfo.MemoryCapacity))
-
-	}
+	oomScoreAdj := dm.calculateOomScoreAdj(container)
 
 	id, err := dm.runContainer(pod, container, opts, ref, netMode, ipcMode, utsMode, pidMode, restartCount, oomScoreAdj)
 	if err != nil {
@@ -1543,20 +1526,47 @@ func (dm *DockerManager) applyOOMScoreAdjIfNeeded(container *api.Container, cont
 	return nil
 }
 
+func (dm *DockerManager) calculateOomScoreAdj(container *api.Container) int {
+	// Set OOM score of the container based on the priority of the container.
+	// Processes in lower-priority pods should be killed first if the system runs out of memory.
+	// The main pod infrastructure container is considered high priority, since if it is killed the
+	// whole pod will die.
+	var oomScoreAdj int
+	if container.Name == PodInfraContainerName {
+		oomScoreAdj = qos.PodInfraOOMAdj
+	} else {
+		oomScoreAdj = qos.GetContainerOOMScoreAdjust(container, int64(dm.machineInfo.MemoryCapacity))
+
+	}
+
+	return oomScoreAdj
+}
+
+// TODO(harryz) getCachedApiVersion assumes that the api version info doesn't change until reboot, this is not reliable.
+func (dm *DockerManager) getCachedApiVersion() (kubecontainer.Version, error) {
+	if dm.apiVersion == nil {
+		v, err := dm.APIVersion()
+		if err != nil {
+			return nil, err
+		}
+		dm.apiVersion = v
+	}
+	return dm.apiVersion, nil
+}
+
 // Check current docker API version against expected version.
 // Return:
 // 1 : newer than expected version
 // -1: older than expected version
 // 0 : same version
 func (dm *DockerManager) checkDockerAPIVersion(expectedVersion string) int {
-	apiVersion, err := dm.APIVersion()
+	apiVersion, err := dm.getCachedApiVersion()
 	if err != nil {
-		glog.Errorf("failed to get current docker version - %v", err)
+		glog.Errorf("failed to get cached docker api version %v ", err)
 	}
-
 	result, err := apiVersion.Compare(expectedVersion)
 	if err != nil {
-		glog.Errorf("failed to compare current docker version %v with OOMScoreAdj supported Docker version %q - %v",
+		glog.Errorf("failed to compare current docker api version %v with OOMScoreAdj supported Docker version %q - %v",
 			apiVersion, expectedVersion, err)
 	}
 	return result
