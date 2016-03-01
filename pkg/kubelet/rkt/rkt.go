@@ -829,6 +829,22 @@ func (r *Runtime) preparePod(pod *api.Pod, pullSecrets []api.Secret) (string, *k
 	return serviceName, apiPodToruntimePod(uuid, pod), nil
 }
 
+// TODO harry: when is r.apiVersion is set?
+func (r *Runtime) UpdateApiVersionCache() error {
+	// Example for the version strings returned by GetInfo():
+	// RktVersion:"0.10.0+gitb7349b1" AppcVersion:"0.7.1" ApiVersion:"1.0.0-alpha"
+	resp, err := r.apisvc.GetInfo(context.Background(), &rktapi.GetInfoRequest{})
+	if err != nil {
+		return fmt.Errorf("Failed to get info of rkt runtime %v", err)
+	}
+
+	r.apiVersion, err = newRktVersion(resp.Info.ApiVersion)
+	if err != nil {
+		return fmt.Errorf("Failed to get api version of rkt runtime %v", err)
+	}
+	return nil
+}
+
 // generateEvents is a helper function that generates some container
 // life cycle events for containers in a pod.
 func (r *Runtime) generateEvents(runtimePod *kubecontainer.Pod, reason string, failure error) {

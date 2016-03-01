@@ -131,3 +131,8 @@ func (r *Mock) GarbageCollect(gcPolicy ContainerGCPolicy) error {
 	args := r.Called(gcPolicy)
 	return args.Error(0)
 }
+
+func (r *Mock) UpdateApiVersionCache() error {
+	args := r.Called()
+	return args.Error(0)
+}

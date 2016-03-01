@@ -91,6 +91,8 @@ type Runtime interface {
 	ContainerCommandRunner
 	// ContainerAttach encapsulates the attaching to containers for testability
 	ContainerAttacher
+	// UpdateApiVersionCache updates api version cache of the runtime.
+	UpdateApiVersionCache() error
 }
 
 type ContainerAttacher interface {

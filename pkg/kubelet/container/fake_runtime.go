@@ -338,3 +338,11 @@ func (f *FakeRuntime) GarbageCollect(gcPolicy ContainerGCPolicy) error {
 	f.CalledFunctions = append(f.CalledFunctions, "GarbageCollect")
 	return f.Err
 }
+
+func (f *FakeRuntime) UpdateApiVersionCache() error {
+	f.Lock()
+	defer f.Unlock()
+
+	f.CalledFunctions = append(f.CalledFunctions, "UpdateApiVersionCache")
+	return f.Err
+}

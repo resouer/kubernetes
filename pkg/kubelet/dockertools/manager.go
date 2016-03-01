@@ -1542,16 +1542,18 @@ func (dm *DockerManager) calculateOomScoreAdj(container *api.Container) int {
 	return oomScoreAdj
 }
 
-// TODO(harryz) getCachedApiVersion assumes that the api version info doesn't change until reboot, this is not reliable.
+func (dm *DockerManager) UpdateApiVersionCache() error {
+	v, err := dm.APIVersion()
+	dm.apiVersion = v
+	return err
+}
+
 func (dm *DockerManager) getCachedApiVersion() (kubecontainer.Version, error) {
+	var err error
 	if dm.apiVersion == nil {
-		v, err := dm.APIVersion()
-		if err != nil {
-			return nil, err
-		}
-		dm.apiVersion = v
+		err = dm.UpdateApiVersionCache()
 	}
-	return dm.apiVersion, nil
+	return dm.apiVersion, err
 }
 
 // Check current docker API version against expected version.

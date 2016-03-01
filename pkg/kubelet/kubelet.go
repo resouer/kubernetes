@@ -2861,6 +2861,12 @@ func (kl *Kubelet) setNodeStatusVersionInfo(node *api.Node) {
 		node.Status.NodeInfo.KubeletVersion = version.Get().String()
 		// TODO: kube-proxy might be different version from kubelet in the future
 		node.Status.NodeInfo.KubeProxyVersion = version.Get().String()
+
+		// Update the api version cache in container runtime
+		err := kl.containerRuntime.UpdateApiVersionCache()
+		if err != nil {
+			glog.Errorf("Error updating runtime version cache: %v", err)
+		}
 	}
 
 }
