@@ -197,7 +197,7 @@ func (s *serviceAccount) Admit(a admission.Attributes) (err error) {
 		}
 	}
 
-	if s.MountServiceAccountToken {
+	if s.shouldMountServiceAccount(pod) && s.MountServiceAccountToken {
 		if err := s.mountServiceAccountToken(serviceAccount, pod); err != nil {
 			return admission.NewForbidden(a, err)
 		}
@@ -209,6 +209,18 @@ func (s *serviceAccount) Admit(a admission.Attributes) (err error) {
 	}
 
 	return nil
+}
+
+func (s *serviceAccount) shouldMountServiceAccount(pod *api.Pod) bool {
+	if pod.Namespace == "default" || pod.Namespace == "kube-system" {
+		return true
+	}
+
+	if _, ok := pod.Annotations[kubelet.ConfigServiceAccountMountKey]; ok {
+		return true
+	}
+
+	return false
 }
 
 // enforceMountableSecrets indicates whether mountable secrets should be enforced for a particular service account
