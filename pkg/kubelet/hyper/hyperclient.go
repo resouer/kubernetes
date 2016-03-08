@@ -752,14 +752,7 @@ func (client *HyperClient) ContainerLogs(opts ContainerLogsOptions) error {
 }
 
 func (client *HyperClient) IsImagePresent(repo, tag string) (bool, error) {
-	if outputs, err := client.ListImages(); err == nil {
-		for _, imgInfo := range outputs {
-			if imgInfo.repository == repo && imgInfo.tag == tag {
-				return true, nil
-			}
-		}
-	}
-	return false, nil
+	return true, nil
 }
 
 func (client *HyperClient) ListServices(podId string) ([]HyperService, error) {
