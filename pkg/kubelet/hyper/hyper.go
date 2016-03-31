@@ -58,6 +58,8 @@ const (
 	hyperPodNamePrefix          = "kube"
 	hyperDefaultContainerCPU    = 1
 	hyperDefaultContainerMem    = 128
+	hyperHostnameMaxLen         = 63
+	hyperPodHostNameLabel       = "cloud.sh.hyper.pod.hostname"
 	hyperPodSpecDir             = "/var/lib/kubelet/hyper"
 	hyperLogsDir                = "/var/run/hyper/Pods"
 	minimumGracePeriodInSeconds = 2
@@ -434,6 +436,20 @@ func (r *runtime) buildHyperPodServices(pod *api.Pod) []HyperService {
 	return services
 }
 
+func (r *runtime) getPodHostname(pod *api.Pod) string {
+	podHostname := pod.Name
+	if hn, ok := pod.Labels[hyperPodHostNameLabel]; ok {
+		podHostname = hn
+	}
+
+	// Cap hostname at 63 chars (specification is 64bytes which is 63 chars and the null terminating char).
+	if len(podHostname) > hyperHostnameMaxLen {
+		podHostname = podHostname[:hyperHostnameMaxLen]
+	}
+
+	return podHostname
+}
+
 func (r *runtime) buildHyperPod(pod *api.Pod, restartCount int, pullSecrets []api.Secret) ([]byte, error) {
 	// check and pull image
 	for _, c := range pod.Spec.Containers {
@@ -633,14 +649,7 @@ func (r *runtime) buildHyperPod(pod *api.Pod, restartCount int, pullSecrets []ap
 
 	// other params required
 	specMap[KEY_ID] = kubecontainer.BuildPodFullName(pod.Name, pod.Namespace)
-
-	// Cap hostname at 63 chars (specification is 64bytes which is 63 chars and the null terminating char).
-	const hostnameMaxLen = 63
-	podHostname := pod.Name
-	if len(podHostname) > hostnameMaxLen {
-		podHostname = podHostname[:hostnameMaxLen]
-	}
-	specMap[KEY_HOSTNAME] = podHostname
+	specMap[KEY_HOSTNAME] = r.getPodHostname(pod)
 
 	podData, err := json.Marshal(specMap)
 	if err != nil {
@@ -723,7 +732,9 @@ func (r *runtime) RunPod(pod *api.Pod, restartCount int, pullSecrets []api.Secre
 	}
 
 	// Setup pod's network by network plugin
-	err = r.networkPlugin.SetUpPod(pod.Namespace, pod.Name, "", "hyper")
+	// TODO: Add hostname in network plugin interface
+	hostname := r.getPodHostname(pod)
+	err = r.networkPlugin.SetUpPod(pod.Namespace, pod.Name, kubecontainer.DockerID(hostname), "hyper")
 	if err != nil {
 		glog.Errorf("Hyper: networkPlugin.SetUpPod %s failed, error: %v", pod.Name, err)
 		return err
