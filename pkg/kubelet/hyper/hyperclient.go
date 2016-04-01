@@ -66,6 +66,7 @@ const (
 	KEY_PROTOCOL       = "protocol"
 	KEY_READONLY       = "readOnly"
 	KEY_RESOURCE       = "resource"
+	KEY_TAG            = "tag"
 	KEY_TTY            = "tty"
 	KEY_TYPE           = "type"
 	KEY_VALUE          = "value"
@@ -508,7 +509,10 @@ func (client *HyperClient) StopPod(podID string) error {
 
 func (client *HyperClient) PullImage(image string, credential string) error {
 	v := url.Values{}
-	v.Set(KEY_IMAGENAME, image)
+
+	imageName, tag := parseImageName(image)
+	v.Set(KEY_IMAGENAME, imageName)
+	v.Set(KEY_TAG, tag)
 
 	headers := make(map[string][]string)
 	if credential != "" {
