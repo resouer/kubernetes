@@ -145,6 +145,8 @@ func (self *hyperContainerHandler) GetSpec() (info.ContainerSpec, error) {
 	spec.HasNetwork = true
 	spec.HasCustomMetrics = false
 
+	spec.Labels = podInfo.Spec.Labels
+
 	return spec, nil
 }
 

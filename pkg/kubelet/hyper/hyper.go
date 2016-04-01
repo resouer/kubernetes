@@ -613,6 +613,7 @@ func (r *runtime) buildHyperPod(pod *api.Pod, restartCount int, pullSecrets []ap
 
 	// build hyper pod resources spec
 	var podCPULimit, podMemLimit int64
+	var labels map[string]string
 	podResource := make(map[string]int64)
 	for _, container := range pod.Spec.Containers {
 		resource := container.Resources.Limits
@@ -633,6 +634,10 @@ func (r *runtime) buildHyperPod(pod *api.Pod, restartCount int, pullSecrets []ap
 		}
 		podCPULimit += containerCPULimit
 		podMemLimit += containerMemLimit
+
+		// generate heapster needed labels
+		// TODO: keep these labels up to date if the pod changes
+		labels = newLabels(&container, pod, restartCount, false)
 	}
 
 	podResource[KEY_VCPU] = (podCPULimit + 999) / 1000
@@ -645,6 +650,12 @@ func (r *runtime) buildHyperPod(pod *api.Pod, restartCount int, pullSecrets []ap
 	for k, v := range pod.Labels {
 		podLabels[k] = v
 	}
+	// append heapster needed labels
+	// NOTE(harryz): this only works for one pod one container model for now.
+	for k, v := range labels {
+		podLabels[k] = v
+	}
+
 	specMap[KEY_LABELS] = podLabels
 
 	// other params required
