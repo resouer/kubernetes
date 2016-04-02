@@ -3551,10 +3551,6 @@ func (kl *Kubelet) GetContainerInfo(podFullName string, podUID types.UID, contai
 	switch kl.containerRuntime.Type() {
 	case "docker":
 		ci, err = kl.cadvisor.DockerContainer(cadvisorID, req)
-	case "hyper":
-		// TODO(feisky): Hyper container stats is not supported
-		cadvisorID = podFullName
-		ci, err = kl.cadvisor.HyperContainer(cadvisorID, req)
 	default:
 		err = fmt.Errorf("Container runtime %v not supported", kl.containerRuntime.Type())
 	}

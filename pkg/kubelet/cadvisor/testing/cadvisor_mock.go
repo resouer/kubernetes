@@ -58,12 +58,6 @@ func (c *Mock) DockerContainer(name string, req *cadvisorapi.ContainerInfoReques
 	return args.Get(0).(cadvisorapi.ContainerInfo), args.Error(1)
 }
 
-// HyperContainer is a mock implementation of Interface.HyperContainer.
-func (c *Mock) HyperContainer(name string, req *cadvisorapi.ContainerInfoRequest) (cadvisorapi.ContainerInfo, error) {
-	args := c.Called(name, req)
-	return args.Get(0).(cadvisorapi.ContainerInfo), args.Error(1)
-}
-
 // MachineInfo is a mock implementation of Interface.MachineInfo.
 func (c *Mock) MachineInfo() (*cadvisorapi.MachineInfo, error) {
 	args := c.Called()

@@ -45,10 +45,6 @@ func (cu *cadvisorUnsupported) DockerContainer(name string, req *cadvisorapi.Con
 	return cadvisorapi.ContainerInfo{}, unsupportedErr
 }
 
-func (cu *cadvisorUnsupported) HyperContainer(name string, req *cadvisorapi.ContainerInfoRequest) (cadvisorapi.ContainerInfo, error) {
-	return cadvisorapi.ContainerInfo{}, unsupportedErr
-}
-
 func (cu *cadvisorUnsupported) ContainerInfo(name string, req *cadvisorapi.ContainerInfoRequest) (*cadvisorapi.ContainerInfo, error) {
 	return nil, unsupportedErr
 }
