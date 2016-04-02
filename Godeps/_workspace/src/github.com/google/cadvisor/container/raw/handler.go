@@ -176,9 +176,7 @@ func (self *rawContainerHandler) GetRootNetworkDevices() ([]info.NetInfo, error)
 func (self *rawContainerHandler) Start() {}
 
 // Nothing to clean up.
-func (self *rawContainerHandler) Cleanup() {
-	self.StopWatchingSubcontainers()
-}
+func (self *rawContainerHandler) Cleanup() {}
 
 func (self *rawContainerHandler) GetSpec() (info.ContainerSpec, error) {
 	var spec info.ContainerSpec
