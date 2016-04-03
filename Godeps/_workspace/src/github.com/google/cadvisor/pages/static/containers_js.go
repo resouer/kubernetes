@@ -168,7 +168,7 @@ function drawGauges(elementId, gauges) {
 
 // Get the machine info.
 function getMachineInfo(rootDir, callback) {
-	$.getJSON(rootDir + "api/v1.3/machine", function(data) {
+	$.getJSON(rootDir + "api/v1.0/machine", function(data) {
 		callback(data);
 	});
 }
@@ -192,7 +192,7 @@ function getStats(rootDir, containerName, callback) {
 		"num_stats": 60,
 		"num_samples": 0
 	});
-	$.post(rootDir + "api/v1.3/containers" + containerName, request, function(data) {
+	$.post(rootDir + "api/v1.0/containers" + containerName, request, function(data) {
 		callback(data);
 	}, "json");
 }

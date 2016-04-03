@@ -30,7 +30,6 @@ import (
 	"github.com/google/cadvisor/collector"
 	"github.com/google/cadvisor/container"
 	"github.com/google/cadvisor/container/docker"
-	"github.com/google/cadvisor/container/hyper"
 	"github.com/google/cadvisor/container/raw"
 	"github.com/google/cadvisor/events"
 	"github.com/google/cadvisor/fs"
@@ -75,12 +74,6 @@ type Manager interface {
 
 	// Gets information about a specific Docker container. The specified name is within the Docker namespace.
 	DockerContainer(dockerName string, query *info.ContainerInfoRequest) (info.ContainerInfo, error)
-
-	// Gets all the Hyper containers. Return is a map from full container name to ContainerInfo.
-	AllHyperContainers(query *info.ContainerInfoRequest) (map[string]info.ContainerInfo, error)
-
-	// Gets information about a specific Hyper container. The specified name is within the Hyper namespace.
-	HyperContainer(dockerName string, query *info.ContainerInfoRequest) (info.ContainerInfo, error)
 
 	// Gets spec for all containers based on request options.
 	GetContainerSpec(containerName string, options v2.RequestOptions) (map[string]v2.ContainerSpec, error)
@@ -158,7 +151,6 @@ func New(memoryCache *memory.InMemoryCache, sysfs sysfs.SysFs, maxHousekeepingIn
 	newManager := &manager{
 		containers:               make(map[namespacedContainerName]*containerData),
 		quitChannels:             make([]chan error, 0, 2),
-		eventsChannel:            make(chan container.SubcontainerEvent, 16),
 		memoryCache:              memoryCache,
 		fsInfo:                   fsInfo,
 		cadvisorContainer:        selfContainer,
@@ -206,7 +198,6 @@ type manager struct {
 	inHostNamespace          bool
 	loadReader               cpuload.CpuLoadReader
 	eventHandler             events.EventManager
-	eventsChannel            chan container.SubcontainerEvent
 	startupTime              time.Time
 	maxHousekeepingInterval  time.Duration
 	allowDynamicHousekeeping bool
@@ -219,12 +210,6 @@ func (self *manager) Start() error {
 	err := docker.Register(self, self.fsInfo, self.ignoreMetrics)
 	if err != nil {
 		glog.Errorf("Docker container factory registration failed: %v.", err)
-	}
-
-	// Register the hyper driver.
-	err = hyper.Register(self, self.fsInfo)
-	if err != nil {
-		glog.Errorf("Registration of the hyper container factory failed: %v", err)
 	}
 
 	// Register the raw driver.
@@ -506,62 +491,6 @@ func (self *manager) SubcontainersInfo(containerName string, query *info.Contain
 		containers = append(containers, cont)
 	}
 	return self.containerDataSliceToContainerInfoSlice(containers, query)
-}
-
-func (self *manager) getAllHyperContainers() map[string]*containerData {
-	self.containersLock.RLock()
-	defer self.containersLock.RUnlock()
-	containers := make(map[string]*containerData, len(self.containers))
-
-	// Get containers in the Docker namespace.
-	for name, cont := range self.containers {
-		if name.Namespace == hyper.HyperNamespace {
-			containers[cont.info.Name] = cont
-		}
-	}
-	return containers
-}
-
-func (self *manager) AllHyperContainers(query *info.ContainerInfoRequest) (map[string]info.ContainerInfo, error) {
-	containers := self.getAllHyperContainers()
-
-	output := make(map[string]info.ContainerInfo, len(containers))
-	for name, cont := range containers {
-		inf, err := self.containerDataToContainerInfo(cont, query)
-		if err != nil {
-			return nil, err
-		}
-		output[name] = *inf
-	}
-	return output, nil
-}
-
-func (self *manager) HyperContainer(containerName string, query *info.ContainerInfoRequest) (info.ContainerInfo, error) {
-	container, err := self.getHyperContainer(containerName)
-	if err != nil {
-		return info.ContainerInfo{}, err
-	}
-
-	inf, err := self.containerDataToContainerInfo(container, query)
-	if err != nil {
-		return info.ContainerInfo{}, err
-	}
-	return *inf, nil
-}
-
-func (self *manager) getHyperContainer(containerName string) (*containerData, error) {
-	self.containersLock.RLock()
-	defer self.containersLock.RUnlock()
-
-	// Check for the container in the Docker container namespace.
-	cont, ok := self.containers[namespacedContainerName{
-		Namespace: hyper.HyperNamespace,
-		Name:      containerName,
-	}]
-	if !ok {
-		return nil, fmt.Errorf("unable to find Hyper container %q", containerName)
-	}
-	return cont, nil
 }
 
 func (self *manager) getAllDockerContainers() map[string]*containerData {
@@ -848,7 +777,7 @@ func (m *manager) createContainer(containerName string) error {
 	}
 
 	logUsage := *logCadvisorUsage && containerName == m.cadvisorContainer
-	cont, err := newContainerData(containerName, m.memoryCache, handler, m.loadReader, logUsage, collectorManager, m.maxHousekeepingInterval, m.allowDynamicHousekeeping, m.eventsChannel)
+	cont, err := newContainerData(containerName, m.memoryCache, handler, m.loadReader, logUsage, collectorManager, m.maxHousekeepingInterval, m.allowDynamicHousekeeping)
 	if err != nil {
 		return err
 	}
@@ -1030,7 +959,8 @@ func (self *manager) watchForNewContainers(quit chan error) error {
 	}
 
 	// Register for new subcontainers.
-	err := root.handler.WatchSubcontainers(self.eventsChannel)
+	eventsChannel := make(chan container.SubcontainerEvent, 16)
+	err := root.handler.WatchSubcontainers(eventsChannel)
 	if err != nil {
 		return err
 	}
@@ -1045,7 +975,7 @@ func (self *manager) watchForNewContainers(quit chan error) error {
 	go func() {
 		for {
 			select {
-			case event := <-self.eventsChannel:
+			case event := <-eventsChannel:
 				switch {
 				case event.EventType == container.SubcontainerAdd:
 					err = self.createContainer(event.Name)

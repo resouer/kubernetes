@@ -66,9 +66,6 @@ type containerData struct {
 	lastUpdatedTime          time.Time
 	lastErrorTime            time.Time
 
-	// Channel for subcontainers event
-	eventChannel chan container.SubcontainerEvent
-
 	// Decay value used for load average smoothing. Interval length of 10 seconds is used.
 	loadDecay float64
 
@@ -95,11 +92,6 @@ func jitter(duration time.Duration, maxFactor float64) time.Duration {
 
 func (c *containerData) Start() error {
 	go c.housekeeping()
-
-	if c.info.Namespace != "raw" {
-		c.handler.WatchSubcontainers(c.eventChannel)
-	}
-
 	return nil
 }
 
@@ -311,16 +303,7 @@ func (c *containerData) GetProcessList(cadvisorContainer string, inHostNamespace
 	return processes, nil
 }
 
-func newContainerData(
-	containerName string,
-	memoryCache *memory.InMemoryCache,
-	handler container.ContainerHandler,
-	loadReader cpuload.CpuLoadReader,
-	logUsage bool,
-	collectorManager collector.CollectorManager,
-	maxHousekeepingInterval time.Duration,
-	allowDynamicHousekeeping bool,
-	eventChannel chan container.SubcontainerEvent) (*containerData, error) {
+func newContainerData(containerName string, memoryCache *memory.InMemoryCache, handler container.ContainerHandler, loadReader cpuload.CpuLoadReader, logUsage bool, collectorManager collector.CollectorManager, maxHousekeepingInterval time.Duration, allowDynamicHousekeeping bool) (*containerData, error) {
 	if memoryCache == nil {
 		return nil, fmt.Errorf("nil memory storage")
 	}
@@ -340,7 +323,6 @@ func newContainerData(
 		allowDynamicHousekeeping: allowDynamicHousekeeping,
 		loadReader:               loadReader,
 		logUsage:                 logUsage,
-		eventChannel:             eventChannel,
 		loadAvg:                  -1.0, // negative value indicates uninitialized.
 		stop:                     make(chan bool, 1),
 		collectorManager:         collectorManager,

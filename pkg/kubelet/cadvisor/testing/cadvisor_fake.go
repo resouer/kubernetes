@@ -49,10 +49,6 @@ func (c *Fake) DockerContainer(name string, req *cadvisorapi.ContainerInfoReques
 	return cadvisorapi.ContainerInfo{}, nil
 }
 
-func (c *Fake) HyperContainer(name string, req *cadvisorapi.ContainerInfoRequest) (cadvisorapi.ContainerInfo, error) {
-	return cadvisorapi.ContainerInfo{}, nil
-}
-
 func (c *Fake) MachineInfo() (*cadvisorapi.MachineInfo, error) {
 	// Simulate a matchin with 1 core and 3.75GB of memory.
 	// We set it to non-zero values to make non-zero-capacity machines in Kubemark.
