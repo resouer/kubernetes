@@ -223,7 +223,7 @@ func StartControllers(s *options.CMServer, kubeClient *client.Client, kubeconfig
 		}
 
 		if networkProvider != nil {
-			networkController := networkcontroller.NewNetworkController(kubeClient, networkProvider)
+			networkController := networkcontroller.NewNetworkController(clientset.NewForConfigOrDie(restclient.AddUserAgent(kubeconfig, "network-controller")), networkProvider)
 			go networkController.Run(wait.NeverStop)
 		} else {
 			glog.Errorf("NetController should not be run without a networkprovider.")
