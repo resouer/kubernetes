@@ -20,20 +20,20 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/golang/glog"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/client/cache"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/controller/framework"
 	"k8s.io/kubernetes/pkg/networkprovider"
+	"k8s.io/kubernetes/pkg/networkprovider/types"
 	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/util/intstr"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/util/wait"
 	"k8s.io/kubernetes/pkg/util/workqueue"
 	"k8s.io/kubernetes/pkg/watch"
-
-	"github.com/golang/glog"
-	"k8s.io/kubernetes/pkg/util/intstr"
 )
 
 const (
@@ -395,8 +395,8 @@ func (e *NetworkController) syncService(key string) {
 	}
 }
 
-func (e *NetworkController) getEndpointHosts(service *api.Service) ([]*networkprovider.HostPort, error) {
-	hosts := make([]*networkprovider.HostPort, 0, 1)
+func (e *NetworkController) getEndpointHosts(service *api.Service) ([]*types.HostPort, error) {
+	hosts := make([]*types.HostPort, 0, 1)
 	// get service's endpoints
 	// Endpoints may be delayed since they are created/updated from another controller
 	endpoint, err := e.client.Endpoints(service.Namespace).Get(service.Name)
@@ -408,10 +408,10 @@ func (e *NetworkController) getEndpointHosts(service *api.Service) ([]*networkpr
 	for _, host := range endpoint.Subsets {
 		for _, ip := range host.Addresses {
 			for _, port := range host.Ports {
-				hostport := networkprovider.HostPort{
+				hostport := types.HostPort{
 					Name:       port.Name,
-					IPAddress:  ip.IP,
-					TargetPort: port.Port,
+					Ipaddress:  ip.IP,
+					TargetPort: int32(port.Port),
 				}
 
 				hosts = append(hosts, &hostport)
@@ -429,8 +429,8 @@ func (e *NetworkController) getEndpointHosts(service *api.Service) ([]*networkpr
 		}
 
 		for _, hostport := range hosts {
-			if hostport.TargetPort == targetPort || svc.TargetPort.StrVal == hostport.Name {
-				hostport.ServicePort = svc.Port
+			if int(hostport.TargetPort) == targetPort || svc.TargetPort.StrVal == hostport.Name {
+				hostport.ServicePort = int32(svc.Port)
 			}
 		}
 	}
@@ -462,7 +462,7 @@ func (e *NetworkController) updateService(service *api.Service) error {
 	return err
 }
 
-func (e *NetworkController) hostPortsEqual(old, new []*networkprovider.HostPort) bool {
+func (e *NetworkController) hostPortsEqual(old, new []*types.HostPort) bool {
 	if len(old) != len(new) {
 		return false
 	}
@@ -470,7 +470,7 @@ func (e *NetworkController) hostPortsEqual(old, new []*networkprovider.HostPort)
 	for _, o := range old {
 		var found bool
 		for _, n := range new {
-			if n.ServicePort == o.ServicePort && n.IPAddress == o.IPAddress && n.TargetPort == o.TargetPort {
+			if n.ServicePort == o.ServicePort && n.Ipaddress == o.Ipaddress && n.TargetPort == o.TargetPort {
 				found = true
 			}
 		}
@@ -482,7 +482,7 @@ func (e *NetworkController) hostPortsEqual(old, new []*networkprovider.HostPort)
 	return true
 }
 
-func (e *NetworkController) updateLoadBalancer(service *api.Service, lb *networkprovider.LoadBalancer) (*api.LoadBalancerStatus, error) {
+func (e *NetworkController) updateLoadBalancer(service *api.Service, lb *types.LoadBalancer) (*api.LoadBalancerStatus, error) {
 	loadBalancerFullName := networkprovider.BuildLoadBalancerName(service.Name, service.Namespace)
 
 	newHosts, _ := e.getEndpointHosts(service)
@@ -533,7 +533,7 @@ func (e *NetworkController) createLoadBalancer(service *api.Service) (*api.LoadB
 		return nil, err
 	}
 
-	var networkInfo *networkprovider.Network
+	var networkInfo *types.Network
 	if network.Spec.ProviderNetworkID != "" {
 		networkInfo, err = e.netProvider.Networks().GetNetworkByID(network.Spec.ProviderNetworkID)
 	} else {
@@ -547,14 +547,14 @@ func (e *NetworkController) createLoadBalancer(service *api.Service) (*api.LoadB
 
 	// create loadbalancer for service
 	loadBalancerFullName := networkprovider.BuildLoadBalancerName(service.Name, service.Namespace)
-	providerLoadBalancer := networkprovider.LoadBalancer{
+	providerLoadBalancer := types.LoadBalancer{
 		Name: loadBalancerFullName,
 		// TODO: support more loadbalancer type
-		Type:        networkprovider.LoadBalancerTypeTCP,
-		TenantID:    networkInfo.TenantID,
-		Subnets:     networkInfo.Subnets,
-		Hosts:       newHosts,
-		ExternalIPs: service.Spec.ExternalIPs,
+		LoadBalanceType: string(networkprovider.LoadBalancerTypeTCP),
+		TenantID:        networkInfo.TenantID,
+		Subnets:         networkInfo.Subnets,
+		Hosts:           newHosts,
+		ExternalIPs:     service.Spec.ExternalIPs,
 	}
 
 	vip, err := e.netProvider.LoadBalancers().CreateLoadBalancer(&providerLoadBalancer, service.Spec.SessionAffinity)

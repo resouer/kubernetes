@@ -213,17 +213,21 @@ func StartControllers(s *options.CMServer, kubeClient *client.Client, kubeconfig
 		s.NodeMonitorGracePeriod.Duration, s.NodeStartupGracePeriod.Duration, s.NodeMonitorPeriod.Duration, clusterCIDR, s.AllocateNodeCIDRs)
 	nodeController.Run(s.NodeSyncPeriod.Duration)
 
-	ProbeNetworkProviders()
-	networkProvider, err := networkprovider.InitNetworkProvider(s.NetworkProvider)
-	if err != nil {
-		glog.Errorf("Network provider could not be initialized: %v", err)
-	}
+	if len(s.NetworkProvider) > 0 {
+		if err := ProbeNetworkProviders(s.NetworkProvider); err != nil {
+			glog.Fatalf("Network provider could not be initialized: %v", err)
+		}
+		networkProvider, err := networkprovider.InitNetworkProvider(s.NetworkProvider)
+		if err != nil {
+			glog.Errorf("Network provider could not be initialized: %v", err)
+		}
 
-	if networkProvider != nil {
-		networkController := networkcontroller.NewNetworkController(kubeClient, networkProvider)
-		go networkController.Run(wait.NeverStop)
-	} else {
-		glog.Errorf("NetController should not be run without a networkprovider.")
+		if networkProvider != nil {
+			networkController := networkcontroller.NewNetworkController(kubeClient, networkProvider)
+			go networkController.Run(wait.NeverStop)
+		} else {
+			glog.Errorf("NetController should not be run without a networkprovider.")
+		}
 	}
 
 	serviceController := servicecontroller.New(cloud, clientset.NewForConfigOrDie(restclient.AddUserAgent(kubeconfig, "service-controller")), s.ClusterName)

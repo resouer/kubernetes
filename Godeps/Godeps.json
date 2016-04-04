@@ -1,4 +1,4 @@
-{
+{ 
 	"ImportPath": "k8s.io/kubernetes",
 	"GoVersion": "go1.5",
 	"Packages": [
@@ -980,7 +980,7 @@
 		},
 		{
 			"ImportPath": "golang.org/x/net/http2",
-			"Rev": "c2528b2dd8352441850638a8bb678c2ad056fd3e"
+			"Rev": "ea47fc708ee3e20177f3ca3716217c4ab75942cb"
 		},
 		{
 			"ImportPath": "golang.org/x/net/internal/timeseries",
@@ -1040,7 +1040,7 @@
 		},
 		{
 			"ImportPath": "google.golang.org/grpc",
-			"Rev": "933601d8cd6418a8a891bd9075a7161b0a67badb"
+			"Rev": "5aeebcd810669f5d8e682b352ad8128b253d21f8"
 		},
 		{
 			"ImportPath": "gopkg.in/natefinch/lumberjack.v2",

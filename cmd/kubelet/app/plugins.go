@@ -104,8 +104,8 @@ func ProbeNetworkPlugins(pluginDir string) []network.NetworkPlugin {
 }
 
 // ProbeNetworkProviders collects all networkproviders
-func ProbeNetworkProviders() {
-	networkProviders.ProbeNetworkProviders()
+func ProbeNetworkProviders(remoteAddr string) error {
+	return networkProviders.ProbeNetworkProviders(remoteAddr)
 }
 
 // NetworkProvider network plugin

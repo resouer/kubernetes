@@ -21,6 +21,6 @@ import (
 	"k8s.io/kubernetes/pkg/networkprovider/providers/remote"
 )
 
-func ProbeNetworkProviders() {
-	remote.ProbeNetworkProviders()
+func ProbeNetworkProviders(remoteAddr string) error {
+	return remote.ProbeNetworkProviders(remoteAddr)
 }
