@@ -18,309 +18,351 @@ package remote
 
 import (
 	"errors"
+	"fmt"
+
 	"github.com/golang/glog"
-	"io/ioutil"
+	"golang.org/x/net/context"
+	"google.golang.org/grpc"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/networkprovider"
-	"strings"
+	"k8s.io/kubernetes/pkg/networkprovider/types"
 )
 
-func ProbeNetworkProviders() {
-	files, _ := ioutil.ReadDir(PluginsPath)
-	for _, f := range files {
-		// only treat .sock/.spec as plugins
-		if !f.IsDir() {
-			if strings.HasSuffix(f.Name(), ".sock") || strings.HasSuffix(f.Name(), ".spec") {
-				pluginName := f.Name()[:len(f.Name())-5]
-				networkprovider.RegisterNetworkProvider(pluginName, func() (networkprovider.Interface, error) {
-					plugin, err := GetPlugin(pluginName)
-					if err != nil {
-						glog.Warningf("Initialize network provider %s failed: %v", pluginName, err)
-						return nil, err
-					} else {
-						glog.V(4).Infof("Network provider %s initialized", pluginName)
-					}
+type RemoteProvider struct {
+	server string
 
-					return plugin, nil
-				})
-			}
-		}
-	}
+	networkClient      types.NetworksClient
+	podClient          types.PodsClient
+	loadbalancerClient types.LoadBalancersClient
 }
 
-func (p *Plugin) ProviderName() string {
-	return p.Name
-}
-
-func (p *Plugin) CheckTenantID(tenantID string) (bool, error) {
-	ret := CheckTenantIDResponse{}
-	args := CheckTenantIDRequest{TenantID: tenantID}
-	err := p.Client.Call(CheckTenantIDMethod, args, &ret)
+func ProbeNetworkProviders(remoteAddr string) error {
+	conn, err := grpc.Dial(remoteAddr, grpc.WithInsecure())
 	if err != nil {
+		glog.Errorf("Connect network provider %s failed: %v", remoteAddr, err)
+		return err
+	}
+
+	networkClient := types.NewNetworksClient(conn)
+	podClient := types.NewPodsClient(conn)
+	lbClient := types.NewLoadBalancersClient(conn)
+	resp, err := networkClient.Active(
+		context.Background(),
+		&types.ActiveRequest{},
+	)
+	if err != nil || !resp.Result {
+		glog.Errorf("Active network provider %s failed: %v", remoteAddr, err)
+		return err
+	}
+
+	networkprovider.RegisterNetworkProvider(remoteAddr, func() (networkprovider.Interface, error) {
+		return &RemoteProvider{
+			server:             remoteAddr,
+			podClient:          podClient,
+			loadbalancerClient: lbClient,
+			networkClient:      networkClient,
+		}, nil
+	})
+
+	return nil
+}
+
+func (r *RemoteProvider) ProviderName() string {
+	return r.server
+}
+
+func (r *RemoteProvider) CheckTenantID(tenantID string) (bool, error) {
+	if tenantID == "" {
+		return false, fmt.Errorf("tenantID is null")
+	}
+
+	resp, err := r.networkClient.CheckTenantID(
+		context.Background(),
+		&types.CheckTenantIDRequest{
+			TenantID: tenantID,
+		},
+	)
+	if err != nil || resp.Error != "" {
+		if err == nil {
+			err = errors.New(resp.Error)
+		}
 		glog.Warningf("NetworkProvider check tenant id %s failed: %v", tenantID, err)
 		return false, err
 	}
 
-	if ret.GetError() != "" {
-		glog.Warningf("NetworkProvider check tenant id %s failed: %v", tenantID, ret.GetError())
-		return false, errors.New(ret.GetError())
-	}
-
-	return ret.Result, nil
+	return resp.Result, nil
 }
 
 // Network interface is self
-func (p *Plugin) Networks() networkprovider.Networks {
-	return p
+func (r *RemoteProvider) Networks() networkprovider.Networks {
+	return r
 }
 
 // Pods interface is self
-func (p *Plugin) Pods() networkprovider.Pods {
-	return p
+func (r *RemoteProvider) Pods() networkprovider.Pods {
+	return r
 }
 
 // LoadBalancer interface is self
-func (p *Plugin) LoadBalancers() networkprovider.LoadBalancers {
-	return p
+func (r *RemoteProvider) LoadBalancers() networkprovider.LoadBalancers {
+	return r
 }
 
 // Get network by networkName
-func (p *Plugin) GetNetwork(networkName string) (*networkprovider.Network, error) {
-	ret := GetNetworkResponse{}
-	args := GetNetworkRequest{Name: networkName}
-	err := p.Client.Call(GetNetworkMethod, args, &ret)
-	if err != nil {
+func (r *RemoteProvider) GetNetwork(networkName string) (*types.Network, error) {
+	if networkName == "" {
+		return nil, errors.New("networkName is null")
+	}
+
+	resp, err := r.networkClient.GetNetwork(
+		context.Background(),
+		&types.GetNetworkRequest{
+			Name: networkName,
+		},
+	)
+	if err != nil || resp.Error != "" {
+		if err == nil {
+			err = errors.New(resp.Error)
+		}
 		glog.Warningf("NetworkProvider get network %s failed: %v", networkName, err)
 		return nil, err
 	}
 
-	if ret.GetError() != "" {
-		glog.Warningf("NetworkProvider get network %s failed: %v", networkName, ret.GetError())
-		return nil, errors.New(ret.GetError())
-	}
-
-	return ret.Result, nil
+	return resp.Network, nil
 }
 
 // Get network by networkID
-func (p *Plugin) GetNetworkByID(networkID string) (*networkprovider.Network, error) {
-	ret := GetNetworkResponse{}
-	args := GetNetworkRequest{ID: networkID}
-	err := p.Client.Call(GetNetworkMethod, args, &ret)
-	if err != nil {
+func (r *RemoteProvider) GetNetworkByID(networkID string) (*types.Network, error) {
+	if networkID == "" {
+		return nil, errors.New("networkID is null")
+	}
+
+	resp, err := r.networkClient.GetNetwork(
+		context.Background(),
+		&types.GetNetworkRequest{
+			Id: networkID,
+		},
+	)
+	if err != nil || resp.Error != "" {
+		if err == nil {
+			err = errors.New(resp.Error)
+		}
 		glog.Warningf("NetworkProvider get network %s failed: %v", networkID, err)
 		return nil, err
 	}
 
-	if ret.GetError() != "" {
-		glog.Warningf("NetworkProvider get network %s failed: %v", networkID, ret.GetError())
-		return nil, errors.New(ret.GetError())
-	}
-
-	return ret.Result, nil
+	return resp.Network, nil
 }
 
 // Create network
-func (p *Plugin) CreateNetwork(network *networkprovider.Network) error {
-	ret := CreateNetworkResponse{}
-	args := CreateNetworkRequest{Network: network}
-	err := p.Client.Call(CreateNetworkMethod, args, &ret)
-	if err != nil {
+func (r *RemoteProvider) CreateNetwork(network *types.Network) error {
+	resp, err := r.networkClient.CreateNetwork(
+		context.Background(),
+		&types.CreateNetworkRequest{
+			Network: network,
+		},
+	)
+	if err != nil || resp.Error != "" {
+		if err == nil {
+			err = errors.New(resp.Error)
+		}
 		glog.Warningf("NetworkProvider create network %s failed: %v", network.Name, err)
 		return err
-	}
-
-	if ret.GetError() != "" {
-		glog.Warningf("NetworkProvider get network %s failed: %v", network.Name, ret.GetError())
-		return errors.New(ret.GetError())
 	}
 
 	return nil
 }
 
 // Update network
-func (p *Plugin) UpdateNetwork(network *networkprovider.Network) error {
-	ret := UpdateNetworkResponse{}
-	args := UpdateNetworkRequest{Network: network}
-	err := p.Client.Call(UpdateNetworkMethod, args, &ret)
-	if err != nil {
+func (r *RemoteProvider) UpdateNetwork(network *types.Network) error {
+	resp, err := r.networkClient.UpdateNetwork(
+		context.Background(),
+		&types.UpdateNetworkRequest{
+			Network: network,
+		},
+	)
+	if err != nil || resp.Error != "" {
+		if err == nil {
+			err = errors.New(resp.Error)
+		}
 		glog.Warningf("NetworkProvider update network %s failed: %v", network.Name, err)
 		return err
-	}
-
-	if ret.GetError() != "" {
-		glog.Warningf("NetworkProvider update network %s failed: %v", network.Name, ret.GetError())
-		return errors.New(ret.GetError())
 	}
 
 	return nil
 }
 
 // Delete network by networkName
-func (p *Plugin) DeleteNetwork(networkName string) error {
-	ret := DeleteNetworkResponse{}
-	args := DeleteNetworkRequest{Name: networkName}
-	err := p.Client.Call(DeleteNetworkMethod, args, &ret)
-	if err != nil {
-		glog.Warningf("NetworkProvider delete network %s failed: %v", networkName, err)
-		return err
+func (r *RemoteProvider) DeleteNetwork(networkName string) error {
+	if networkName == "" {
+		return errors.New("networkName is null")
 	}
 
-	if ret.GetError() != "" {
-		glog.Warningf("NetworkProvider delete  network %s failed: %v", networkName, ret.GetError())
-		return errors.New(ret.GetError())
+	resp, err := r.networkClient.DeleteNetwork(
+		context.Background(),
+		&types.DeleteNetworkRequest{
+			NetworkName: networkName,
+		},
+	)
+	if err != nil || resp.Error != "" {
+		if err == nil {
+			err = errors.New(resp.Error)
+		}
+		glog.Warningf("NetworkProvider delete network %s failed: %v", networkName, err)
+		return err
 	}
 
 	return nil
 }
 
 // Get load balancer by name
-func (p *Plugin) GetLoadBalancer(name string) (*networkprovider.LoadBalancer, error) {
-	ret := GetLoadBalancerResponse{}
-	args := GetLoadBalancerRequest{Name: name}
-	err := p.Client.Call(GetLoadBalancerMethod, args, &ret)
-	if err != nil {
+func (r *RemoteProvider) GetLoadBalancer(name string) (*types.LoadBalancer, error) {
+	if name == "" {
+		return nil, errors.New("LoadBalancer name is null")
+	}
+
+	resp, err := r.loadbalancerClient.GetLoadBalancer(
+		context.Background(),
+		&types.GetLoadBalancerRequest{
+			Name: name,
+		},
+	)
+	if err != nil || resp.Error != "" {
+		if err == nil {
+			err = errors.New(resp.Error)
+		}
 		glog.Warningf("NetworkProvider get loadbalancer %s failed: %v", name, err)
 		return nil, err
 	}
 
-	if ret.GetError() != "" {
-		glog.Warningf("NetworkProvider get loadbalancer %s failed: %v", name, ret.GetError())
-		return nil, errors.New(ret.GetError())
-	}
-
-	return ret.Result, nil
+	return resp.LoadBalancer, nil
 }
 
-// Create load balancer, return ip and externalIP
-func (p *Plugin) CreateLoadBalancer(loadBalancer *networkprovider.LoadBalancer, affinity api.ServiceAffinity) (string, error) {
-	ret := CreateLoadBalancerResponse{}
-	args := CreateLoadBalancerRequest{
-		LoadBalancer: loadBalancer,
-		Affinity:     affinity,
-	}
-	err := p.Client.Call(CreateLoadBalancerMethod, args, &ret)
-	if err != nil {
+// Create load balancer, return vip
+func (r *RemoteProvider) CreateLoadBalancer(loadBalancer *types.LoadBalancer, affinity api.ServiceAffinity) (string, error) {
+	resp, err := r.loadbalancerClient.CreateLoadBalancer(
+		context.Background(),
+		&types.CreateLoadBalancerRequest{
+			LoadBalancer: loadBalancer,
+			Affinity:     string(affinity),
+		},
+	)
+	if err != nil || resp.Error != "" {
+		if err == nil {
+			err = errors.New(resp.Error)
+		}
 		glog.Warningf("NetworkProvider create loadbalancer %s failed: %v", loadBalancer.Name, err)
 		return "", err
 	}
 
-	if ret.GetError() != "" {
-		glog.Warningf("NetworkProvider create loadbalancer %s failed: %v", loadBalancer.Name, ret.GetError())
-		return "", errors.New(ret.GetError())
-	}
-
-	return ret.Result.VIP, nil
+	return resp.Vip, nil
 }
 
 // Update load balancer, return externalIP
-func (p *Plugin) UpdateLoadBalancer(name string, hosts []*networkprovider.HostPort, externalIPs []string) (string, error) {
-	ret := UpdateLoadBalancerResponse{}
-	args := UpdateLoadBalancerRequest{
-		Name:        name,
-		Hosts:       hosts,
-		ExternalIPs: externalIPs,
-	}
-	err := p.Client.Call(UpdateLoadBalancerMethod, args, &ret)
-	if err != nil {
+func (r *RemoteProvider) UpdateLoadBalancer(name string, hosts []*types.HostPort, externalIPs []string) (string, error) {
+	resp, err := r.loadbalancerClient.UpdateLoadBalancer(
+		context.Background(),
+		&types.UpdateLoadBalancerRequest{
+			Name:        name,
+			Hosts:       hosts,
+			ExternalIPs: externalIPs,
+		},
+	)
+	if err != nil || resp.Error != "" {
+		if err == nil {
+			err = errors.New(resp.Error)
+		}
 		glog.Warningf("NetworkProvider update loadbalancer %s failed: %v", name, err)
 		return "", err
 	}
 
-	if ret.GetError() != "" {
-		glog.Warningf("NetworkProvider update loadbalancer %s failed: %v", name, ret.GetError())
-		return "", errors.New(ret.GetError())
-	}
-
-	return ret.Result.VIP, nil
+	return resp.Vip, nil
 }
 
 // Delete load balancer
-func (p *Plugin) DeleteLoadBalancer(name string) error {
-	ret := DeleteLoadBalancerResponse{}
-	args := DeleteLoadBalancerRequest{Name: name}
-	err := p.Client.Call(DeleteLoadBalancerMethod, args, &ret)
-	if err != nil {
+func (r *RemoteProvider) DeleteLoadBalancer(name string) error {
+	resp, err := r.loadbalancerClient.DeleteLoadBalancer(
+		context.Background(),
+		&types.DeleteLoadBalancerRequest{
+			Name: name,
+		},
+	)
+	if err != nil || resp.Error != "" {
+		if err == nil {
+			err = errors.New(resp.Error)
+		}
 		glog.Warningf("NetworkProvider delete loadbalancer %s failed: %v", name, err)
 		return err
-	}
-
-	if ret.GetError() != "" {
-		glog.Warningf("NetworkProvider delete  loadbalancer %s failed: %v", name, ret.GetError())
-		return errors.New(ret.GetError())
 	}
 
 	return nil
 }
 
 // Setup pod
-func (p *Plugin) SetupPod(podName, namespace, podInfraContainerID string, network *networkprovider.Network, containerRuntime string) error {
-	ret := SetupPodResponse{}
-	args := SetupPodRequest{
-		PodName:             podName,
-		Namespace:           namespace,
-		ContainerRuntime:    containerRuntime,
-		PodInfraContainerID: podInfraContainerID,
-		Network:             network,
-	}
-	err := p.Client.Call(SetupPodMethod, args, &ret)
-	if err != nil {
-		glog.Warningf("NetworkProvider setup pod %s failed: %v", podName, err)
+func (r *RemoteProvider) SetupPod(podName, namespace, podInfraContainerID string, network *types.Network, containerRuntime string) error {
+	resp, err := r.podClient.SetupPod(
+		context.Background(),
+		&types.SetupPodRequest{
+			PodName:             podName,
+			Namespace:           namespace,
+			PodInfraContainerID: podInfraContainerID,
+			ContainerRuntime:    containerRuntime,
+			Network:             network,
+		},
+	)
+	if err != nil || resp.Error != "" {
+		if err == nil {
+			err = errors.New(resp.Error)
+		}
+		glog.Warningf("NetworkProvider SetupPod %s failed: %v", podName, err)
 		return err
-	}
-
-	if ret.GetError() != "" {
-		glog.Warningf("NetworkProvider setup pod %s failed: %v", podName, ret.GetError())
-		return errors.New(ret.GetError())
 	}
 
 	return nil
 }
 
 // Teardown pod
-func (p *Plugin) TeardownPod(podName, namespace, podInfraContainerID string, network *networkprovider.Network, containerRuntime string) error {
-	ret := TeardownPodResponse{}
-	args := TeardownPodRequest{
-		PodName:             podName,
-		Namespace:           namespace,
-		ContainerRuntime:    containerRuntime,
-		PodInfraContainerID: podInfraContainerID,
-		Network:             network,
-	}
-	err := p.Client.Call(TeardownPodMethod, args, &ret)
-	if err != nil {
-		glog.Warningf("NetworkProvider teardown pod %s failed: %v", podName, err)
+func (r *RemoteProvider) TeardownPod(podName, namespace, podInfraContainerID string, network *types.Network, containerRuntime string) error {
+	resp, err := r.podClient.TeardownPod(
+		context.Background(),
+		&types.TeardownPodRequest{
+			PodName:             podName,
+			Namespace:           namespace,
+			PodInfraContainerID: podInfraContainerID,
+			ContainerRuntime:    containerRuntime,
+			Network:             network,
+		},
+	)
+	if err != nil || resp.Error != "" {
+		if err == nil {
+			err = errors.New(resp.Error)
+		}
+		glog.Warningf("NetworkProvider TeardownPod %s failed: %v", podName, err)
 		return err
-	}
-
-	if ret.GetError() != "" {
-		glog.Warningf("NetworkProvider teardown pod %s failed: %v", podName, ret.GetError())
-		return errors.New(ret.GetError())
 	}
 
 	return nil
 }
 
 // Status of pod
-func (p *Plugin) PodStatus(podName, namespace, podInfraContainerID string, network *networkprovider.Network, containerRuntime string) (string, error) {
-	ret := PodStatusResponse{}
-	args := PodStatusRequest{
-		PodName:             podName,
-		Namespace:           namespace,
-		ContainerRuntime:    containerRuntime,
-		PodInfraContainerID: podInfraContainerID,
-		Network:             network,
-	}
-	err := p.Client.Call(PodStatudMethod, args, &ret)
-	if err != nil {
-		glog.Warningf("NetworkProvider get status of pod %s failed: %v", podName, err)
+func (r *RemoteProvider) PodStatus(podName, namespace, podInfraContainerID string, network *types.Network, containerRuntime string) (string, error) {
+	resp, err := r.podClient.PodStatus(
+		context.Background(),
+		&types.PodStatusRequest{
+			PodName:             podName,
+			Namespace:           namespace,
+			PodInfraContainerID: podInfraContainerID,
+			ContainerRuntime:    containerRuntime,
+			Network:             network,
+		},
+	)
+	if err != nil || resp.Error != "" {
+		if err == nil {
+			err = errors.New(resp.Error)
+		}
+		glog.Warningf("NetworkProvider TeardownPod %s failed: %v", podName, err)
 		return "", err
 	}
 
-	if ret.GetError() != "" {
-		glog.Warningf("NetworkProvider get status of pod %s failed: %v", podName, ret.GetError())
-		return "", errors.New(ret.GetError())
-	}
-
-	return ret.Result.IP, nil
+	return resp.Ip, nil
 }

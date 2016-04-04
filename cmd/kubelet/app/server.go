@@ -185,13 +185,16 @@ func UnsecuredKubeletConfig(s *options.KubeletServer) (*KubeletConfig, error) {
 	networkPluginName := s.NetworkPluginName
 	networkPlugins := ProbeNetworkPlugins(s.NetworkPluginDir)
 
-	ProbeNetworkProviders()
-	networkProvider, err := networkprovider.InitNetworkProvider(s.NetworkProvider)
-	if err != nil {
-		glog.Errorf("Network provider could not be initialized: %v", err)
-	} else {
-		networkPlugins = append(networkPlugins, NewRemoteNetworkPlugin(networkProvider))
-		networkPluginName = "NetworkProvider"
+	if s.NetworkProvider != "" {
+		ProbeNetworkProviders(s.NetworkProvider)
+		networkProvider, err := networkprovider.InitNetworkProvider(s.NetworkProvider)
+		if err != nil {
+			glog.Errorf("Network provider could not be initialized: %v", err)
+			return nil, err
+		} else {
+			networkPlugins = append(networkPlugins, NewRemoteNetworkPlugin(networkProvider))
+			networkPluginName = "NetworkProvider"
+		}
 	}
 
 	return &KubeletConfig{

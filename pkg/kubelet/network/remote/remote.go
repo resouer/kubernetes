@@ -24,6 +24,7 @@ import (
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
 	"k8s.io/kubernetes/pkg/kubelet/network"
 	"k8s.io/kubernetes/pkg/networkprovider"
+	"k8s.io/kubernetes/pkg/networkprovider/types"
 )
 
 const (
@@ -48,7 +49,7 @@ func (plugin *RemoteNetworkPlugin) Init(host network.Host) error {
 	return nil
 }
 
-func (plugin *RemoteNetworkPlugin) getNetworkOfNamespace(nsName string) (*networkprovider.Network, error) {
+func (plugin *RemoteNetworkPlugin) getNetworkOfNamespace(nsName string) (*types.Network, error) {
 	// get namespace info
 	namespace, err := plugin.client.Core().Namespaces().Get(nsName)
 	if err != nil {
@@ -67,7 +68,7 @@ func (plugin *RemoteNetworkPlugin) getNetworkOfNamespace(nsName string) (*networ
 		return nil, err
 	}
 
-	var networkInfo *networkprovider.Network
+	var networkInfo *types.Network
 	if network.Spec.ProviderNetworkID != "" {
 		networkInfo, err = plugin.provider.Networks().GetNetworkByID(network.Spec.ProviderNetworkID)
 	} else {

@@ -125,6 +125,6 @@ func AttemptToLoadRecycler(path string, config *volume.VolumeConfig) error {
 	return nil
 }
 
-func ProbeNetworkProviders() {
-	networkProviders.ProbeNetworkProviders()
+func ProbeNetworkProviders(remoteAddr string) error {
+	return networkProviders.ProbeNetworkProviders(remoteAddr)
 }

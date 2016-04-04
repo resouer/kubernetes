@@ -20,20 +20,20 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/golang/glog"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/client/cache"
-	client "k8s.io/kubernetes/pkg/client/unversioned"
+	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/controller/framework"
 	"k8s.io/kubernetes/pkg/networkprovider"
+	"k8s.io/kubernetes/pkg/networkprovider/types"
 	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/util/intstr"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/util/wait"
 	"k8s.io/kubernetes/pkg/util/workqueue"
 	"k8s.io/kubernetes/pkg/watch"
-
-	"github.com/golang/glog"
-	"k8s.io/kubernetes/pkg/util/intstr"
 )
 
 const (
@@ -60,7 +60,7 @@ var (
 
 // NetworkController manages all networks
 type NetworkController struct {
-	client      *client.Client
+	client      clientset.Interface
 	queue       *workqueue.Type
 	netProvider networkprovider.Interface
 
@@ -74,7 +74,7 @@ type NetworkController struct {
 }
 
 // NewNetworkController returns a new *NetworkController.
-func NewNetworkController(client *client.Client, provider networkprovider.Interface) *NetworkController {
+func NewNetworkController(client clientset.Interface, provider networkprovider.Interface) *NetworkController {
 	e := &NetworkController{
 		client:      client,
 		queue:       workqueue.New(),
@@ -84,10 +84,10 @@ func NewNetworkController(client *client.Client, provider networkprovider.Interf
 	e.serviceStore.Store, e.serviceController = framework.NewInformer(
 		&cache.ListWatch{
 			ListFunc: func(options api.ListOptions) (runtime.Object, error) {
-				return e.client.Services(api.NamespaceAll).List(options)
+				return e.client.Core().Services(api.NamespaceAll).List(options)
 			},
 			WatchFunc: func(options api.ListOptions) (watch.Interface, error) {
-				return e.client.Services(api.NamespaceAll).Watch(options)
+				return e.client.Core().Services(api.NamespaceAll).Watch(options)
 			},
 		},
 		&api.Service{},
@@ -104,10 +104,10 @@ func NewNetworkController(client *client.Client, provider networkprovider.Interf
 	e.networkStore.Store, e.networkController = framework.NewInformer(
 		&cache.ListWatch{
 			ListFunc: func(options api.ListOptions) (runtime.Object, error) {
-				return e.client.Networks().List(options)
+				return e.client.Core().Networks().List(options)
 			},
 			WatchFunc: func(options api.ListOptions) (watch.Interface, error) {
-				return e.client.Networks().Watch(options)
+				return e.client.Core().Networks().Watch(options)
 			},
 		},
 		&api.Network{},
@@ -122,10 +122,10 @@ func NewNetworkController(client *client.Client, provider networkprovider.Interf
 	e.endpointStore.Store, e.endpointController = framework.NewInformer(
 		&cache.ListWatch{
 			ListFunc: func(options api.ListOptions) (runtime.Object, error) {
-				return e.client.Endpoints(api.NamespaceAll).List(options)
+				return e.client.Core().Endpoints(api.NamespaceAll).List(options)
 			},
 			WatchFunc: func(options api.ListOptions) (watch.Interface, error) {
-				return e.client.Endpoints(api.NamespaceAll).Watch(options)
+				return e.client.Core().Endpoints(api.NamespaceAll).Watch(options)
 			},
 		},
 		&api.Endpoints{},
@@ -157,7 +157,7 @@ func (e *NetworkController) addNetwork(obj interface{}) {
 	if !check {
 		glog.Warningf("NetworkController: tenantID %s doesn't exit in network provider", net.Spec.TenantID)
 		newNetwork.Status = api.NetworkStatus{Phase: api.NetworkFailed}
-		_, err := e.client.Networks().Status(&newNetwork)
+		_, err := e.client.Core().Networks().UpdateStatus(&newNetwork)
 		if err != nil {
 			glog.Errorf("NetworkController: failed to update network status: %v", err)
 		}
@@ -196,7 +196,7 @@ func (e *NetworkController) addNetwork(obj interface{}) {
 	}
 
 	newNetwork.Status = api.NetworkStatus{Phase: newNetworkStatus}
-	_, err = e.client.Networks().Status(&newNetwork)
+	_, err = e.client.Core().Networks().UpdateStatus(&newNetwork)
 	if err != nil {
 		glog.Errorf("NetworkController: failed to update network status: %v", err)
 	}
@@ -237,7 +237,7 @@ func (e *NetworkController) updateNetwork(old, cur interface{}) {
 	// If updated failed, update network status
 	if failed {
 		oldNetwork.Status = api.NetworkStatus{Phase: api.NetworkFailed}
-		_, err := e.client.Networks().Status(oldNetwork)
+		_, err := e.client.Core().Networks().UpdateStatus(oldNetwork)
 		if err != nil {
 			glog.Errorf("NetworkController: failed to update network status: %v", err)
 		}
@@ -395,11 +395,11 @@ func (e *NetworkController) syncService(key string) {
 	}
 }
 
-func (e *NetworkController) getEndpointHosts(service *api.Service) ([]*networkprovider.HostPort, error) {
-	hosts := make([]*networkprovider.HostPort, 0, 1)
+func (e *NetworkController) getEndpointHosts(service *api.Service) ([]*types.HostPort, error) {
+	hosts := make([]*types.HostPort, 0, 1)
 	// get service's endpoints
 	// Endpoints may be delayed since they are created/updated from another controller
-	endpoint, err := e.client.Endpoints(service.Namespace).Get(service.Name)
+	endpoint, err := e.client.Core().Endpoints(service.Namespace).Get(service.Name)
 	if err != nil {
 		glog.Errorf("NetworkController: couldn't get endpoint for service %s: %v", service.Name, err)
 		return hosts, err
@@ -408,10 +408,10 @@ func (e *NetworkController) getEndpointHosts(service *api.Service) ([]*networkpr
 	for _, host := range endpoint.Subsets {
 		for _, ip := range host.Addresses {
 			for _, port := range host.Ports {
-				hostport := networkprovider.HostPort{
+				hostport := types.HostPort{
 					Name:       port.Name,
-					IPAddress:  ip.IP,
-					TargetPort: port.Port,
+					Ipaddress:  ip.IP,
+					TargetPort: int32(port.Port),
 				}
 
 				hosts = append(hosts, &hostport)
@@ -429,8 +429,8 @@ func (e *NetworkController) getEndpointHosts(service *api.Service) ([]*networkpr
 		}
 
 		for _, hostport := range hosts {
-			if hostport.TargetPort == targetPort || svc.TargetPort.StrVal == hostport.Name {
-				hostport.ServicePort = svc.Port
+			if int(hostport.TargetPort) == targetPort || svc.TargetPort.StrVal == hostport.Name {
+				hostport.ServicePort = int32(svc.Port)
 			}
 		}
 	}
@@ -441,7 +441,7 @@ func (e *NetworkController) getEndpointHosts(service *api.Service) ([]*networkpr
 func (e *NetworkController) updateService(service *api.Service) error {
 	var err error
 	for i := 0; i < clientRetryCount; i++ {
-		_, err = e.client.Services(service.Namespace).Update(service)
+		_, err = e.client.Core().Services(service.Namespace).UpdateStatus(service)
 		if err == nil {
 			return nil
 		}
@@ -462,7 +462,7 @@ func (e *NetworkController) updateService(service *api.Service) error {
 	return err
 }
 
-func (e *NetworkController) hostPortsEqual(old, new []*networkprovider.HostPort) bool {
+func (e *NetworkController) hostPortsEqual(old, new []*types.HostPort) bool {
 	if len(old) != len(new) {
 		return false
 	}
@@ -470,7 +470,7 @@ func (e *NetworkController) hostPortsEqual(old, new []*networkprovider.HostPort)
 	for _, o := range old {
 		var found bool
 		for _, n := range new {
-			if n.ServicePort == o.ServicePort && n.IPAddress == o.IPAddress && n.TargetPort == o.TargetPort {
+			if n.ServicePort == o.ServicePort && n.Ipaddress == o.Ipaddress && n.TargetPort == o.TargetPort {
 				found = true
 			}
 		}
@@ -482,7 +482,7 @@ func (e *NetworkController) hostPortsEqual(old, new []*networkprovider.HostPort)
 	return true
 }
 
-func (e *NetworkController) updateLoadBalancer(service *api.Service, lb *networkprovider.LoadBalancer) (*api.LoadBalancerStatus, error) {
+func (e *NetworkController) updateLoadBalancer(service *api.Service, lb *types.LoadBalancer) (*api.LoadBalancerStatus, error) {
 	loadBalancerFullName := networkprovider.BuildLoadBalancerName(service.Name, service.Namespace)
 
 	newHosts, _ := e.getEndpointHosts(service)
@@ -516,7 +516,7 @@ func (e *NetworkController) createLoadBalancer(service *api.Service) (*api.LoadB
 	}
 
 	// get namespace of svc
-	namespace, err := e.client.Namespaces().Get(service.Namespace)
+	namespace, err := e.client.Core().Namespaces().Get(service.Namespace)
 	if err != nil {
 		glog.Errorf("NetworkController: couldn't get namespace for service %s: %v", service.Name, err)
 		return nil, err
@@ -527,13 +527,13 @@ func (e *NetworkController) createLoadBalancer(service *api.Service) (*api.LoadB
 	}
 
 	// get network of namespace
-	network, err := e.client.Networks().Get(namespace.Spec.Network)
+	network, err := e.client.Core().Networks().Get(namespace.Spec.Network)
 	if err != nil {
 		glog.Errorf("NetworkController: couldn't get network for namespace %s: %v", namespace.Name, err)
 		return nil, err
 	}
 
-	var networkInfo *networkprovider.Network
+	var networkInfo *types.Network
 	if network.Spec.ProviderNetworkID != "" {
 		networkInfo, err = e.netProvider.Networks().GetNetworkByID(network.Spec.ProviderNetworkID)
 	} else {
@@ -547,14 +547,14 @@ func (e *NetworkController) createLoadBalancer(service *api.Service) (*api.LoadB
 
 	// create loadbalancer for service
 	loadBalancerFullName := networkprovider.BuildLoadBalancerName(service.Name, service.Namespace)
-	providerLoadBalancer := networkprovider.LoadBalancer{
+	providerLoadBalancer := types.LoadBalancer{
 		Name: loadBalancerFullName,
 		// TODO: support more loadbalancer type
-		Type:        networkprovider.LoadBalancerTypeTCP,
-		TenantID:    networkInfo.TenantID,
-		Subnets:     networkInfo.Subnets,
-		Hosts:       newHosts,
-		ExternalIPs: service.Spec.ExternalIPs,
+		LoadBalanceType: string(networkprovider.LoadBalancerTypeTCP),
+		TenantID:        networkInfo.TenantID,
+		Subnets:         networkInfo.Subnets,
+		Hosts:           newHosts,
+		ExternalIPs:     service.Spec.ExternalIPs,
 	}
 
 	vip, err := e.netProvider.LoadBalancers().CreateLoadBalancer(&providerLoadBalancer, service.Spec.SessionAffinity)
@@ -572,7 +572,7 @@ func (e *NetworkController) createLoadBalancer(service *api.Service) (*api.LoadB
 
 // In order to process services deleted while controller is down, fill the queue on startup
 func (e *NetworkController) startUp() {
-	svcList, err := e.client.Services(api.NamespaceAll).List(api.ListOptions{})
+	svcList, err := e.client.Core().Services(api.NamespaceAll).List(api.ListOptions{})
 	if err != nil {
 		glog.Errorf("Unable to list services: %v", err)
 		return
@@ -589,7 +589,7 @@ func (e *NetworkController) startUp() {
 		}
 	}
 
-	endpointList, err := e.client.Endpoints(api.NamespaceAll).List(api.ListOptions{})
+	endpointList, err := e.client.Core().Endpoints(api.NamespaceAll).List(api.ListOptions{})
 	if err != nil {
 		glog.Errorf("Unable to list endpoints: %v", err)
 		return
@@ -603,7 +603,7 @@ func (e *NetworkController) startUp() {
 // When an endpoint is added, figure out its service and enqueue it
 func (e *NetworkController) addEndpoint(obj interface{}) {
 	if ep, ok := obj.(*api.Endpoints); ok {
-		svc, err := e.client.Services(ep.Namespace).Get(ep.Name)
+		svc, err := e.client.Core().Services(ep.Namespace).Get(ep.Name)
 		if err != nil {
 			glog.Errorf("NetworkController: service %s can not be found: %v", ep.Name, err)
 		} else {
