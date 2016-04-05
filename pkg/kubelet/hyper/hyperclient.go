@@ -30,11 +30,11 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/docker/docker/pkg/parsers"
 	"github.com/docker/docker/pkg/term"
 	"github.com/golang/glog"
-	"time"
 )
 
 const (
@@ -125,6 +125,15 @@ type hijackOptions struct {
 	stderr io.Writer
 	data   interface{}
 	tty    bool
+}
+
+/*
+{"Cause":"VM shut down","Code":0,"ID":"pod-MavdmoyvEP"}
+*/
+type podRemoveResult struct {
+	Cause string `json:"Cause"`
+	Code  int    `json:"Code"`
+	ID    string `json:"ID"`
 }
 
 func NewHyperClient() *HyperClient {
@@ -476,9 +485,21 @@ func (client *HyperClient) RemoveImage(imageID string) error {
 func (client *HyperClient) RemovePod(podID string) error {
 	v := url.Values{}
 	v.Set(KEY_POD_ID, podID)
-	_, _, err := client.call("DELETE", "/pod?"+v.Encode(), "", nil)
-	if err != nil {
+	body, _, err := client.call("DELETE", "/pod?"+v.Encode(), "", nil)
+	if err != nil && !strings.Contains(err.Error(), "Can not find") {
 		return err
+	}
+
+	var result podRemoveResult
+	err = json.Unmarshal(body, &result)
+	if err != nil {
+		glog.Warningf("Can not unmarshal pod delete result: %s, assume removed", string(body))
+		return nil
+	}
+	// !(errCode == types.E_OK || errCode == types.E_VM_SHUTDOWN)
+	if result.Code != 0 && result.Code != 2 {
+		glog.Errorf("Delete pod %s failed: %s", podID, result.Cause)
+		return errors.New(result.Cause)
 	}
 
 	return nil
