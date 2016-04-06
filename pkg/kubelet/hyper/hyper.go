@@ -696,19 +696,51 @@ func (r *runtime) GetPodRestartCount(podID string) (int, error) {
 }
 
 func (r *runtime) RunPod(pod *api.Pod, restartCount int, pullSecrets []api.Secret) error {
-	podFullName := kubecontainer.BuildPodFullName(pod.Name, pod.Namespace)
+	var (
+		err         error
+		podData     []byte
+		podFullName string
+		podID       string
+		podStatus   *kubecontainer.PodStatus
+	)
 
-	podData, err := r.buildHyperPod(pod, restartCount, pullSecrets)
+	podData, err = r.buildHyperPod(pod, restartCount, pullSecrets)
 	if err != nil {
 		glog.Errorf("Hyper: buildHyperPod failed, error: %v", err)
 		return err
 	}
 
+	podFullName = kubecontainer.BuildPodFullName(pod.Name, pod.Namespace)
 	err = r.savePodSpec(string(podData), podFullName)
 	if err != nil {
 		glog.Errorf("Hyper: savePodSpec failed, error: %v", err)
 		return err
 	}
+
+	defer func() {
+		if err != nil {
+			specFileName := path.Join(hyperPodSpecDir, podFullName)
+			_, err = os.Stat(specFileName)
+			if err == nil {
+				e := os.Remove(specFileName)
+				if e != nil {
+					glog.Warningf("Hyper: delete spec file for %s failed, error: %v", podFullName, e)
+				}
+			}
+
+			if podID != "" {
+				destroyErr := r.hyperClient.RemovePod(podID)
+				if destroyErr != nil {
+					glog.Errorf("Hyper: destory pod %s (ID:%s) failed: %v", pod.Name, podID, destroyErr)
+				}
+			}
+
+			tearDownError := r.networkPlugin.TearDownPod(pod.Namespace, pod.Name, "", "hyper")
+			if tearDownError != nil {
+				glog.Warningf("Hyper: networkPlugin.TearDownPod failed: %v, kubelet will continue to rm pod %s", tearDownError, pod.Name)
+			}
+		}
+	}()
 
 	// Setup pod's network by network plugin
 	// TODO: Add hostname in network plugin interface
@@ -731,19 +763,14 @@ func (r *runtime) RunPod(pod *api.Pod, restartCount int, pullSecrets []api.Secre
 		return err
 	}
 
-	podID := string(result["ID"].(string))
-
+	podID = string(result["ID"].(string))
 	err = r.hyperClient.StartPod(podID)
 	if err != nil {
 		glog.Errorf("Hyper: start pod %s (ID:%s) failed, error: %v", pod.Name, podID, err)
-		destroyErr := r.hyperClient.RemovePod(podID)
-		if destroyErr != nil {
-			glog.Errorf("Hyper: destory pod %s (ID:%s) failed: %v", pod.Name, podID, destroyErr)
-		}
 		return err
 	}
 
-	podStatus, err := r.GetPodStatus(pod.UID, pod.Name, pod.Namespace)
+	podStatus, err = r.GetPodStatus(pod.UID, pod.Name, pod.Namespace)
 	if err != nil {
 		return err
 	}
@@ -780,7 +807,7 @@ func (r *runtime) RunPod(pod *api.Pod, restartCount int, pullSecrets []api.Secre
 		if container.Lifecycle != nil && container.Lifecycle.PostStart != nil {
 			handlerErr := r.runner.Run(containerID, pod, &container, container.Lifecycle.PostStart)
 			if handlerErr != nil {
-				err := fmt.Errorf("PostStart handler: %v", handlerErr)
+				err = fmt.Errorf("PostStart handler: %v", handlerErr)
 				if e := r.KillPod(pod, runningPod); e != nil {
 					glog.Errorf("KillPod %v failed: %v", podFullName, e)
 				}
@@ -933,9 +960,31 @@ func (r *runtime) KillPod(pod *api.Pod, runningPod kubecontainer.Pod) error {
 		}
 	}
 
-	var podID string
-	podName := kubecontainer.BuildPodFullName(runningPod.Name, runningPod.Namespace)
+	var (
+		podID   string
+		podName string
+		err     error
+	)
+	podName = kubecontainer.BuildPodFullName(runningPod.Name, runningPod.Namespace)
 	glog.V(4).Infof("Hyper: killing pod %q.", podName)
+
+	defer func() {
+		// Teardown pod's network
+		err = r.networkPlugin.TearDownPod(runningPod.Namespace, runningPod.Name, "", "hyper")
+		if err != nil {
+			glog.Warningf("Hyper: networkPlugin.TearDownPod failed, error: %v", err)
+		}
+
+		// Delete pod spec file
+		specFileName := path.Join(hyperPodSpecDir, podName)
+		_, err = os.Stat(specFileName)
+		if err == nil {
+			e := os.Remove(specFileName)
+			if e != nil {
+				glog.Warningf("Hyper: delete spec file for %s failed, error: %v", runningPod.Name, e)
+			}
+		}
+	}()
 
 	podInfos, err := r.hyperClient.ListPods()
 	if err != nil {
@@ -968,23 +1017,6 @@ func (r *runtime) KillPod(pod *api.Pod, runningPod kubecontainer.Pod) error {
 	if err != nil {
 		glog.Errorf("Hyper: remove pod %s failed, error: %s", podID, err)
 		return err
-	}
-
-	// Teardown pod's network
-	err = r.networkPlugin.TearDownPod(runningPod.Namespace, runningPod.Name, "", "hyper")
-	if err != nil {
-		glog.Errorf("Hyper: networkPlugin.TearDownPod failed, error: %v", err)
-		return err
-	}
-
-	// Delete pod spec file
-	specFileName := path.Join(hyperPodSpecDir, podName)
-	_, err = os.Stat(specFileName)
-	if err == nil {
-		e := os.Remove(specFileName)
-		if e != nil {
-			glog.Errorf("Hyper: delete spec file for %s failed, error: %v", runningPod.Name, e)
-		}
 	}
 
 	return nil
