@@ -52,10 +52,8 @@ import (
 const (
 	hyperMinimumVersion = "0.5.0"
 
-	hyperBinName                = "hyper"
 	typeHyper                   = "hyper"
 	hyperContainerNamePrefix    = "kube"
-	hyperPodNamePrefix          = "kube"
 	hyperDefaultContainerCPU    = 1
 	hyperDefaultContainerMem    = 128
 	hyperHostnameMaxLen         = 63
@@ -67,7 +65,6 @@ const (
 
 // runtime implements the container runtime for hyper
 type runtime struct {
-	hyperBinAbsPath     string
 	dockerKeyring       credentialprovider.DockerKeyring
 	containerLogsDir    string
 	containerRefManager *kubecontainer.RefManager
@@ -110,15 +107,7 @@ func New(runtimeHelper kubecontainer.RuntimeHelper,
 	containerLogsDir string,
 	os kubecontainer.OSInterface,
 ) (kubecontainer.Runtime, error) {
-	// check hyper has already installed
-	hyperBinAbsPath, err := exec.LookPath(hyperBinName)
-	if err != nil {
-		glog.Errorf("Hyper: can't find hyper binary")
-		return nil, fmt.Errorf("cannot find hyper binary: %v", err)
-	}
-
 	hyper := &runtime{
-		hyperBinAbsPath:             hyperBinAbsPath,
 		dockerKeyring:               credentialprovider.NewDockerKeyring(),
 		containerLogsDir:            containerLogsDir,
 		containerRefManager:         containerRefManager,
@@ -154,27 +143,6 @@ func New(runtimeHelper kubecontainer.RuntimeHelper,
 	hyper.runner = lifecycle.NewHandlerRunner(httpClient, hyper, hyper)
 
 	return hyper, nil
-}
-
-func (r *runtime) buildCommand(args ...string) *exec.Cmd {
-	hyperBinAbsPath, err := exec.LookPath(hyperBinName)
-	if err != nil {
-		return nil
-	}
-
-	cmd := exec.Command(hyperBinAbsPath)
-	cmd.Args = append(cmd.Args, args...)
-	return cmd
-}
-
-// runCommand invokes hyper binary with arguments and returns the result
-// from stdout in a list of strings. Each string in the list is a line.
-func (r *runtime) runCommand(args ...string) ([]string, error) {
-	output, err := r.buildCommand(args...).CombinedOutput()
-	if err != nil {
-		return nil, err
-	}
-	return strings.Split(strings.TrimSpace(string(output)), "\n"), nil
 }
 
 // Version invokes 'hyper version' to get the version information of the hyper
@@ -996,8 +964,7 @@ func (r *runtime) KillPod(pod *api.Pod, runningPod kubecontainer.Pod) error {
 		}
 	}
 
-	cmds := append([]string{}, "rm", podID)
-	_, err = r.runCommand(cmds...)
+	err = r.hyperClient.RemovePod(podID)
 	if err != nil {
 		glog.Errorf("Hyper: remove pod %s failed, error: %s", podID, err)
 		return err
@@ -1362,8 +1329,7 @@ func (r *runtime) GarbageCollect(gcPolicy kubecontainer.ContainerGCPolicy) error
 			}
 
 			// Remove the pod
-			cmds := append([]string{}, "rm", pod.PodID)
-			_, err = r.runCommand(cmds...)
+			err = r.hyperClient.RemovePod(pod.PodID)
 			if err != nil {
 				glog.Warningf("Hyper GarbageCollect: remove pod %s failed, error: %s", pod.PodID, err)
 				return err
