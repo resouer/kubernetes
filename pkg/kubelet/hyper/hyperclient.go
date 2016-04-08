@@ -567,7 +567,7 @@ func (client *HyperClient) CreatePod(podArgs string) (map[string]interface{}, er
 func (c *HyperClient) GetExitCode(container, tag string) error {
 	v := url.Values{}
 	v.Set("container", container)
-	v.Set("tag", tag)
+	v.Set(KEY_TAG, tag)
 	code := -1
 
 	body, _, err := c.call("GET", "/exitcode?"+v.Encode(), "", nil)
@@ -700,7 +700,7 @@ func (client *HyperClient) Attach(opts AttachToContainerOptions) error {
 	v := url.Values{}
 	v.Set(KEY_TYPE, TYPE_CONTAINER)
 	v.Set(KEY_VALUE, opts.Container)
-	v.Set("tag", tag)
+	v.Set(KEY_TAG, tag)
 	path := "/attach?" + v.Encode()
 	err := client.hijack("POST", path, hijackOptions{
 		in:     opts.InputStream,
@@ -730,8 +730,9 @@ func (client *HyperClient) Exec(opts ExecInContainerOptions) error {
 	tag := client.GetTag()
 	v.Set(KEY_TYPE, TYPE_CONTAINER)
 	v.Set(KEY_VALUE, opts.Container)
-	v.Set("tag", tag)
-	v.Set("command", string(command))
+	v.Set(KEY_TAG, tag)
+	v.Set(KEY_COMMAND, string(command))
+	v.Set(KEY_TTY, strconv.FormatBool(opts.TTY))
 	path := "/exec?" + v.Encode()
 	err = client.hijack("POST", path, hijackOptions{
 		in:     opts.InputStream,
