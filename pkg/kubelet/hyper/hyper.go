@@ -906,9 +906,44 @@ func (r *runtime) SyncPod(pod *api.Pod, podStatus api.PodStatus, internalPodStat
 
 // KillPod kills all the containers of a pod.
 func (r *runtime) KillPod(pod *api.Pod, runningPod kubecontainer.Pod) error {
-	if len(runningPod.Name) == 0 {
+	var (
+		podID        string
+		podFullName  string
+		podName      string
+		podNamespace string
+		err          error
+	)
+
+	podName = runningPod.Name
+	podNamespace = runningPod.Namespace
+	if len(podName) == 0 && pod != nil {
+		podName = pod.Name
+		podNamespace = pod.Namespace
+	}
+	if len(podName) == 0 {
 		return nil
 	}
+
+	podFullName = kubecontainer.BuildPodFullName(podName, podNamespace)
+	glog.V(4).Infof("Hyper: killing pod %q.", podFullName)
+
+	defer func() {
+		// Teardown pod's network
+		err = r.networkPlugin.TearDownPod(podNamespace, podName, "", "hyper")
+		if err != nil {
+			glog.Warningf("Hyper: networkPlugin.TearDownPod failed, error: %v", err)
+		}
+
+		// Delete pod spec file
+		specFileName := path.Join(hyperPodSpecDir, podFullName)
+		_, err = os.Stat(specFileName)
+		if err == nil {
+			e := os.Remove(specFileName)
+			if e != nil {
+				glog.Warningf("Hyper: delete spec file for %s failed, error: %v", runningPod.Name, e)
+			}
+		}
+	}()
 
 	// preStop hook
 	for _, c := range runningPod.Containers {
@@ -960,32 +995,6 @@ func (r *runtime) KillPod(pod *api.Pod, runningPod kubecontainer.Pod) error {
 		}
 	}
 
-	var (
-		podID   string
-		podName string
-		err     error
-	)
-	podName = kubecontainer.BuildPodFullName(runningPod.Name, runningPod.Namespace)
-	glog.V(4).Infof("Hyper: killing pod %q.", podName)
-
-	defer func() {
-		// Teardown pod's network
-		err = r.networkPlugin.TearDownPod(runningPod.Namespace, runningPod.Name, "", "hyper")
-		if err != nil {
-			glog.Warningf("Hyper: networkPlugin.TearDownPod failed, error: %v", err)
-		}
-
-		// Delete pod spec file
-		specFileName := path.Join(hyperPodSpecDir, podName)
-		_, err = os.Stat(specFileName)
-		if err == nil {
-			e := os.Remove(specFileName)
-			if e != nil {
-				glog.Warningf("Hyper: delete spec file for %s failed, error: %v", runningPod.Name, e)
-			}
-		}
-	}()
-
 	podInfos, err := r.hyperClient.ListPods()
 	if err != nil {
 		glog.Errorf("Hyper: ListPods failed, error: %s", err)
@@ -993,7 +1002,7 @@ func (r *runtime) KillPod(pod *api.Pod, runningPod kubecontainer.Pod) error {
 	}
 
 	for _, podInfo := range podInfos {
-		if podInfo.PodName == podName {
+		if podInfo.PodName == podFullName {
 			podID = podInfo.PodID
 
 			// Remove log links
@@ -1002,7 +1011,7 @@ func (r *runtime) KillPod(pod *api.Pod, runningPod kubecontainer.Pod) error {
 				if err != nil {
 					continue
 				}
-				symlinkFile := LogSymlink(r.containerLogsDir, podName, containerName, c.ContainerID)
+				symlinkFile := LogSymlink(r.containerLogsDir, podFullName, containerName, c.ContainerID)
 				err = os.Remove(symlinkFile)
 				if err != nil && !os.IsNotExist(err) {
 					glog.Warningf("Failed to remove container log symlink %q: %v", symlinkFile, err)
