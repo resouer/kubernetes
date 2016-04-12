@@ -17,7 +17,7 @@ limitations under the License.
 package cinder
 
 import (
-	"errors"
+	"fmt"
 	"io/ioutil"
 	"strings"
 
@@ -32,23 +32,44 @@ type CinderBaremetalUtil struct {
 }
 
 func (cb *CinderBaremetalUtil) AttachDiskBaremetal(b *cinderVolumeBuilder, globalPDPath string) error {
+	glog.V(4).Infof("Begin to attach volume %v", b.pdName)
 	volume, err := cb.client.getVolume(b.pdName)
+	if err != nil {
+		glog.Errorf("Get volume %s error: %v", b.pdName, err)
+		return err
+	}
+
+	var attached bool
+	if len(volume.Attachments) > 0 || volume.Status != "available" {
+		for _, att := range volume.Attachments {
+			if att["host_name"].(string) == cb.hostname && att["device"].(string) == b.GetPath() {
+				glog.V(5).Infof("Volume %s is already attached", b.pdName)
+				attached = true
+				break
+			}
+		}
+
+		if !attached {
+			return fmt.Errorf("Volume %s is not available", b.pdName)
+		}
+	}
+
+	connectionInfo, err := cb.client.getConnectionInfo(volume.ID, cb.getConnectionOptions())
 	if err != nil {
 		return err
 	}
 
-	glog.V(4).Infof("Begin to attach volume %v", volume)
-	if len(volume.Attachments) > 0 {
-		for _, att := range volume.Attachments {
-			if att["host_name"].(string) == cb.hostname && att["device"].(string) == b.GetPath() {
-				glog.V(5).Infof("Volume %s is already attached", b.pdName)
-				return nil
-			}
-		}
+	volumeType := connectionInfo["driver_volume_type"].(string)
+	data := connectionInfo["data"].(map[string]interface{})
+	data["volume_type"] = volumeType
+	if volumeType == "rbd" {
+		data["keyring"] = cb.client.keyring
 	}
+	b.cinderVolume.metadata = data
 
-	if volume.Status != "available" {
-		return errors.New("Volume is not available")
+	// already attached, just return
+	if attached {
+		return nil
 	}
 
 	mountMode := "rw"
@@ -67,20 +88,6 @@ func (cb *CinderBaremetalUtil) AttachDiskBaremetal(b *cinderVolumeBuilder, globa
 	if err != nil && err.Error() != "EOF" {
 		return err
 	}
-
-	connectionInfo, err := cb.client.getConnectionInfo(volume.ID, cb.getConnectionOptions())
-	if err != nil {
-		cb.client.detach(volume.ID)
-		return err
-	}
-
-	volumeType := connectionInfo["driver_volume_type"].(string)
-	data := connectionInfo["data"].(map[string]interface{})
-	data["volume_type"] = volumeType
-	if volumeType == "rbd" {
-		data["keyring"] = cb.client.keyring
-	}
-	b.cinderVolume.metadata = data
 
 	cinderDriver, err := GetCinderDriver(volumeType)
 	if err != nil {
