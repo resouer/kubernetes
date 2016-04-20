@@ -26,6 +26,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
@@ -1349,10 +1350,9 @@ func (r *runtime) GarbageCollect(gcPolicy kubecontainer.ContainerGCPolicy) error
 			continue
 		}
 
-		// TODO: Replace lastTime with pod exited time
-		lastTime, err := parseTimeString(pod.PodInfo.Status.StartTime)
+		lastTime, err := parseTimeString(pod.PodInfo.Status.FinishTime)
 		if err != nil {
-			lastTime = time.Now().Add(-1 * time.Hour)
+			continue
 		}
 
 		if lastTime.Before(time.Now().Add(-gcPolicy.MinAge)) {
@@ -1376,7 +1376,18 @@ func (r *runtime) GarbageCollect(gcPolicy kubecontainer.ContainerGCPolicy) error
 				return err
 			}
 		}
+	}
 
+	// Remove dead symlinks - should only happen on upgrade
+	// from a k8s version without proper log symlink cleanup
+	logSymlinks, _ := filepath.Glob(path.Join(r.containerLogsDir, "*.log"))
+	for _, logSymlink := range logSymlinks {
+		if _, err = os.Stat(logSymlink); os.IsNotExist(err) {
+			err = os.Remove(logSymlink)
+			if err != nil {
+				glog.Warningf("Failed to remove container log dead symlink %q: %v", logSymlink, err)
+			}
+		}
 	}
 
 	return nil

@@ -118,13 +118,14 @@ type PodSpec struct {
 }
 
 type PodStatus struct {
-	Phase     string            `json:"phase"`
-	Message   string            `json:"message"`
-	Reason    string            `json:"reason"`
-	HostIP    string            `json:"hostIP"`
-	PodIP     []string          `json:"podIP"`
-	StartTime string            `json:"startTime"`
-	Status    []ContainerStatus `json:"containerStatus"`
+	Phase      string            `json:"phase"`
+	Message    string            `json:"message"`
+	Reason     string            `json:"reason"`
+	HostIP     string            `json:"hostIP"`
+	PodIP      []string          `json:"podIP"`
+	StartTime  string            `json:"startTime"`
+	FinishTime string            `json:"finishTime"`
+	Status     []ContainerStatus `json:"containerStatus"`
 }
 
 type PodInfo struct {
