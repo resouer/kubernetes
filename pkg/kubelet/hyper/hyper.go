@@ -1340,7 +1340,7 @@ func (r *runtime) GarbageCollect(gcPolicy kubecontainer.ContainerGCPolicy) error
 
 	for _, pod := range podInfos {
 		// omit not managed pods
-		_, _, err := kubecontainer.ParsePodFullName(pod.PodName)
+		podName, podNamespace, err := kubecontainer.ParsePodFullName(pod.PodName)
 		if err != nil {
 			continue
 		}
@@ -1374,6 +1374,22 @@ func (r *runtime) GarbageCollect(gcPolicy kubecontainer.ContainerGCPolicy) error
 			if err != nil {
 				glog.Warningf("Hyper GarbageCollect: remove pod %s failed, error: %s", pod.PodID, err)
 				return err
+			}
+
+			// KillPod is only called for running Pods, we should teardown network here for non-running Pods
+			err = r.networkPlugin.TearDownPod(podNamespace, podName, "", "hyper")
+			if err != nil {
+				glog.Warningf("Hyper: networkPlugin.TearDownPod failed, error: %v", err)
+			}
+
+			// Delete pod spec file
+			specFileName := path.Join(hyperPodSpecDir, pod.PodName)
+			_, err = os.Stat(specFileName)
+			if err == nil {
+				e := os.Remove(specFileName)
+				if e != nil {
+					glog.Warningf("Hyper: delete spec file for %s failed, error: %v", pod.PodName, e)
+				}
 			}
 		}
 	}
