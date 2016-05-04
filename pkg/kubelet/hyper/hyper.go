@@ -313,6 +313,8 @@ func (r *runtime) GetPods(all bool) ([]*kubecontainer.Pod, error) {
 		var pod kubecontainer.Pod
 		var containers []*kubecontainer.Container
 
+		glog.V(3).Infof("Hyper: GetPods got pod %s with status: %s", podInfo.PodName, podInfo.Status)
+
 		if !all && podInfo.Status != StatusRunning {
 			continue
 		}
@@ -1080,7 +1082,7 @@ func (r *runtime) GetPodStatus(uid types.UID, name, namespace string) (*kubecont
 		}
 	}
 
-	glog.V(5).Infof("Hyper: get pod %s status %s", podFullName, status)
+	glog.V(3).Infof("Hyper: get pod %s status %s", podFullName, status)
 
 	return status, nil
 }
