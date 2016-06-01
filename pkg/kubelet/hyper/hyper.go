@@ -62,6 +62,14 @@ const (
 	hyperPodSpecDir             = "/var/lib/kubelet/hyper"
 	hyperLogsDir                = "/var/run/hyper/Pods"
 	minimumGracePeriodInSeconds = 2
+
+	// port-mapping related labels
+	whitelistNetsNum           = "cloud.sh.hyper.whitelistNets"
+	whitelistNeti              = "cloud.sh.hyper.whitelistNet.%d"
+	portmappingsNum            = "cloud.sh.hyper.portmappings"
+	portmappingsOwneri         = "cloud.sh.hyper.portmappings.%d.owner"
+	portmappingsContainerPorti = "cloud.sh.hyper.portmappings.%d.container"
+	portmappingsHostPorti      = "cloud.sh.hyper.portmappings.%d.host"
 )
 
 // runtime implements the container runtime for hyper
@@ -421,6 +429,77 @@ func (r *runtime) getPodHostname(pod *api.Pod) string {
 	return podHostname
 }
 
+type portMappingFromLabel struct {
+	whitelistNets []string
+	portmappings  map[string]kubecontainer.PortMapping
+}
+
+func (r *runtime) parsePortMappings(labels map[string]string) *portMappingFromLabel {
+	glog.V(3).Infof("Parsing pod labels for port mappings: %q", labels)
+	whiteNetsCount := 0
+	portMappingsCount := 0
+	result := &portMappingFromLabel{
+		whitelistNets: make([]string, 0),
+		portmappings:  make(map[string]kubecontainer.PortMapping),
+	}
+
+	if v, ok := labels[whitelistNetsNum]; ok {
+		if count, err := strconv.Atoi(v); err != nil {
+			whiteNetsCount = count
+		}
+	}
+	if v, ok := labels[portmappingsNum]; ok {
+		if count, err := strconv.Atoi(v); err != nil {
+			portMappingsCount = count
+		}
+	}
+
+	for i := 0; i < whiteNetsCount; i++ {
+		whiteCIDR, ok := labels[fmt.Sprintf(whitelistNeti, i)]
+		if !ok {
+			return nil
+		}
+		result.whitelistNets = append(result.whitelistNets, whiteCIDR)
+	}
+
+	for i := 0; i < portMappingsCount; i++ {
+		owner := ""
+		containerPort := -1
+		hostPort := -1
+
+		ownerKey := fmt.Sprintf(portmappingsOwneri, i)
+		if v, ok := labels[ownerKey]; ok {
+			owner = v
+		}
+
+		containerPortKey := fmt.Sprintf(portmappingsContainerPorti, i)
+		if v, ok := labels[containerPortKey]; ok {
+			if port, err := strconv.Atoi(v); err != nil {
+				containerPort = port
+			}
+		}
+
+		hostPortKey := fmt.Sprintf(portmappingsHostPorti, i)
+		if v, ok := labels[hostPortKey]; ok {
+			if port, err := strconv.Atoi(v); err != nil {
+				hostPort = port
+			}
+		}
+
+		if owner == "" || containerPort == -1 || hostPort == -1 {
+			return nil
+		}
+
+		result.portmappings[owner] = kubecontainer.PortMapping{
+			ContainerPort: containerPort,
+			HostPort:      hostPort,
+		}
+	}
+
+	glog.V(3).Infof("Got port mappings from labels: %q", result)
+	return result
+}
+
 func (r *runtime) buildHyperPod(pod *api.Pod, restartCount int, pullSecrets []api.Secret) ([]byte, error) {
 	// check and pull image
 	for _, c := range pod.Spec.Containers {
@@ -488,6 +567,7 @@ func (r *runtime) buildHyperPod(pod *api.Pod, restartCount int, pullSecrets []ap
 	var containers []map[string]interface{}
 	var k8sHostNeeded = true
 	dnsServers := make(map[string]string)
+	portMappings := r.parsePortMappings(pod.Labels)
 	for _, container := range pod.Spec.Containers {
 		c := make(map[string]interface{})
 		c[KEY_NAME] = r.buildHyperContainerFullName(
@@ -534,15 +614,28 @@ func (r *runtime) buildHyperPod(pod *api.Pod, restartCount int, pullSecrets []ap
 
 		// port-mappings
 		var ports []map[string]interface{}
-		for _, mapping := range opts.PortMappings {
-			p := make(map[string]interface{})
-			p[KEY_CONTAINER_PORT] = mapping.ContainerPort
-			if mapping.HostPort != 0 {
-				p[KEY_HOST_PORT] = mapping.HostPort
+		if portMappings != nil {
+			for k, v := range portMappings.portmappings {
+				if strings.HasPrefix(container.Name, k) {
+					p := make(map[string]interface{})
+					p[KEY_CONTAINER_PORT] = v.ContainerPort
+					p[KEY_HOST_PORT] = v.HostPort
+					p[KEY_PROTOCOL] = api.ProtocolTCP
+					ports = append(ports, p)
+				}
 			}
-			p[KEY_PROTOCOL] = mapping.Protocol
-			ports = append(ports, p)
+		} else {
+			for _, mapping := range opts.PortMappings {
+				p := make(map[string]interface{})
+				p[KEY_CONTAINER_PORT] = mapping.ContainerPort
+				if mapping.HostPort != 0 {
+					p[KEY_HOST_PORT] = mapping.HostPort
+				}
+				p[KEY_PROTOCOL] = mapping.Protocol
+				ports = append(ports, p)
+			}
 		}
+
 		c[KEY_PORTS] = ports
 
 		// volumes
@@ -572,6 +665,9 @@ func (r *runtime) buildHyperPod(pod *api.Pod, restartCount int, pullSecrets []ap
 	}
 	specMap[KEY_CONTAINERS] = containers
 	specMap[KEY_VOLUMES] = volumes
+	if portMappings != nil {
+		specMap[KEY_WHITE_NETS] = portMappings.whitelistNets
+	}
 
 	// dns
 	if len(dnsServers) > 0 {
