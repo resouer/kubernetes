@@ -440,7 +440,7 @@ type localPortMapping struct {
 
 type portMappingFromLabel struct {
 	whitelistNets []string
-	portmappings  map[string]localPortMapping
+	portmappings  map[string]*localPortMapping
 }
 
 func (r *runtime) parsePortMappings(labels map[string]string) *portMappingFromLabel {
@@ -449,16 +449,16 @@ func (r *runtime) parsePortMappings(labels map[string]string) *portMappingFromLa
 	portMappingsCount := 0
 	result := &portMappingFromLabel{
 		whitelistNets: make([]string, 0),
-		portmappings:  make(map[string]localPortMapping),
+		portmappings:  make(map[string]*localPortMapping),
 	}
 
 	if v, ok := labels[whitelistNetsNum]; ok {
-		if count, err := strconv.Atoi(v); err != nil {
+		if count, err := strconv.Atoi(v); err == nil {
 			whiteNetsCount = count
 		}
 	}
 	if v, ok := labels[portmappingsNum]; ok {
-		if count, err := strconv.Atoi(v); err != nil {
+		if count, err := strconv.Atoi(v); err == nil {
 			portMappingsCount = count
 		}
 	}
@@ -494,6 +494,7 @@ func (r *runtime) parsePortMappings(labels map[string]string) *portMappingFromLa
 		containerPortKey := fmt.Sprintf(portmappingsContainerPorti, i)
 		if v, ok := labels[containerPortKey]; ok {
 			parts := strings.Split(v, "_")
+			glog.V(3).Infof("Got container port %v", parts)
 			if len(parts) != 2 {
 				glog.Errorf("Container port %s is not in format 'port_protocol'", v)
 				return nil
@@ -546,7 +547,7 @@ func (r *runtime) parsePortMappings(labels map[string]string) *portMappingFromLa
 		}
 
 		for _, hp := range hostports {
-			result.portmappings[owner] = localPortMapping{
+			result.portmappings[owner] = &localPortMapping{
 				ContainerPort: containerPort,
 				HostPort:      hp,
 				Protocol:      protocol,
@@ -554,7 +555,7 @@ func (r *runtime) parsePortMappings(labels map[string]string) *portMappingFromLa
 		}
 	}
 
-	glog.V(3).Infof("Got port mappings from labels: %q", result)
+	glog.V(3).Infof("Got port mappings from labels: %v", result)
 	return result
 }
 
