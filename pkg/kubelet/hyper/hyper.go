@@ -436,11 +436,12 @@ type localPortMapping struct {
 	ContainerPort int
 	// The port number on the host.
 	HostPort int
+	Owner    string
 }
 
 type portMappingFromLabel struct {
 	whitelistNets []string
-	portmappings  map[string]*localPortMapping
+	portmappings  []localPortMapping
 }
 
 func (r *runtime) parsePortMappings(labels map[string]string) *portMappingFromLabel {
@@ -449,7 +450,7 @@ func (r *runtime) parsePortMappings(labels map[string]string) *portMappingFromLa
 	portMappingsCount := 0
 	result := &portMappingFromLabel{
 		whitelistNets: make([]string, 0),
-		portmappings:  make(map[string]*localPortMapping),
+		portmappings:  make([]localPortMapping, 0),
 	}
 
 	if v, ok := labels[whitelistNetsNum]; ok {
@@ -547,11 +548,12 @@ func (r *runtime) parsePortMappings(labels map[string]string) *portMappingFromLa
 		}
 
 		for _, hp := range hostports {
-			result.portmappings[owner] = &localPortMapping{
+			result.portmappings = append(result.portmappings, localPortMapping{
+				Owner:         owner,
 				ContainerPort: containerPort,
 				HostPort:      hp,
 				Protocol:      protocol,
-			}
+			})
 		}
 	}
 
@@ -674,8 +676,8 @@ func (r *runtime) buildHyperPod(pod *api.Pod, restartCount int, pullSecrets []ap
 		// port-mappings
 		var ports []map[string]interface{}
 		if portMappings != nil {
-			for k, v := range portMappings.portmappings {
-				if strings.HasPrefix(container.Name, k) {
+			for _, v := range portMappings.portmappings {
+				if strings.HasPrefix(container.Name, v.Owner) {
 					p := make(map[string]interface{})
 					p[KEY_CONTAINER_PORT] = v.ContainerPort
 					p[KEY_HOST_PORT] = v.HostPort
