@@ -429,9 +429,18 @@ func (r *runtime) getPodHostname(pod *api.Pod) string {
 	return podHostname
 }
 
+type localPortMapping struct {
+	// Protocol of the port mapping.
+	Protocol string
+	// The port number within the container.
+	ContainerPort int
+	// The port number on the host.
+	HostPort int
+}
+
 type portMappingFromLabel struct {
 	whitelistNets []string
-	portmappings  map[string]kubecontainer.PortMapping
+	portmappings  map[string]localPortMapping
 }
 
 func (r *runtime) parsePortMappings(labels map[string]string) *portMappingFromLabel {
@@ -440,7 +449,7 @@ func (r *runtime) parsePortMappings(labels map[string]string) *portMappingFromLa
 	portMappingsCount := 0
 	result := &portMappingFromLabel{
 		whitelistNets: make([]string, 0),
-		portmappings:  make(map[string]kubecontainer.PortMapping),
+		portmappings:  make(map[string]localPortMapping),
 	}
 
 	if v, ok := labels[whitelistNetsNum]; ok {
@@ -454,45 +463,94 @@ func (r *runtime) parsePortMappings(labels map[string]string) *portMappingFromLa
 		}
 	}
 
+	glog.Infof("Got portmappings count: %d, whiteNets count: %d", portMappingsCount, whiteNetsCount)
+
 	for i := 0; i < whiteNetsCount; i++ {
-		whiteCIDR, ok := labels[fmt.Sprintf(whitelistNeti, i)]
+		whiteCIDRKey := fmt.Sprintf(whitelistNeti, i)
+		whiteCIDR, ok := labels[whiteCIDRKey]
 		if !ok {
+			glog.Errorf("Can not find label key %s", whiteCIDRKey)
 			return nil
 		}
-		result.whitelistNets = append(result.whitelistNets, whiteCIDR)
+		cidr := strings.Replace(whiteCIDR, "_", "/", -1)
+		result.whitelistNets = append(result.whitelistNets, cidr)
 	}
 
 	for i := 0; i < portMappingsCount; i++ {
 		owner := ""
+		protocol := "tcp"
 		containerPort := -1
-		hostPort := -1
+		hostports := make([]int, 0)
 
 		ownerKey := fmt.Sprintf(portmappingsOwneri, i)
 		if v, ok := labels[ownerKey]; ok {
 			owner = v
 		}
-
-		containerPortKey := fmt.Sprintf(portmappingsContainerPorti, i)
-		if v, ok := labels[containerPortKey]; ok {
-			if port, err := strconv.Atoi(v); err != nil {
-				containerPort = port
-			}
-		}
-
-		hostPortKey := fmt.Sprintf(portmappingsHostPorti, i)
-		if v, ok := labels[hostPortKey]; ok {
-			if port, err := strconv.Atoi(v); err != nil {
-				hostPort = port
-			}
-		}
-
-		if owner == "" || containerPort == -1 || hostPort == -1 {
+		if owner == "" {
+			glog.Errorf("Can not find label key: %s", ownerKey)
 			return nil
 		}
 
-		result.portmappings[owner] = kubecontainer.PortMapping{
-			ContainerPort: containerPort,
-			HostPort:      hostPort,
+		containerPortKey := fmt.Sprintf(portmappingsContainerPorti, i)
+		if v, ok := labels[containerPortKey]; ok {
+			parts := strings.Split(v, "_")
+			if len(parts) != 2 {
+				glog.Errorf("Container port %s is not in format 'port_protocol'", v)
+				return nil
+			}
+			protocol = parts[1]
+			if port, err := strconv.Atoi(parts[0]); err == nil {
+				containerPort = port
+			}
+		}
+		if containerPort == -1 {
+			glog.Errorf("Can not find label key: %s", containerPortKey)
+			return nil
+		}
+
+		hostPortKey := fmt.Sprintf(portmappingsHostPorti, i)
+		if value, ok := labels[hostPortKey]; ok {
+			parts := strings.Split(value, "_")
+			for _, v := range parts {
+				if strings.Contains(v, "-") {
+					parts := strings.Split(v, "-")
+					if len(parts) != 2 {
+						return nil
+					}
+					start, err := strconv.Atoi(parts[0])
+					if err != nil {
+						return nil
+					}
+					end, err := strconv.Atoi(parts[1])
+					if err != nil {
+						return nil
+					}
+					for i := start; i <= end; i++ {
+						hostports = append(hostports, i)
+					}
+				} else {
+					hostPort := -1
+					if port, err := strconv.Atoi(v); err == nil {
+						hostPort = port
+					}
+					if hostPort == -1 {
+						return nil
+					}
+					hostports = append(hostports, hostPort)
+				}
+			}
+		}
+
+		if len(hostports) == 0 {
+			return nil
+		}
+
+		for _, hp := range hostports {
+			result.portmappings[owner] = localPortMapping{
+				ContainerPort: containerPort,
+				HostPort:      hp,
+				Protocol:      protocol,
+			}
 		}
 	}
 
@@ -620,7 +678,7 @@ func (r *runtime) buildHyperPod(pod *api.Pod, restartCount int, pullSecrets []ap
 					p := make(map[string]interface{})
 					p[KEY_CONTAINER_PORT] = v.ContainerPort
 					p[KEY_HOST_PORT] = v.HostPort
-					p[KEY_PROTOCOL] = api.ProtocolTCP
+					p[KEY_PROTOCOL] = v.Protocol
 					ports = append(ports, p)
 				}
 			}
