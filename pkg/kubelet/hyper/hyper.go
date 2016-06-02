@@ -62,6 +62,14 @@ const (
 	hyperPodSpecDir             = "/var/lib/kubelet/hyper"
 	hyperLogsDir                = "/var/run/hyper/Pods"
 	minimumGracePeriodInSeconds = 2
+
+	// port-mapping related labels
+	whitelistNetsNum           = "cloud.sh.hyper.whitelistNets"
+	whitelistNeti              = "cloud.sh.hyper.whitelistNet.%d"
+	portmappingsNum            = "cloud.sh.hyper.portmappings"
+	portmappingsOwneri         = "cloud.sh.hyper.portmappings.%d.owner"
+	portmappingsContainerPorti = "cloud.sh.hyper.portmappings.%d.container"
+	portmappingsHostPorti      = "cloud.sh.hyper.portmappings.%d.host"
 )
 
 // runtime implements the container runtime for hyper
@@ -421,6 +429,138 @@ func (r *runtime) getPodHostname(pod *api.Pod) string {
 	return podHostname
 }
 
+type localPortMapping struct {
+	// Protocol of the port mapping.
+	Protocol string
+	// The port number within the container.
+	ContainerPort int
+	// The port number on the host.
+	HostPort int
+	Owner    string
+}
+
+type portMappingFromLabel struct {
+	whitelistNets []string
+	portmappings  []localPortMapping
+}
+
+func (r *runtime) parsePortMappings(labels map[string]string) *portMappingFromLabel {
+	glog.V(3).Infof("Parsing pod labels for port mappings: %q", labels)
+	whiteNetsCount := 0
+	portMappingsCount := 0
+	result := &portMappingFromLabel{
+		whitelistNets: make([]string, 0),
+		portmappings:  make([]localPortMapping, 0),
+	}
+
+	if v, ok := labels[whitelistNetsNum]; ok {
+		if count, err := strconv.Atoi(v); err == nil {
+			whiteNetsCount = count
+		}
+	}
+	if v, ok := labels[portmappingsNum]; ok {
+		if count, err := strconv.Atoi(v); err == nil {
+			portMappingsCount = count
+		}
+	}
+
+	glog.Infof("Got portmappings count: %d, whiteNets count: %d", portMappingsCount, whiteNetsCount)
+
+	for i := 0; i < whiteNetsCount; i++ {
+		whiteCIDRKey := fmt.Sprintf(whitelistNeti, i)
+		whiteCIDR, ok := labels[whiteCIDRKey]
+		if !ok {
+			glog.Errorf("Can not find label key %s", whiteCIDRKey)
+			return nil
+		}
+		cidr := strings.Replace(whiteCIDR, "_", "/", -1)
+		result.whitelistNets = append(result.whitelistNets, cidr)
+	}
+
+	for i := 0; i < portMappingsCount; i++ {
+		owner := ""
+		protocol := "tcp"
+		containerPort := -1
+		hostports := make([]int, 0)
+
+		ownerKey := fmt.Sprintf(portmappingsOwneri, i)
+		if v, ok := labels[ownerKey]; ok {
+			owner = v
+		}
+		if owner == "" {
+			glog.Errorf("Can not find label key: %s", ownerKey)
+			return nil
+		}
+
+		containerPortKey := fmt.Sprintf(portmappingsContainerPorti, i)
+		if v, ok := labels[containerPortKey]; ok {
+			parts := strings.Split(v, "_")
+			glog.V(3).Infof("Got container port %v", parts)
+			if len(parts) != 2 {
+				glog.Errorf("Container port %s is not in format 'port_protocol'", v)
+				return nil
+			}
+			protocol = parts[1]
+			if port, err := strconv.Atoi(parts[0]); err == nil {
+				containerPort = port
+			}
+		}
+		if containerPort == -1 {
+			glog.Errorf("Can not find label key: %s", containerPortKey)
+			return nil
+		}
+
+		hostPortKey := fmt.Sprintf(portmappingsHostPorti, i)
+		if value, ok := labels[hostPortKey]; ok {
+			parts := strings.Split(value, "_")
+			for _, v := range parts {
+				if strings.Contains(v, "-") {
+					parts := strings.Split(v, "-")
+					if len(parts) != 2 {
+						return nil
+					}
+					start, err := strconv.Atoi(parts[0])
+					if err != nil {
+						return nil
+					}
+					end, err := strconv.Atoi(parts[1])
+					if err != nil {
+						return nil
+					}
+					for i := start; i <= end; i++ {
+						hostports = append(hostports, i)
+					}
+				} else {
+					hostPort := -1
+					if port, err := strconv.Atoi(v); err == nil {
+						hostPort = port
+					}
+					if hostPort == -1 {
+						return nil
+					}
+					hostports = append(hostports, hostPort)
+				}
+			}
+		}
+
+		if len(hostports) == 0 {
+			return nil
+		}
+
+		for _, hp := range hostports {
+			result.portmappings = append(result.portmappings, localPortMapping{
+				Owner:         owner,
+				ContainerPort: containerPort,
+				HostPort:      hp,
+				Protocol:      protocol,
+			})
+		}
+	}
+
+	glog.V(3).Infof("Got port mappings from labels: %v", result)
+	return result
+}
+
 func (r *runtime) buildHyperPod(pod *api.Pod, restartCount int, pullSecrets []api.Secret) ([]byte, error) {
 	// check and pull image
 	for _, c := range pod.Spec.Containers {
@@ -488,6 +628,7 @@ func (r *runtime) buildHyperPod(pod *api.Pod, restartCount int, pullSecrets []ap
 	var containers []map[string]interface{}
 	var k8sHostNeeded = true
 	dnsServers := make(map[string]string)
+	portMappings := r.parsePortMappings(pod.Labels)
 	for _, container := range pod.Spec.Containers {
 		c := make(map[string]interface{})
 		c[KEY_NAME] = r.buildHyperContainerFullName(
@@ -534,15 +675,28 @@ func (r *runtime) buildHyperPod(pod *api.Pod, restartCount int, pullSecrets []ap
 
 		// port-mappings
 		var ports []map[string]interface{}
-		for _, mapping := range opts.PortMappings {
-			p := make(map[string]interface{})
-			p[KEY_CONTAINER_PORT] = mapping.ContainerPort
-			if mapping.HostPort != 0 {
-				p[KEY_HOST_PORT] = mapping.HostPort
+		if portMappings != nil {
+			for _, v := range portMappings.portmappings {
+				if strings.HasPrefix(container.Name, v.Owner) {
+					p := make(map[string]interface{})
+					p[KEY_CONTAINER_PORT] = v.ContainerPort
+					p[KEY_HOST_PORT] = v.HostPort
+					p[KEY_PROTOCOL] = v.Protocol
+					ports = append(ports, p)
+				}
 			}
-			p[KEY_PROTOCOL] = mapping.Protocol
-			ports = append(ports, p)
+		} else {
+			for _, mapping := range opts.PortMappings {
+				p := make(map[string]interface{})
+				p[KEY_CONTAINER_PORT] = mapping.ContainerPort
+				if mapping.HostPort != 0 {
+					p[KEY_HOST_PORT] = mapping.HostPort
+				}
+				p[KEY_PROTOCOL] = mapping.Protocol
+				ports = append(ports, p)
+			}
 		}
+
 		c[KEY_PORTS] = ports
 
 		// volumes
@@ -572,6 +726,9 @@ func (r *runtime) buildHyperPod(pod *api.Pod, restartCount int, pullSecrets []ap
 	}
 	specMap[KEY_CONTAINERS] = containers
 	specMap[KEY_VOLUMES] = volumes
+	if portMappings != nil {
+		specMap[KEY_WHITE_NETS] = portMappings.whitelistNets
+	}
 
 	// dns
 	if len(dnsServers) > 0 {
