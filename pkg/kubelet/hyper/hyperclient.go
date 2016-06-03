@@ -76,7 +76,7 @@ const (
 	KEY_VOLUME_SOURCE  = "source"
 	KEY_VOLUMES        = "volumes"
 	KEY_WORKDIR        = "workdir"
-	KEY_WHITE_NETS     = "whiteCIDRs"
+	KEY_WHITE_NETS     = "portmappingWhiteLists"
 
 	KEY_API_POD_UID = "k8s.hyper.sh/uid"
 

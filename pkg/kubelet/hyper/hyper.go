@@ -64,8 +64,10 @@ const (
 	minimumGracePeriodInSeconds = 2
 
 	// port-mapping related labels
-	whitelistNetsNum           = "cloud.sh.hyper.whitelistNets"
-	whitelistNeti              = "cloud.sh.hyper.whitelistNet.%d"
+	whitelistInternalNetsNum   = "cloud.sh.hyper.internalNets"
+	whitelistInternalNeti      = "cloud.sh.hyper.internalNets.%d"
+	whitelistExternalNetsNum   = "cloud.sh.hyper.externalNets"
+	whitelistExternalNeti      = "cloud.sh.hyper.externalNets.%d"
 	portmappingsNum            = "cloud.sh.hyper.portmappings"
 	portmappingsOwneri         = "cloud.sh.hyper.portmappings.%d.owner"
 	portmappingsContainerPorti = "cloud.sh.hyper.portmappings.%d.container"
@@ -440,22 +442,30 @@ type localPortMapping struct {
 }
 
 type portMappingFromLabel struct {
-	whitelistNets []string
-	portmappings  []localPortMapping
+	internalNets []string
+	externalNets []string
+	portmappings []localPortMapping
 }
 
 func (r *runtime) parsePortMappings(labels map[string]string) *portMappingFromLabel {
 	glog.V(3).Infof("Parsing pod labels for port mappings: %q", labels)
-	whiteNetsCount := 0
+	internalNetsCount := 0
+	externalNetsCount := 0
 	portMappingsCount := 0
 	result := &portMappingFromLabel{
-		whitelistNets: make([]string, 0),
-		portmappings:  make([]localPortMapping, 0),
+		internalNets: make([]string, 0),
+		externalNets: make([]string, 0),
+		portmappings: make([]localPortMapping, 0),
 	}
 
-	if v, ok := labels[whitelistNetsNum]; ok {
+	if v, ok := labels[whitelistInternalNetsNum]; ok {
 		if count, err := strconv.Atoi(v); err == nil {
-			whiteNetsCount = count
+			internalNetsCount = count
+		}
+	}
+	if v, ok := labels[whitelistExternalNetsNum]; ok {
+		if count, err := strconv.Atoi(v); err == nil {
+			externalNetsCount = count
 		}
 	}
 	if v, ok := labels[portmappingsNum]; ok {
@@ -464,17 +474,29 @@ func (r *runtime) parsePortMappings(labels map[string]string) *portMappingFromLa
 		}
 	}
 
-	glog.Infof("Got portmappings count: %d, whiteNets count: %d", portMappingsCount, whiteNetsCount)
+	glog.Infof("Got portmappings internalNetsCount: %d, externalNetsCount:%d whiteNets count: %d",
+		internalNetsCount, externalNetsCount, internalNetsCount)
 
-	for i := 0; i < whiteNetsCount; i++ {
-		whiteCIDRKey := fmt.Sprintf(whitelistNeti, i)
+	for i := 0; i < internalNetsCount; i++ {
+		whiteCIDRKey := fmt.Sprintf(whitelistInternalNeti, i)
 		whiteCIDR, ok := labels[whiteCIDRKey]
 		if !ok {
 			glog.Errorf("Can not find label key %s", whiteCIDRKey)
 			return nil
 		}
 		cidr := strings.Replace(whiteCIDR, "_", "/", -1)
-		result.whitelistNets = append(result.whitelistNets, cidr)
+		result.internalNets = append(result.internalNets, cidr)
+	}
+
+	for i := 0; i < externalNetsCount; i++ {
+		whiteCIDRKey := fmt.Sprintf(whitelistExternalNeti, i)
+		whiteCIDR, ok := labels[whiteCIDRKey]
+		if !ok {
+			glog.Errorf("Can not find label key %s", whiteCIDRKey)
+			return nil
+		}
+		cidr := strings.Replace(whiteCIDR, "_", "/", -1)
+		result.externalNets = append(result.externalNets, cidr)
 	}
 
 	for i := 0; i < portMappingsCount; i++ {
@@ -727,7 +749,14 @@ func (r *runtime) buildHyperPod(pod *api.Pod, restartCount int, pullSecrets []ap
 	specMap[KEY_CONTAINERS] = containers
 	specMap[KEY_VOLUMES] = volumes
 	if portMappings != nil {
-		specMap[KEY_WHITE_NETS] = portMappings.whitelistNets
+		portMappingWhiteList := make(map[string]interface{})
+		if len(portMappings.externalNets) > 0 {
+			portMappingWhiteList["externalNetworks"] = portMappings.externalNets
+		}
+		if len(portMappings.internalNets) > 0 {
+			portMappingWhiteList["internalNetworks"] = portMappings.internalNets
+		}
+		specMap[KEY_WHITE_NETS] = portMappingWhiteList
 	}
 
 	// dns
