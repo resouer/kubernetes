@@ -17,7 +17,6 @@ limitations under the License.
 package cinder
 
 import (
-	"fmt"
 	"io/ioutil"
 	"strings"
 
@@ -47,10 +46,6 @@ func (cb *CinderBaremetalUtil) AttachDiskBaremetal(b *cinderVolumeBuilder, globa
 				attached = true
 				break
 			}
-		}
-
-		if !attached {
-			return fmt.Errorf("Volume %s is not available", b.pdName)
 		}
 	}
 
