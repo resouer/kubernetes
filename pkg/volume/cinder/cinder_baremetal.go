@@ -17,7 +17,6 @@ limitations under the License.
 package cinder
 
 import (
-	"fmt"
 	"io/ioutil"
 	"strings"
 
@@ -42,15 +41,13 @@ func (cb *CinderBaremetalUtil) AttachDiskBaremetal(b *cinderVolumeBuilder, globa
 	var attached bool
 	if len(volume.Attachments) > 0 || volume.Status != "available" {
 		for _, att := range volume.Attachments {
-			if att["host_name"].(string) == cb.hostname && att["device"].(string) == b.GetPath() {
+			// att["device"] is checked to handle upgrade
+			if att["host_name"].(string) == cb.hostname &&
+				(att["device"].(string) == b.GetPath() || att["device"].(string) == globalPDPath) {
 				glog.V(5).Infof("Volume %s is already attached", b.pdName)
 				attached = true
 				break
 			}
-		}
-
-		if !attached {
-			return fmt.Errorf("Volume %s is not available", b.pdName)
 		}
 	}
 
@@ -65,10 +62,10 @@ func (cb *CinderBaremetalUtil) AttachDiskBaremetal(b *cinderVolumeBuilder, globa
 	if volumeType == "rbd" {
 		data["keyring"] = cb.client.keyring
 	}
-	b.cinderVolume.metadata = data
 
 	// already attached, just return
 	if attached {
+		b.cinderVolume.metadata = data
 		return nil
 	}
 
@@ -77,29 +74,15 @@ func (cb *CinderBaremetalUtil) AttachDiskBaremetal(b *cinderVolumeBuilder, globa
 		mountMode = "ro"
 	}
 
-	// attach volume
-	attachOpts := volumeactions.AttachOpts{
-		MountPoint: b.GetPath(),
-		Mode:       mountMode,
-		HostName:   cb.hostname,
-	}
-
-	err = cb.client.attach(volume.ID, attachOpts)
-	if err != nil && err.Error() != "EOF" {
-		return err
-	}
-
 	cinderDriver, err := GetCinderDriver(volumeType)
 	if err != nil {
 		glog.Warningf("Get cinder driver %s failed: %v", volumeType, err)
-		cb.client.detach(volume.ID)
 		return err
 	}
 
 	err = cinderDriver.Format(data, b.fsType)
 	if err != nil {
 		glog.Warningf("Format cinder volume %s failed: %v", b.pdName, err)
-		cb.client.detach(volume.ID)
 		return err
 	}
 
@@ -109,10 +92,22 @@ func (cb *CinderBaremetalUtil) AttachDiskBaremetal(b *cinderVolumeBuilder, globa
 	} else {
 		err = cinderDriver.Attach(data, globalPDPath)
 		if err != nil {
-			cb.client.detach(volume.ID)
 			return err
 		}
 	}
+
+	// attach volume
+	attachOpts := volumeactions.AttachOpts{
+		MountPoint: globalPDPath,
+		Mode:       mountMode,
+		HostName:   cb.hostname,
+	}
+
+	err = cb.client.attach(volume.ID, attachOpts)
+	if err != nil && err.Error() != "EOF" {
+		return err
+	}
+	b.cinderVolume.metadata = data
 
 	return nil
 }
@@ -122,6 +117,15 @@ func (cb *CinderBaremetalUtil) DetachDiskBaremetal(cd *cinderVolumeCleaner, glob
 	volume, err := cb.client.getVolume(cd.pdName)
 	if err != nil {
 		return err
+	}
+
+	var attachmentID string
+	for _, att := range volume.Attachments {
+		if att["host_name"].(string) == cb.hostname && att["device"].(string) == globalPDPath {
+			attachmentID = att["attachment_id"].(string)
+			glog.V(5).Infof("Volume %s is attached as %s", cd.pdName, attachmentID)
+			break
+		}
 	}
 
 	connectionInfo, err := cb.client.getConnectionInfo(volume.ID, cb.getConnectionOptions())
@@ -158,7 +162,7 @@ func (cb *CinderBaremetalUtil) DetachDiskBaremetal(cd *cinderVolumeCleaner, glob
 		return nil
 	}
 
-	err = cb.client.detach(volume.ID)
+	err = cb.client.detach(volume.ID, attachmentID)
 	if err != nil {
 		return err
 	}
