@@ -147,8 +147,8 @@ func (client *cinderClient) terminateConnection(id string, copts *volumeactions.
 	return nil
 }
 
-func (client *cinderClient) detach(id, attachmentID string) error {
-	detachResult := volumeactions.DetachSingle(client.cinder, id, attachmentID)
+func (client *cinderClient) detach(id string) error {
+	detachResult := volumeactions.Detach(client.cinder, id)
 	if detachResult.Err != nil && detachResult.Err.Error() != "EOF" {
 		glog.Warningf("Detach cinder volume %s failed: %v", id, detachResult.Err)
 		return detachResult.Err
