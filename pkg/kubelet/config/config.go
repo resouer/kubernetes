@@ -158,6 +158,7 @@ func (s *podStorage) Merge(source string, change interface{}) error {
 	// deliver update notifications
 	switch s.mode {
 	case PodConfigNotificationIncremental:
+		glog.V(5).Infof("Sending PodConfigNotification: deletes(%d) adds(%d) updates(%d) reconciles(%d)", len(deletes.Pods), len(adds.Pods), len(updates.Pods), len(reconciles.Pods))
 		if len(deletes.Pods) > 0 {
 			s.updates <- *deletes
 		}
