@@ -163,7 +163,7 @@ type SyncHandler interface {
 	HandlePodDeletions(pods []*api.Pod)
 	HandlePodReconcile(pods []*api.Pod)
 	HandlePodSyncs(pods []*api.Pod)
-	HandlePodCleanups() error
+	HandlePodCleanups()
 }
 
 // Option is a functional option type for Kubelet
@@ -2219,7 +2219,7 @@ type empty struct{}
 // TODO(yujuhong): This function is executed by the main sync loop, so it
 // should not contain any blocking calls. Re-examine the function and decide
 // whether or not we should move it into a separte goroutine.
-func (kl *Kubelet) HandlePodCleanups() error {
+func (kl *Kubelet) HandlePodCleanups() {
 	allPods, mirrorPods := kl.podManager.GetPodsAndMirrorPods()
 	// Pod phase progresses monotonically. Once a pod has reached a final state,
 	// it should never leave regardless of the restart policy. The statuses
@@ -2245,7 +2245,6 @@ func (kl *Kubelet) HandlePodCleanups() error {
 	runningPods, err := kl.runtimeCache.GetPods()
 	if err != nil {
 		glog.Errorf("Error listing containers: %#v", err)
-		return err
 	}
 	for _, pod := range runningPods {
 		if _, found := desiredPods[pod.ID]; !found {
@@ -2261,7 +2260,6 @@ func (kl *Kubelet) HandlePodCleanups() error {
 	runningPods, err = kl.containerRuntime.GetPods(false)
 	if err != nil {
 		glog.Errorf("Error listing containers: %#v", err)
-		return err
 	}
 
 	// Remove any orphaned volumes.
@@ -2271,7 +2269,6 @@ func (kl *Kubelet) HandlePodCleanups() error {
 	err = kl.cleanupOrphanedPodDirs(allPods, runningPods)
 	if err != nil {
 		glog.Errorf("Failed cleaning up orphaned pod directories: %v", err)
-		return err
 	}
 
 	// Remove any orphaned mirror pods.
@@ -2279,11 +2276,14 @@ func (kl *Kubelet) HandlePodCleanups() error {
 
 	// Clear out any old bandwidth rules
 	if err = kl.cleanupBandwidthLimits(allPods); err != nil {
-		return err
+		glog.Errorf("Failed clean up bandwidth limits: %v", err)
 	}
 
 	kl.backOff.GC()
-	return err
+
+	if err != nil {
+		glog.Errorf("Failed cleaning pods: %v", err)
+	}
 }
 
 // podKiller launches a goroutine to kill a pod received from the channel if
@@ -2590,9 +2590,7 @@ func (kl *Kubelet) syncLoopIteration(configCh <-chan kubetypes.PodUpdate, handle
 			glog.V(4).Infof("SyncLoop (housekeeping, skipped): sources aren't ready yet.")
 		} else {
 			glog.V(4).Infof("SyncLoop (housekeeping)")
-			if err := handler.HandlePodCleanups(); err != nil {
-				glog.Errorf("Failed cleaning pods: %v", err)
-			}
+			go handler.HandlePodCleanups()
 		}
 	}
 	kl.syncLoopMonitor.Store(kl.clock.Now())
