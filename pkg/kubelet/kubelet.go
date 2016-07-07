@@ -2157,7 +2157,14 @@ func (kl *Kubelet) deletePod(pod *api.Pod) error {
 // should not contain any blocking calls. Re-examine the function and decide
 // whether or not we should move it into a separte goroutine.
 func (kl *Kubelet) HandlePodCleanups() error {
+	start := time.Now().UTC()
+	defer func() {
+		glog.V(5).Infof("HandlePodCleanups spend time %s", time.Since(start).String())
+	}()
+
+	glog.V(5).Infof("HandlePodCleanups start")
 	allPods, mirrorPods := kl.podManager.GetPodsAndMirrorPods()
+	glog.V(5).Infof("GetPodsAndMirrorPods complete")
 	// Pod phase progresses monotonically. Once a pod has reached a final state,
 	// it should never leave regardless of the restart policy. The statuses
 	// of such pods should not be changed, and there is no need to sync them.
@@ -2178,17 +2185,19 @@ func (kl *Kubelet) HandlePodCleanups() error {
 	// TODO: is here the best place to forget pod workers?
 	kl.podWorkers.ForgetNonExistingPodWorkers(desiredPods)
 	kl.probeManager.CleanupPods(activePods)
-
+	glog.V(5).Infof("kl.probeManager.CleanupPods complete")
 	runningPods, err := kl.runtimeCache.GetPods()
 	if err != nil {
 		glog.Errorf("Error listing containers: %#v", err)
 		return err
 	}
+	glog.V(5).Infof("runtimeCache.GetPods complete")
 	for _, pod := range runningPods {
 		if _, found := desiredPods[pod.ID]; !found {
 			kl.podKillingCh <- &kubecontainer.PodPair{nil, pod}
 		}
 	}
+	glog.V(5).Infof("podKillingCh complete")
 
 	kl.removeOrphanedPodStatuses(allPods, mirrorPods)
 	// Note that we just killed the unwanted pods. This may not have reflected
@@ -2200,6 +2209,7 @@ func (kl *Kubelet) HandlePodCleanups() error {
 		glog.Errorf("Error listing containers: %#v", err)
 		return err
 	}
+	glog.V(5).Infof("containerRuntime.GetPods complete")
 
 	// Remove any orphaned volumes.
 	// Note that we pass all pods (including terminated pods) to the function,
@@ -2210,6 +2220,7 @@ func (kl *Kubelet) HandlePodCleanups() error {
 		glog.Errorf("Failed cleaning up orphaned volumes: %v", err)
 		return err
 	}
+	glog.V(5).Infof("cleanupOrphanedVolumes complete")
 
 	// Remove any orphaned pod directories.
 	// Note that we pass all pods (including terminated pods) to the function,
@@ -2220,6 +2231,7 @@ func (kl *Kubelet) HandlePodCleanups() error {
 		glog.Errorf("Failed cleaning up orphaned pod directories: %v", err)
 		return err
 	}
+	glog.V(5).Infof("cleanupOrphanedPodDirs complete")
 
 	// Remove any orphaned mirror pods.
 	kl.podManager.DeleteOrphanedMirrorPods()
@@ -2229,6 +2241,7 @@ func (kl *Kubelet) HandlePodCleanups() error {
 		return err
 	}
 
+	glog.V(5).Infof("cleanupBandwidthLimits complete")
 	kl.backOff.GC()
 	return err
 }
@@ -2405,6 +2418,12 @@ func (kl *Kubelet) syncLoop(updates <-chan kubetypes.PodUpdate, handler SyncHand
 func (kl *Kubelet) syncLoopIteration(updates <-chan kubetypes.PodUpdate, handler SyncHandler,
 	syncCh <-chan time.Time, housekeepingCh <-chan time.Time, plegCh <-chan *pleg.PodLifecycleEvent) bool {
 	kl.syncLoopMonitor.Store(kl.clock.Now())
+
+	start := time.Now().UTC()
+	defer func() {
+		glog.V(5).Infof("syncLoopIteration spend time %s", time.Since(start).String())
+	}()
+
 	select {
 	case u, open := <-updates:
 		if !open {
