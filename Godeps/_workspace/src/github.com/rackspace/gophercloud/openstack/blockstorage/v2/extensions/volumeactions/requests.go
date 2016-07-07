@@ -54,24 +54,17 @@ func Attach(client *gophercloud.ServiceClient, id string, opts AttachOptsBuilder
 	return res
 }
 
-func DetachSingle(client *gophercloud.ServiceClient, id, attachmentID string) DetachResult {
+func Detach(client *gophercloud.ServiceClient, id string) DetachResult {
 	var res DetachResult
 
 	v := make(map[string]interface{})
-	if len(attachmentID) != 0 {
-		v["attachment_id"] = attachmentID
-	}
-	reqBody := map[string]interface{}{"os-force_detach": v}
+	reqBody := map[string]interface{}{"os-detach": v}
 
 	_, res.Err = client.Post(detachURL(client, id), reqBody, &res.Body, &gophercloud.RequestOpts{
 		OkCodes: []int{200, 201, 202},
 	})
 
 	return res
-}
-
-func Detach(client *gophercloud.ServiceClient, id string) DetachResult {
-	return DetachSingle(client, id, "")
 }
 
 func Reserve(client *gophercloud.ServiceClient, id string) ReserveResult {
