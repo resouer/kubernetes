@@ -247,6 +247,10 @@ func (cli *HyperClient) call(method, path string, data string, headers map[strin
 		headers["Content-Type"] = []string{"application/json"}
 	}
 
+	start := time.Now().UTC()
+	defer func() {
+		glog.V(5).Infof("HyperClient: calling %s %s spent %s", method, path, time.Since(start).String())
+	}()
 	body, _, statusCode, dial, clientconn, err := cli.clientRequest(method, path, params, headers)
 	if dial != nil {
 		defer (*dial).Close()
