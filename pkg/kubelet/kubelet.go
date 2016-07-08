@@ -343,6 +343,7 @@ func NewMainKubelet(
 		enableCustomMetrics:          enableCustomMetrics,
 		babysitDaemons:               babysitDaemons,
 		disableHyperInternalService:  disableHyperInternalService,
+		volumeCleanChan:              make(chan bool, 1),
 	}
 	// TODO: Factor out "StatsProvider" from Kubelet so we don't have a cyclic dependency
 	klet.resourceAnalyzer = stats.NewResourceAnalyzer(klet, volumeStatsAggPeriod)
@@ -567,7 +568,8 @@ type Kubelet struct {
 	// safe and should only be access by the main kubelet syncloop goroutine.
 	sourcesSeen sets.String
 
-	podManager kubepod.Manager
+	podManager      kubepod.Manager
+	volumeCleanChan chan bool
 
 	// Needed to report events for containers belonging to deleted/modified pods.
 	// Tracks references for reporting events
@@ -1989,6 +1991,18 @@ func (kl *Kubelet) cleanupBandwidthLimits(allPods []*api.Pod) error {
 // 1) it talks to API server to find volumes bound to persistent volume claims
 // 2) it talks to cloud to detach volumes
 func (kl *Kubelet) cleanupOrphanedVolumes(pods []*api.Pod, runningPods []*kubecontainer.Pod) error {
+	select {
+	case kl.volumeCleanChan <- true:
+		glog.V(4).Infof("Begins to cleanupOrphanedVolumes")
+	default:
+		glog.V(4).Infof("Another cleanupOrphanedVolumes is already running")
+		return nil
+	}
+
+	defer func() {
+		<-kl.volumeCleanChan
+	}()
+
 	desiredVolumes := kl.getDesiredVolumes(pods)
 	currentVolumes := kl.getPodVolumesFromDisk()
 
@@ -2012,6 +2026,7 @@ func (kl *Kubelet) cleanupOrphanedVolumes(pods []*api.Pod, runningPods []*kubeco
 			// Get path reference count
 			refs, err := mount.GetMountRefs(kl.mounter, cleanerTuple.Cleaner.GetPath())
 			if err != nil {
+				glog.Errorf("Could not get mount path references %v", err)
 				return fmt.Errorf("Could not get mount path references %v", err)
 			}
 			//TODO (jonesdl) This should not block other kubelet synchronization procedures
@@ -2215,12 +2230,7 @@ func (kl *Kubelet) HandlePodCleanups() error {
 	// Note that we pass all pods (including terminated pods) to the function,
 	// so that we don't remove volumes associated with terminated but not yet
 	// deleted pods.
-	err = kl.cleanupOrphanedVolumes(allPods, runningPods)
-	if err != nil {
-		glog.Errorf("Failed cleaning up orphaned volumes: %v", err)
-		return err
-	}
-	glog.V(5).Infof("cleanupOrphanedVolumes complete")
+	go kl.cleanupOrphanedVolumes(allPods, runningPods)
 
 	// Remove any orphaned pod directories.
 	// Note that we pass all pods (including terminated pods) to the function,
