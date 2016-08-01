@@ -212,15 +212,11 @@ getpwnam() does for these uids.
 
 ### Namespaces
 
-<<<<<<< HEAD
-K8s will have a `namespace` API object.  It is similar to a Google Compute Engine `project`.  It provides a namespace for objects created by a group of people co-operating together, preventing name collisions with non-cooperating groups.  It also serves as a reference point for authorization policies.
-=======
-K8s will have a `namespace` API object.  It is similar to a Google Compute
+    K8s will have a `namespace` API object.  It is similar to a Google Compute
 Engine `project`.  It provides a namespace for objects created by a group of
 people co-operating together, preventing name collisions with non-cooperating
 groups. It also serves as a reference point for authorization policies.
->>>>>>> tags/v1.3.0
-
+    
 Namespaces are described in [namespaces.md](namespaces.md).
 
 In the Enterprise Profile:

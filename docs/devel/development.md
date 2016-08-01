@@ -21,12 +21,8 @@ Official releases are built using Docker containers. To build Kubernetes using
 Docker please follow [these
 instructions](http://releases.k8s.io/release-1.3/build/README.md).
 
-<<<<<<< HEAD
-Official releases are built in Docker containers.  Details are [here](http://releases.k8s.io/release-1.2/build/README.md).  You can do simple builds and development with just a local Docker installation.  If you want to build go code locally outside of docker, please continue below.
-=======
-### Go development environment
->>>>>>> tags/v1.3.0
-
+    ### Go development environment
+    
 Kubernetes is written in the [Go](http://golang.org) programming language.
 To build Kubernetes without using Docker containers, you'll need a Go
 development environment. Builds for Kubernetes 1.0 - 1.2 require Go version

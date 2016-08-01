@@ -42,18 +42,7 @@ func (plugin *kubenetNetworkPlugin) Name() string {
 	return "kubenet"
 }
 
-<<<<<<< HEAD
-func (plugin *kubenetNetworkPlugin) SetUpPod(namespace string, name string, id kubecontainer.DockerID, containerRuntime string) error {
-	return fmt.Errorf("Kubenet is not supported in this build")
-}
-
-func (plugin *kubenetNetworkPlugin) TearDownPod(namespace string, name string, id kubecontainer.DockerID, containerRuntime string) error {
-	return fmt.Errorf("Kubenet is not supported in this build")
-}
-
-func (plugin *kubenetNetworkPlugin) Status(namespace string, name string, id kubecontainer.DockerID, containerRuntime string) (*network.PodNetworkStatus, error) {
-=======
-func (plugin *kubenetNetworkPlugin) SetUpPod(namespace string, name string, id kubecontainer.ContainerID) error {
+    func (plugin *kubenetNetworkPlugin) SetUpPod(namespace string, name string, id kubecontainer.ContainerID) error {
 	return fmt.Errorf("Kubenet is not supported in this build")
 }
 
@@ -62,6 +51,5 @@ func (plugin *kubenetNetworkPlugin) TearDownPod(namespace string, name string, i
 }
 
 func (plugin *kubenetNetworkPlugin) GetPodNetworkStatus(namespace string, name string, id kubecontainer.ContainerID) (*network.PodNetworkStatus, error) {
->>>>>>> tags/v1.3.0
 	return nil, fmt.Errorf("Kubenet is not supported in this build")
 }

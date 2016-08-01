@@ -1,9 +1,6 @@
 <!-- BEGIN MUNGE: UNVERSIONED_WARNING -->
 
-<<<<<<< HEAD
-=======
-
-<!-- END MUNGE: UNVERSIONED_WARNING -->
+    <!-- END MUNGE: UNVERSIONED_WARNING -->
 
 <!-- BEGIN MUNGE: GENERATED_TOC -->
 
@@ -17,8 +14,7 @@
 - [Automation](#automation)
 
 <!-- END MUNGE: GENERATED_TOC -->
->>>>>>> tags/v1.3.0
-
+    
 # Pull Request Process
 
 An overview of how pull requests are managed for kubernetes. This document

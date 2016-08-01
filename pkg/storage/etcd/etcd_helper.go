@@ -41,84 +41,7 @@ import (
 	"golang.org/x/net/context"
 )
 
-<<<<<<< HEAD
-// storage.Config object for etcd.
-type EtcdStorageConfig struct {
-	Config EtcdConfig
-	Codec  runtime.Codec
-}
-
-// implements storage.Config
-func (c *EtcdStorageConfig) GetType() string {
-	return "etcd"
-}
-
-// implements storage.Config
-func (c *EtcdStorageConfig) NewStorage() (storage.Interface, error) {
-	etcdClient, err := c.Config.newEtcdClient()
-	if err != nil {
-		return nil, err
-	}
-	return NewEtcdStorage(etcdClient, c.Codec, c.Config.Prefix, c.Config.Quorum), nil
-}
-
-// Configuration object for constructing etcd.Config
-type EtcdConfig struct {
-	Prefix     string
-	ServerList []string
-	KeyFile    string
-	CertFile   string
-	CAFile     string
-	Quorum     bool
-}
-
-func (c *EtcdConfig) newEtcdClient() (etcd.Client, error) {
-	t, err := c.newHttpTransport()
-	if err != nil {
-		return nil, err
-	}
-
-	cli, err := etcd.New(etcd.Config{
-		Endpoints: c.ServerList,
-		Transport: t,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	return cli, nil
-}
-
-func (c *EtcdConfig) newHttpTransport() (*http.Transport, error) {
-	info := transport.TLSInfo{
-		CertFile: c.CertFile,
-		KeyFile:  c.KeyFile,
-		CAFile:   c.CAFile,
-	}
-	cfg, err := info.ClientConfig()
-	if err != nil {
-		return nil, err
-	}
-
-	// Copied from etcd.DefaultTransport declaration.
-	// TODO: Determine if transport needs optimization
-	tr := &http.Transport{
-		Proxy: http.ProxyFromEnvironment,
-		Dial: (&net.Dialer{
-			Timeout:   30 * time.Second,
-			KeepAlive: 30 * time.Second,
-		}).Dial,
-		TLSHandshakeTimeout: 10 * time.Second,
-		MaxIdleConnsPerHost: 500,
-		TLSClientConfig:     cfg,
-	}
-
-	return tr, nil
-}
-
-=======
->>>>>>> tags/v1.3.0
-// Creates a new storage interface from the client
+    // Creates a new storage interface from the client
 // TODO: deprecate in favor of storage.Config abstraction over time
 func NewEtcdStorage(client etcd.Client, codec runtime.Codec, prefix string, quorum bool, cacheSize int) storage.Interface {
 	return &etcdHelper{
@@ -129,11 +52,7 @@ func NewEtcdStorage(client etcd.Client, codec runtime.Codec, prefix string, quor
 		copier:         api.Scheme,
 		pathPrefix:     path.Join("/", prefix),
 		quorum:         quorum,
-<<<<<<< HEAD
-		cache:          util.NewCache(maxEtcdCacheEntries),
-=======
-		cache:          utilcache.NewCache(cacheSize),
->>>>>>> tags/v1.3.0
+    cache:          utilcache.NewCache(cacheSize),
 	}
 }
 
@@ -218,11 +137,7 @@ func (h *etcdHelper) Create(ctx context.Context, key string, obj, out runtime.Ob
 		PrevExist: etcd.PrevNoExist,
 	}
 	response, err := h.etcdKeysAPI.Set(ctx, key, string(data), &opts)
-<<<<<<< HEAD
-	metrics.RecordEtcdRequestLatency("create", getTypeName(obj), startTime)
-=======
->>>>>>> tags/v1.3.0
-	trace.Step("Object created")
+    trace.Step("Object created")
 	metrics.RecordEtcdRequestLatency("create", getTypeName(obj), startTime)
 	if err != nil {
 		return toStorageErr(err, key, 0)
@@ -244,51 +159,10 @@ func checkPreconditions(preconditions *storage.Preconditions, out runtime.Object
 	if err != nil {
 		return storage.NewInternalErrorf("can't enforce preconditions %v on un-introspectable object %v, got error: %v", *preconditions, out, err)
 	}
-<<<<<<< HEAD
-	key = h.prefixEtcdKey(key)
-
-	create := true
-	if version != 0 {
-		create = false
-		startTime := time.Now()
-		opts := etcd.SetOptions{
-			TTL:       time.Duration(ttl) * time.Second,
-			PrevIndex: version,
-		}
-		response, err = h.etcdKeysAPI.Set(ctx, key, string(data), &opts)
-		metrics.RecordEtcdRequestLatency("compareAndSwap", getTypeName(obj), startTime)
-		if err != nil {
-			return err
-		}
-	}
-	if create {
-		// Create will fail if a key already exists.
-		startTime := time.Now()
-		opts := etcd.SetOptions{
-			TTL:       time.Duration(ttl) * time.Second,
-			PrevExist: etcd.PrevNoExist,
-		}
-		response, err = h.etcdKeysAPI.Set(ctx, key, string(data), &opts)
-		if err != nil {
-			return err
-		}
-		metrics.RecordEtcdRequestLatency("create", getTypeName(obj), startTime)
-	}
-
-	if out != nil {
-		if _, err := conversion.EnforcePtr(out); err != nil {
-			panic("unable to convert output object to pointer")
-		}
-		_, _, err = h.extractObj(response, err, out, false, false)
-	}
-
-	return err
-=======
-	if preconditions.UID != nil && *preconditions.UID != objMeta.UID {
+    if preconditions.UID != nil && *preconditions.UID != objMeta.UID {
 		return etcd.Error{Code: etcd.ErrorCodeTestFailed, Message: fmt.Sprintf("the UID in the precondition (%s) does not match the UID in record (%s). The object might have been deleted and then recreated", *preconditions.UID, objMeta.UID)}
 	}
 	return nil
->>>>>>> tags/v1.3.0
 }
 
 // Implements storage.Interface.
@@ -302,16 +176,7 @@ func (h *etcdHelper) Delete(ctx context.Context, key string, out runtime.Object,
 		panic("unable to convert output object to pointer")
 	}
 
-<<<<<<< HEAD
-	startTime := time.Now()
-	response, err := h.etcdKeysAPI.Delete(ctx, key, nil)
-	metrics.RecordEtcdRequestLatency("delete", getTypeName(out), startTime)
-	if !etcdutil.IsEtcdNotFound(err) {
-		// if the object that existed prior to the delete is returned by etcd, update out.
-		if err != nil || response.PrevNode != nil {
-			_, _, err = h.extractObj(response, err, out, false, true)
-=======
-	if preconditions == nil {
+    if preconditions == nil {
 		startTime := time.Now()
 		response, err := h.etcdKeysAPI.Delete(ctx, key, nil)
 		metrics.RecordEtcdRequestLatency("delete", getTypeName(out), startTime)
@@ -354,7 +219,6 @@ func (h *etcdHelper) Delete(ctx context.Context, key string, out runtime.Object,
 				}
 			}
 			return toStorageErr(err, key, 0)
->>>>>>> tags/v1.3.0
 		}
 	}
 }
@@ -472,12 +336,7 @@ func (h *etcdHelper) GetToList(ctx context.Context, key string, filter storage.F
 		Quorum: h.quorum,
 	}
 	response, err := h.etcdKeysAPI.Get(ctx, key, opts)
-<<<<<<< HEAD
-
-	metrics.RecordEtcdRequestLatency("get", getTypeName(listPtr), startTime)
-=======
->>>>>>> tags/v1.3.0
-	trace.Step("Etcd node read")
+    trace.Step("Etcd node read")
 	metrics.RecordEtcdRequestLatency("get", getTypeName(listPtr), startTime)
 	if err != nil {
 		if etcdutil.IsEtcdNotFound(err) {

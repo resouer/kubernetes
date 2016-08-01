@@ -1,9 +1,6 @@
 <!-- BEGIN MUNGE: UNVERSIONED_WARNING -->
 
-<<<<<<< HEAD
-=======
-
-<!-- END MUNGE: UNVERSIONED_WARNING -->
+    <!-- END MUNGE: UNVERSIONED_WARNING -->
 
 ## Kubernetes "Github and Build-cop" Rotation
 
@@ -13,8 +10,7 @@
   * Test your admin access by e.g. adding a label to an issue.
 
 ### Traffic sources and responsibilities
->>>>>>> tags/v1.3.0
-
+    
 * GitHub Kubernetes [issues](https://github.com/kubernetes/kubernetes/issues)
 and [pulls](https://github.com/kubernetes/kubernetes/pulls): Your job is to be
 the first responder to all new issues and PRs. If you are not equipped to do

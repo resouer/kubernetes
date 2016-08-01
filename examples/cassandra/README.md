@@ -1,9 +1,4 @@
-<<<<<<< HEAD
-<!-- BEGIN MUNGE: UNVERSIONED_WARNING -->
-
-=======
-
-<!-- BEGIN MUNGE: UNVERSIONED_WARNING -->
+    <!-- BEGIN MUNGE: UNVERSIONED_WARNING -->
 
 
 <!-- END MUNGE: UNVERSIONED_WARNING -->
@@ -11,8 +6,7 @@
 # Cloud Native Deployments of Cassandra using Kubernetes
 
 ## Table of Contents
->>>>>>> tags/v1.3.0
-
+    
   - [Prerequisites](#prerequisites)
   - [Cassandra Docker](#cassandra-docker)
   - [tl;dr Quickstart](#tldr-quickstart)

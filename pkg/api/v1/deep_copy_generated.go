@@ -1343,72 +1343,8 @@ func DeepCopy_v1_NamespaceStatus(in NamespaceStatus, out *NamespaceStatus, c *co
 	return nil
 }
 
-<<<<<<< HEAD
-func deepCopy_v1_Network(in Network, out *Network, c *conversion.Cloner) error {
-	if err := deepCopy_unversioned_TypeMeta(in.TypeMeta, &out.TypeMeta, c); err != nil {
-		return err
-	}
-	if err := deepCopy_v1_ObjectMeta(in.ObjectMeta, &out.ObjectMeta, c); err != nil {
-		return err
-	}
-	if err := deepCopy_v1_NetworkSpec(in.Spec, &out.Spec, c); err != nil {
-		return err
-	}
-	if err := deepCopy_v1_NetworkStatus(in.Status, &out.Status, c); err != nil {
-		return err
-	}
-	return nil
-}
-
-func deepCopy_v1_NetworkList(in NetworkList, out *NetworkList, c *conversion.Cloner) error {
-	if err := deepCopy_unversioned_TypeMeta(in.TypeMeta, &out.TypeMeta, c); err != nil {
-		return err
-	}
-	if err := deepCopy_unversioned_ListMeta(in.ListMeta, &out.ListMeta, c); err != nil {
-		return err
-	}
-	if in.Items != nil {
-		out.Items = make([]Network, len(in.Items))
-		for i := range in.Items {
-			if err := deepCopy_v1_Network(in.Items[i], &out.Items[i], c); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.Items = nil
-	}
-	return nil
-}
-
-func deepCopy_v1_NetworkSpec(in NetworkSpec, out *NetworkSpec, c *conversion.Cloner) error {
-	if in.Subnets != nil {
-		out.Subnets = make(map[string]Subnet)
-		for key, val := range in.Subnets {
-			newVal := new(Subnet)
-			if err := deepCopy_v1_Subnet(val, newVal, c); err != nil {
-				return err
-			}
-			out.Subnets[key] = *newVal
-		}
-	} else {
-		out.Subnets = nil
-	}
-	out.ProviderNetworkID = in.ProviderNetworkID
-	out.TenantID = in.TenantID
-	return nil
-}
-
-func deepCopy_v1_NetworkStatus(in NetworkStatus, out *NetworkStatus, c *conversion.Cloner) error {
-	out.Phase = in.Phase
-	return nil
-}
-
-func deepCopy_v1_Node(in Node, out *Node, c *conversion.Cloner) error {
-	if err := deepCopy_unversioned_TypeMeta(in.TypeMeta, &out.TypeMeta, c); err != nil {
-=======
 func DeepCopy_v1_Node(in Node, out *Node, c *conversion.Cloner) error {
 	if err := unversioned.DeepCopy_unversioned_TypeMeta(in.TypeMeta, &out.TypeMeta, c); err != nil {
->>>>>>> tags/v1.3.0
 		return err
 	}
 	if err := DeepCopy_v1_ObjectMeta(in.ObjectMeta, &out.ObjectMeta, c); err != nil {
@@ -3090,19 +3026,8 @@ func DeepCopy_v1_ServiceStatus(in ServiceStatus, out *ServiceStatus, c *conversi
 	return nil
 }
 
-<<<<<<< HEAD
-func deepCopy_v1_Subnet(in Subnet, out *Subnet, c *conversion.Cloner) error {
-	out.CIDR = in.CIDR
-	out.Gateway = in.Gateway
-	return nil
-}
-
-func deepCopy_v1_TCPSocketAction(in TCPSocketAction, out *TCPSocketAction, c *conversion.Cloner) error {
-	if err := deepCopy_intstr_IntOrString(in.Port, &out.Port, c); err != nil {
-=======
 func DeepCopy_v1_TCPSocketAction(in TCPSocketAction, out *TCPSocketAction, c *conversion.Cloner) error {
 	if err := intstr.DeepCopy_intstr_IntOrString(in.Port, &out.Port, c); err != nil {
->>>>>>> tags/v1.3.0
 		return err
 	}
 	return nil
@@ -3329,162 +3254,10 @@ func DeepCopy_v1_VsphereVirtualDiskVolumeSource(in VsphereVirtualDiskVolumeSourc
 	return nil
 }
 
-<<<<<<< HEAD
-func init() {
-	err := api.Scheme.AddGeneratedDeepCopyFuncs(
-		deepCopy_resource_Quantity,
-		deepCopy_unversioned_ListMeta,
-		deepCopy_unversioned_Time,
-		deepCopy_unversioned_TypeMeta,
-		deepCopy_v1_AWSElasticBlockStoreVolumeSource,
-		deepCopy_v1_AzureFileVolumeSource,
-		deepCopy_v1_Binding,
-		deepCopy_v1_Capabilities,
-		deepCopy_v1_CephFSVolumeSource,
-		deepCopy_v1_CinderVolumeSource,
-		deepCopy_v1_ComponentCondition,
-		deepCopy_v1_ComponentStatus,
-		deepCopy_v1_ComponentStatusList,
-		deepCopy_v1_ConfigMap,
-		deepCopy_v1_ConfigMapKeySelector,
-		deepCopy_v1_ConfigMapList,
-		deepCopy_v1_ConfigMapVolumeSource,
-		deepCopy_v1_Container,
-		deepCopy_v1_ContainerImage,
-		deepCopy_v1_ContainerPort,
-		deepCopy_v1_ContainerState,
-		deepCopy_v1_ContainerStateRunning,
-		deepCopy_v1_ContainerStateTerminated,
-		deepCopy_v1_ContainerStateWaiting,
-		deepCopy_v1_ContainerStatus,
-		deepCopy_v1_DaemonEndpoint,
-		deepCopy_v1_DeleteOptions,
-		deepCopy_v1_DownwardAPIVolumeFile,
-		deepCopy_v1_DownwardAPIVolumeSource,
-		deepCopy_v1_EmptyDirVolumeSource,
-		deepCopy_v1_EndpointAddress,
-		deepCopy_v1_EndpointPort,
-		deepCopy_v1_EndpointSubset,
-		deepCopy_v1_Endpoints,
-		deepCopy_v1_EndpointsList,
-		deepCopy_v1_EnvVar,
-		deepCopy_v1_EnvVarSource,
-		deepCopy_v1_Event,
-		deepCopy_v1_EventList,
-		deepCopy_v1_EventSource,
-		deepCopy_v1_ExecAction,
-		deepCopy_v1_ExportOptions,
-		deepCopy_v1_FCVolumeSource,
-		deepCopy_v1_FlexVolumeSource,
-		deepCopy_v1_FlockerVolumeSource,
-		deepCopy_v1_GCEPersistentDiskVolumeSource,
-		deepCopy_v1_GitRepoVolumeSource,
-		deepCopy_v1_GlusterfsVolumeSource,
-		deepCopy_v1_HTTPGetAction,
-		deepCopy_v1_HTTPHeader,
-		deepCopy_v1_Handler,
-		deepCopy_v1_HostPathVolumeSource,
-		deepCopy_v1_ISCSIVolumeSource,
-		deepCopy_v1_KeyToPath,
-		deepCopy_v1_Lifecycle,
-		deepCopy_v1_LimitRange,
-		deepCopy_v1_LimitRangeItem,
-		deepCopy_v1_LimitRangeList,
-		deepCopy_v1_LimitRangeSpec,
-		deepCopy_v1_List,
-		deepCopy_v1_ListOptions,
-		deepCopy_v1_LoadBalancerIngress,
-		deepCopy_v1_LoadBalancerStatus,
-		deepCopy_v1_LocalObjectReference,
-		deepCopy_v1_NFSVolumeSource,
-		deepCopy_v1_Namespace,
-		deepCopy_v1_NamespaceList,
-		deepCopy_v1_NamespaceSpec,
-		deepCopy_v1_NamespaceStatus,
-		deepCopy_v1_Network,
-		deepCopy_v1_NetworkList,
-		deepCopy_v1_NetworkSpec,
-		deepCopy_v1_NetworkStatus,
-		deepCopy_v1_Node,
-		deepCopy_v1_NodeAddress,
-		deepCopy_v1_NodeCondition,
-		deepCopy_v1_NodeDaemonEndpoints,
-		deepCopy_v1_NodeList,
-		deepCopy_v1_NodeProxyOptions,
-		deepCopy_v1_NodeSpec,
-		deepCopy_v1_NodeStatus,
-		deepCopy_v1_NodeSystemInfo,
-		deepCopy_v1_ObjectFieldSelector,
-		deepCopy_v1_ObjectMeta,
-		deepCopy_v1_ObjectReference,
-		deepCopy_v1_PersistentVolume,
-		deepCopy_v1_PersistentVolumeClaim,
-		deepCopy_v1_PersistentVolumeClaimList,
-		deepCopy_v1_PersistentVolumeClaimSpec,
-		deepCopy_v1_PersistentVolumeClaimStatus,
-		deepCopy_v1_PersistentVolumeClaimVolumeSource,
-		deepCopy_v1_PersistentVolumeList,
-		deepCopy_v1_PersistentVolumeSource,
-		deepCopy_v1_PersistentVolumeSpec,
-		deepCopy_v1_PersistentVolumeStatus,
-		deepCopy_v1_Pod,
-		deepCopy_v1_PodAttachOptions,
-		deepCopy_v1_PodCondition,
-		deepCopy_v1_PodExecOptions,
-		deepCopy_v1_PodList,
-		deepCopy_v1_PodLogOptions,
-		deepCopy_v1_PodProxyOptions,
-		deepCopy_v1_PodSecurityContext,
-		deepCopy_v1_PodSpec,
-		deepCopy_v1_PodStatus,
-		deepCopy_v1_PodStatusResult,
-		deepCopy_v1_PodTemplate,
-		deepCopy_v1_PodTemplateList,
-		deepCopy_v1_PodTemplateSpec,
-		deepCopy_v1_Probe,
-		deepCopy_v1_RBDVolumeSource,
-		deepCopy_v1_RangeAllocation,
-		deepCopy_v1_ReplicationController,
-		deepCopy_v1_ReplicationControllerList,
-		deepCopy_v1_ReplicationControllerSpec,
-		deepCopy_v1_ReplicationControllerStatus,
-		deepCopy_v1_ResourceQuota,
-		deepCopy_v1_ResourceQuotaList,
-		deepCopy_v1_ResourceQuotaSpec,
-		deepCopy_v1_ResourceQuotaStatus,
-		deepCopy_v1_ResourceRequirements,
-		deepCopy_v1_SELinuxOptions,
-		deepCopy_v1_Secret,
-		deepCopy_v1_SecretKeySelector,
-		deepCopy_v1_SecretList,
-		deepCopy_v1_SecretVolumeSource,
-		deepCopy_v1_SecurityContext,
-		deepCopy_v1_SerializedReference,
-		deepCopy_v1_Service,
-		deepCopy_v1_ServiceAccount,
-		deepCopy_v1_ServiceAccountList,
-		deepCopy_v1_ServiceList,
-		deepCopy_v1_ServicePort,
-		deepCopy_v1_ServiceProxyOptions,
-		deepCopy_v1_ServiceSpec,
-		deepCopy_v1_ServiceStatus,
-		deepCopy_v1_Subnet,
-		deepCopy_v1_TCPSocketAction,
-		deepCopy_v1_Volume,
-		deepCopy_v1_VolumeMount,
-		deepCopy_v1_VolumeSource,
-		deepCopy_runtime_RawExtension,
-		deepCopy_intstr_IntOrString,
-	)
-	if err != nil {
-		// if one of the deep copy functions is malformed, detect it immediately.
-		panic(err)
-=======
 func DeepCopy_v1_WeightedPodAffinityTerm(in WeightedPodAffinityTerm, out *WeightedPodAffinityTerm, c *conversion.Cloner) error {
 	out.Weight = in.Weight
 	if err := DeepCopy_v1_PodAffinityTerm(in.PodAffinityTerm, &out.PodAffinityTerm, c); err != nil {
 		return err
->>>>>>> tags/v1.3.0
 	}
 	return nil
 }

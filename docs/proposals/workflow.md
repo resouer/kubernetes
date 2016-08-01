@@ -55,24 +55,14 @@ type Workflow struct {
   unversioned.TypeMeta `json:",inline"`
 
   // Standard object's metadata.
-<<<<<<< HEAD
-  // More info: http://releases.k8s.io/release-1.2/docs/devel/api-conventions.md#metadata.
-  api.ObjectMeta `json:"metadata,omitempty"`
-
-  // Spec defines the expected behavior of a Workflow. More info: http://releases.k8s.io/release-1.2/docs/devel/api-conventions.md#spec-and-status.
-  Spec WorkflowSpec `json:"spec,omitempty"`
-
-  // Status represents the current status of the Workflow. More info: http://releases.k8s.io/release-1.2/docs/devel/api-conventions.md#spec-and-status.
-=======
-  // More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#metadata.
+      // More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#metadata.
   api.ObjectMeta `json:"metadata,omitempty"`
 
   // Spec defines the expected behavior of a Workflow. More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#spec-and-status.
   Spec WorkflowSpec `json:"spec,omitempty"`
 
   // Status represents the current status of the Workflow. More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#spec-and-status.
->>>>>>> tags/v1.3.0
-  Status WorkflowStatus `json:"status,omitempty"`
+      Status WorkflowStatus `json:"status,omitempty"`
 }
 
 // WorkflowList implements list of Workflow.
@@ -80,12 +70,8 @@ type WorkflowList struct {
   unversioned.TypeMeta `json:",inline"`
 
   // Standard list metadata
-<<<<<<< HEAD
-  // More info: http://releases.k8s.io/release-1.2/docs/devel/api-conventions.md#metadata
-=======
-  // More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#metadata
->>>>>>> tags/v1.3.0
-  unversioned.ListMeta `json:"metadata,omitempty"`
+      // More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#metadata
+      unversioned.ListMeta `json:"metadata,omitempty"`
 
   // Items is the list of Workflow
   Items []Workflow `json:"items"`
@@ -94,12 +80,8 @@ type WorkflowList struct {
 // WorkflowSpec contains Workflow specification
 type WorkflowSpec struct {
   // Standard object's metadata.
-<<<<<<< HEAD
-  // More info: http://releases.k8s.io/release-1.2/docs/devel/api-conventions.md#metadata
-=======
-  // More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#metadata
->>>>>>> tags/v1.3.0
-  api.ObjectMeta `json:"metadata,omitempty"`
+      // More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#metadata
+      api.ObjectMeta `json:"metadata,omitempty"`
 
   //ActiveDealineSeconds contains
   ActiveDeadlineSeconds *int64 `json:"activeDeadlineSeconds,omitempty"`
@@ -192,20 +174,12 @@ Reported for readability:
 ```go
 type JobTemplateSpec struct {
   // Standard object's metadata.
-<<<<<<< HEAD
-  // More info: http://releases.k8s.io/release-1.2/docs/devel/api-conventions.md#metadata
-  api.ObjectMeta
-
-  // Spec is a structure defining the expected behavior of a job.
-  // More info: http://releases.k8s.io/release-1.2/docs/devel/api-conventions.md#spec-and-status
-=======
-  // More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#metadata
+      // More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#metadata
   api.ObjectMeta
 
   // Spec is a structure defining the expected behavior of a job.
   // More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#spec-and-status
->>>>>>> tags/v1.3.0
-  Spec JobSpec
+      Spec JobSpec
 }
 ```
 

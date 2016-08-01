@@ -86,7 +86,6 @@ func contains(modes []api.PersistentVolumeAccessMode, mode api.PersistentVolumeA
 type fakePDManager struct {
 }
 
-    >>>>>>> tags/v1.3.0
 func (fake *fakePDManager) CreateVolume(c *gcePersistentDiskProvisioner) (volumeID string, volumeSizeGB int, labels map[string]string, err error) {
 	labels = make(map[string]string)
 	labels["fakepdmanager"] = "yes"

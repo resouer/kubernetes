@@ -1,9 +1,4 @@
-<<<<<<< HEAD
-# Hypernetes [![Build Status](https://travis-ci.org/hyperhq/hypernetes.svg?branch=master)](https://travis-ci.org/hyperhq/hypernetes)
-
-## What is Hypernetes?
-=======
-# Kubernetes
+    # Kubernetes
 
 [![Submit Queue Widget]][Submit Queue] [![GoDoc Widget]][GoDoc] [![Coverage Status Widget]][Coverage Status]
 
@@ -18,8 +13,7 @@
 
   * Interested in learning more about using Kubernetes?  Please see our user-facing documentation on [kubernetes.io](http://kubernetes.io)
   * Interested in hacking on the core Kubernetes code base?  Keep reading!
->>>>>>> tags/v1.3.0
-
+    
 Hypernetes is a secure, multi-tenant [Kubernetes](http://kubernetes.io) distro. Simply put,
 
 Hypernetes = Bare-metal + [Hyper](https://hyper.sh) + Kubernetes + [KeyStone](https://github.com/openstack/keystone) + [Cinder](https://github.com/openstack/cinder) + [Neutron](https://github.com/openstack/neutron).
@@ -32,37 +26,20 @@ Hypernetes envisions a future of ***"Container-as-a-Service without IaaS"***. Th
 
 Hypernetes also integrates with a number of OpenStack projects:
 
-<<<<<<< HEAD
-- Keystone (Authentication)
-- Neutron (SDN)
-- Cinder/Ceph (Persistent Storage)
-
-## How Hypernetes works?
-
-![Architecture Diagram](architecture.png?raw=true "Architecture overview")
-=======
-### Kubernetes is ready for Production!
+    ### Kubernetes is ready for Production!
 
 With the [1.0.1 release](https://github.com/kubernetes/kubernetes/releases/tag/v1.0.1) Kubernetes is ready to serve your production workloads.
 
 ### Kubernetes can run anywhere!
 
 You can run Kubernetes on your local workstation under Vagrant, cloud providers (e.g. GCE, AWS, Azure), and physical hardware. Essentially, anywhere Linux runs you can run Kubernetes. Checkout the [Getting Started Guides](http://kubernetes.io/docs/getting-started-guides/) for details.
->>>>>>> tags/v1.3.0
-
+    
 ## Find out more
 
 * [Documentation](https://github.com/hyperhq/hypernetes-book)
 * [Get Started](https://github.com/hyperhq/hypernetes-book/blob/master/user-guide/user-guide.md)
 
-<<<<<<< HEAD
-## Contact Us
-
-* Twitter: [@hyper_sh](https://twitter.com/hyper_sh)
-* Blog: [https://blog.hyper.sh](https://blog.hyper.sh)
-* Slack: [#hyper](https://slack.hyper.sh/) (The IRC has been migrated to slack.)
-=======
-[**Cluster**](docs/admin/README.md)
+    [**Cluster**](docs/admin/README.md)
 : A cluster is a set of physical or virtual machines and other infrastructure resources used by Kubernetes to run your applications. Kubernetes can run anywhere! See the [Getting Started Guides](docs/getting-started-guides/) for instructions for a variety of services.
 
 [**Node**](docs/admin/node.md)
@@ -171,7 +148,6 @@ You can find more projects, tools and articles related to Kubernetes on the  [aw
 
 Instructive & educational resources for the Kubernetes community. By the community.
 
->>>>>>> tags/v1.3.0
-
+    
 [![Analytics](https://kubernetes-site.appspot.com/UA-36037335-10/GitHub/README.md?pixel)]()
 

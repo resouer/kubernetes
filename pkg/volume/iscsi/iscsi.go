@@ -165,8 +165,7 @@ func (iscsi *iscsiDisk) GetPath() string {
 	return iscsi.plugin.host.GetPodVolumeDir(iscsi.podUID, utilstrings.EscapeQualifiedNameForDisk(name), iscsi.volName)
 }
 
-    type iscsiDiskMounter struct {
->>>>>>> tags/v1.3.0
+type iscsiDiskMounter struct {
 	*iscsiDisk
 	readOnly   bool
 	fsType     string

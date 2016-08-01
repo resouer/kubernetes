@@ -1,17 +1,13 @@
 <!-- BEGIN MUNGE: UNVERSIONED_WARNING -->
 
-<<<<<<< HEAD
-=======
-
-<!-- END MUNGE: UNVERSIONED_WARNING -->
+    <!-- END MUNGE: UNVERSIONED_WARNING -->
 To access the Kubernetes API [from a Pod](../../docs/user-guide/accessing-the-cluster.md#accessing-the-api-from-a-pod) one of the solution is to run `kubectl proxy` in a so-called sidecar container within the Pod. To do this, you need to package `kubectl` in a container. It is useful when service accounts are being used for accessing the API and the old no-auth KUBERNETES_RO service is not available. Since all containers in a Pod share the same network namespace, containers will be able to reach the API on localhost.
 
 This example contains a [Dockerfile](Dockerfile) and [Makefile](Makefile) for packaging up `kubectl` into
 a container and pushing the resulting container image on the Google Container Registry. You can modify the Makefile to push to a different registry if needed.
 
 Assuming that you have checked out the Kubernetes source code and setup your environment to be able to build it. The typical build step of this kubectl container will be:
->>>>>>> tags/v1.3.0
-
+    
     $ cd examples/kubectl-container
     $ make kubectl
     $ make tag

@@ -152,8 +152,7 @@ func (nfsVolume *nfs) GetPath() string {
 	return nfsVolume.plugin.host.GetPodVolumeDir(nfsVolume.pod.UID, strings.EscapeQualifiedNameForDisk(name), nfsVolume.volName)
 }
 
-    type nfsMounter struct {
->>>>>>> tags/v1.3.0
+type nfsMounter struct {
 	*nfs
 	server     string
 	exportPath string

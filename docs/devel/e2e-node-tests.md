@@ -1,9 +1,6 @@
 <!-- BEGIN MUNGE: UNVERSIONED_WARNING -->
 
-<<<<<<< HEAD
-=======
-
-<!-- END MUNGE: UNVERSIONED_WARNING -->
+    <!-- END MUNGE: UNVERSIONED_WARNING -->
 
 # Node End-To-End tests
 
@@ -12,8 +9,7 @@ Node e2e tests are component tests meant for testing the Kubelet code on a custo
 Tests can be run either locally or against a host running on GCE.
 
 Node e2e tests are run as both pre- and post- submit tests by the Kubernetes project.
->>>>>>> tags/v1.3.0
-
+    
 *Note: Linux only. Mac and Windows unsupported.*
 
 # Running tests

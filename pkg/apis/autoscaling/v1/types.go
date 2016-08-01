@@ -23,17 +23,10 @@ import (
 
 // CrossVersionObjectReference contains enough information to let you identify the referred resource.
 type CrossVersionObjectReference struct {
-<<<<<<< HEAD
-	// Kind of the referent; More info: http://releases.k8s.io/release-1.2/docs/devel/api-conventions.md#types-kinds"
-	Kind string `json:"kind"`
-	// Name of the referent; More info: http://releases.k8s.io/release-1.2/docs/user-guide/identifiers.md#names
-	Name string `json:"name"`
-=======
-	// Kind of the referent; More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#types-kinds"
+    // Kind of the referent; More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#types-kinds"
 	Kind string `json:"kind" protobuf:"bytes,1,opt,name=kind"`
 	// Name of the referent; More info: http://releases.k8s.io/release-1.3/docs/user-guide/identifiers.md#names
 	Name string `json:"name" protobuf:"bytes,2,opt,name=name"`
->>>>>>> tags/v1.3.0
 	// API version of the referent
 	APIVersion string `json:"apiVersion,omitempty" protobuf:"bytes,3,opt,name=apiVersion"`
 }
@@ -77,19 +70,11 @@ type HorizontalPodAutoscalerStatus struct {
 // configuration of a horizontal pod autoscaler.
 type HorizontalPodAutoscaler struct {
 	unversioned.TypeMeta `json:",inline"`
-<<<<<<< HEAD
-	// Standard object metadata. More info: http://releases.k8s.io/release-1.2/docs/devel/api-conventions.md#metadata
-	v1.ObjectMeta `json:"metadata,omitempty"`
-
-	// behaviour of autoscaler. More info: http://releases.k8s.io/release-1.2/docs/devel/api-conventions.md#spec-and-status.
-	Spec HorizontalPodAutoscalerSpec `json:"spec,omitempty"`
-=======
-	// Standard object metadata. More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#metadata
+    // Standard object metadata. More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#metadata
 	v1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// behaviour of autoscaler. More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#spec-and-status.
 	Spec HorizontalPodAutoscalerSpec `json:"spec,omitempty" protobuf:"bytes,2,opt,name=spec"`
->>>>>>> tags/v1.3.0
 
 	// current information about the autoscaler.
 	Status HorizontalPodAutoscalerStatus `json:"status,omitempty" protobuf:"bytes,3,opt,name=status"`
@@ -108,17 +93,7 @@ type HorizontalPodAutoscalerList struct {
 // Scale represents a scaling request for a resource.
 type Scale struct {
 	unversioned.TypeMeta `json:",inline"`
-<<<<<<< HEAD
-	// Standard object metadata; More info: http://releases.k8s.io/release-1.2/docs/devel/api-conventions.md#metadata.
-	v1.ObjectMeta `json:"metadata,omitempty"`
-
-	// defines the behavior of the scale. More info: http://releases.k8s.io/release-1.2/docs/devel/api-conventions.md#spec-and-status.
-	Spec ScaleSpec `json:"spec,omitempty"`
-
-	// current status of the scale. More info: http://releases.k8s.io/release-1.2/docs/devel/api-conventions.md#spec-and-status. Read-only.
-	Status ScaleStatus `json:"status,omitempty"`
-=======
-	// Standard object metadata; More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#metadata.
+    // Standard object metadata; More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#metadata.
 	v1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// defines the behavior of the scale. More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#spec-and-status.
@@ -126,7 +101,6 @@ type Scale struct {
 
 	// current status of the scale. More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#spec-and-status. Read-only.
 	Status ScaleStatus `json:"status,omitempty" protobuf:"bytes,3,opt,name=status"`
->>>>>>> tags/v1.3.0
 }
 
 // ScaleSpec describes the attributes of a scale subresource.
@@ -143,11 +117,6 @@ type ScaleStatus struct {
 	// label query over pods that should match the replicas count. This is same
 	// as the label selector but in the string format to avoid introspection
 	// by clients. The string will be in the same format as the query-param syntax.
-<<<<<<< HEAD
-	// More info about label selectors: http://releases.k8s.io/release-1.2/docs/user-guide/labels.md#label-selectors
-	Selector string `json:"selector,omitempty"`
-=======
-	// More info about label selectors: http://releases.k8s.io/release-1.3/docs/user-guide/labels.md#label-selectors
+    // More info about label selectors: http://releases.k8s.io/release-1.3/docs/user-guide/labels.md#label-selectors
 	Selector string `json:"selector,omitempty" protobuf:"bytes,2,opt,name=selector"`
->>>>>>> tags/v1.3.0
 }

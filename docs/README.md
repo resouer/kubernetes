@@ -3,12 +3,8 @@
 
 <!-- END MUNGE: UNVERSIONED_WARNING -->
 
-<<<<<<< HEAD
-# Kubernetes Documentation: releases.k8s.io/release-1.2
-=======
-# Kubernetes Documentation: releases.k8s.io/release-1.3
->>>>>>> tags/v1.3.0
-
+    # Kubernetes Documentation: releases.k8s.io/release-1.3
+    
 * The [User's guide](user-guide/README.md) is for anyone who wants to run programs and
   services on an existing Kubernetes cluster.
 

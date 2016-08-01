@@ -123,8 +123,7 @@ func (sv *secretVolume) GetPath() string {
 	return getPath(sv.podUID, sv.volName, sv.plugin.host)
 }
 
-    // secretVolumeMounter handles retrieving secrets from the API server
->>>>>>> tags/v1.3.0
+// secretVolumeMounter handles retrieving secrets from the API server
 // and placing them into the volume on the host.
 type secretVolumeMounter struct {
 	*secretVolume

@@ -184,8 +184,7 @@ func (rbd *rbd) GetPath() string {
 	return rbd.plugin.host.GetPodVolumeDir(rbd.podUID, strings.EscapeQualifiedNameForDisk(name), rbd.volName)
 }
 
-    type rbdMounter struct {
->>>>>>> tags/v1.3.0
+type rbdMounter struct {
 	*rbd
 	// capitalized so they can be exported in persistRBD()
 	Mon     []string

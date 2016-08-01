@@ -1,9 +1,6 @@
 <!-- BEGIN MUNGE: UNVERSIONED_WARNING -->
 
-<<<<<<< HEAD
-=======
-
-<!-- END MUNGE: UNVERSIONED_WARNING -->
+    <!-- END MUNGE: UNVERSIONED_WARNING -->
 
 # Coding Conventions
 
@@ -21,8 +18,7 @@ Updated: 5/3/2016
 <!-- END MUNGE: GENERATED_TOC -->
 
 ## Code conventions
->>>>>>> tags/v1.3.0
-
+    
   - Bash
 
     - https://google-styleguide.googlecode.com/svn/trunk/shell.xml

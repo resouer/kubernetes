@@ -293,8 +293,7 @@ func (b *gcePersistentDiskMounter) GetPath() string {
 	return getPath(b.podUID, b.volName, b.plugin.host)
 }
 
-    type gcePersistentDiskUnmounter struct {
->>>>>>> tags/v1.3.0
+type gcePersistentDiskUnmounter struct {
 	*gcePersistentDisk
 }
 
@@ -354,13 +353,11 @@ type gcePersistentDiskProvisioner struct {
 
 var _ volume.Provisioner = &gcePersistentDiskProvisioner{}
 
-    func (c *gcePersistentDiskProvisioner) Provision() (*api.PersistentVolume, error) {
->>>>>>> tags/v1.3.0
+func (c *gcePersistentDiskProvisioner) Provision() (*api.PersistentVolume, error) {
 	volumeID, sizeGB, labels, err := c.manager.CreateVolume(c)
 	if err != nil {
 		return nil, err
 	}
-    >>>>>>> tags/v1.3.0
 
 	pv := &api.PersistentVolume{
 		ObjectMeta: api.ObjectMeta{

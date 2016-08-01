@@ -34,19 +34,6 @@ import (
 	_ "k8s.io/kubernetes/cmd/libs/go2idl/client-gen/test_apis/testgroup.k8s.io/install"
 )
 
-<<<<<<< HEAD
-func newStorageDestinations(groupName string, groupMeta *apimachinery.GroupMeta) (*genericapiserver.StorageDestinations, error) {
-	storageDestinations := genericapiserver.NewStorageDestinations()
-	var storageConfig etcdstorage.EtcdStorageConfig
-	storageConfig.Config = etcdstorage.EtcdConfig{
-		Prefix:     genericapiserver.DefaultEtcdPathPrefix,
-		ServerList: []string{"http://127.0.0.1:4001"},
-	}
-	storageConfig.Codec = groupMeta.Codec
-	storageInterface, err := storageConfig.NewStorage()
-	if err != nil {
-		return nil, err
-=======
 const (
 	// Ports on which to run the server.
 	// Explicitly setting these to a different value than the default values, to prevent this from clashing with a local cluster.
@@ -57,7 +44,6 @@ func newStorageFactory() genericapiserver.StorageFactory {
 	config := storagebackend.Config{
 		Prefix:     genericoptions.DefaultEtcdPathPrefix,
 		ServerList: []string{"http://127.0.0.1:4001"},
->>>>>>> tags/v1.3.0
 	}
 	storageFactory := genericapiserver.NewDefaultStorageFactory(config, "application/json", api.Codecs, genericapiserver.NewDefaultResourceEncodingConfig(), genericapiserver.NewResourceConfig())
 

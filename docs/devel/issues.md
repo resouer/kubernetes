@@ -1,9 +1,6 @@
 <!-- BEGIN MUNGE: UNVERSIONED_WARNING -->
 
-<<<<<<< HEAD
-=======
-
-<!-- END MUNGE: UNVERSIONED_WARNING -->
+    <!-- END MUNGE: UNVERSIONED_WARNING -->
 
 ## GitHub Issues for the Kubernetes Project
 
@@ -18,8 +15,7 @@ means the bug has not been reviewed and prioritized yet.
 We try to apply these priority labels consistently across the entire project,
 but if you notice an issue that you believe to be incorrectly prioritized,
 please do let us know and we will evaluate your counter-proposal.
->>>>>>> tags/v1.3.0
-
+    
 - **priority/P0**: Must be actively worked on as someone's top priority right
 now. Stuff is burning. If it's not being actively worked on, someone is expected
 to drop what they're doing immediately to work on it. Team leaders are

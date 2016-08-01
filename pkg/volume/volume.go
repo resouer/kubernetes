@@ -33,9 +33,8 @@ type Volume interface {
 	// pod.
 	GetPath() string
 
-    // MetricsProvider embeds methods for exposing metrics (e.g.
+	// MetricsProvider embeds methods for exposing metrics (e.g.
 	// used, available space).
->>>>>>> tags/v1.3.0
 	MetricsProvider
 }
 

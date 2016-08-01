@@ -3,12 +3,8 @@
 
 <!-- END MUNGE: UNVERSIONED_WARNING -->
 
-<<<<<<< HEAD
-This file has moved to: http://kubernetes.github.io/docs/getting-started-guides/docker-multinode/
-=======
-This deployment has moved to: https://github.com/kubernetes/kube-deploy
->>>>>>> tags/v1.3.0
-
+    This deployment has moved to: https://github.com/kubernetes/kube-deploy
+    
 
 
 

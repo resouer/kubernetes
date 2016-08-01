@@ -434,12 +434,8 @@ Conformance tests for a given version should be run off of the release branch
 that corresponds to that version. Thus `v1.2` conformance tests would be run
 from the head of the `release-1.2` branch. eg:
 
-<<<<<<< HEAD
-The conformance test runs a subset of the e2e-tests against a manually-created cluster.  It does not require support for up/push/down and other operations.  To run a conformance test, you need to know the IP of the master for your cluster and the authorization arguments to use.  The conformance test is intended to run against a cluster at a specific binary release of Kubernetes.  See [conformance-test.sh](http://releases.k8s.io/release-1.2/hack/conformance-test.sh).
-=======
- - A v1.3 development cluster should pass v1.1, v1.2 conformance tests
->>>>>>> tags/v1.3.0
-
+     - A v1.3 development cluster should pass v1.1, v1.2 conformance tests
+    
  - A v1.2 cluster should pass v1.1, v1.2 conformance tests
 
  - A v1.1 cluster should pass v1.0, v1.1 conformance tests, and fail v1.2

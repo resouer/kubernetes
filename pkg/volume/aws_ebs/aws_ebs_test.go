@@ -92,7 +92,6 @@ type fakePDManager struct {
 
 // TODO(jonesdl) To fully test this, we could create a loopback device
 // and mount that instead.
-    >>>>>>> tags/v1.3.0
 func (fake *fakePDManager) CreateVolume(c *awsElasticBlockStoreProvisioner) (volumeID string, volumeSizeGB int, labels map[string]string, err error) {
 	labels = make(map[string]string)
 	labels["fakepdmanager"] = "yes"

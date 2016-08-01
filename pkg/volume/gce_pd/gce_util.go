@@ -70,8 +70,7 @@ func (util *GCEDiskUtil) DeleteVolume(d *gcePersistentDiskDeleter) error {
 // CreateVolume creates a GCE PD.
 // Returns: volumeID, volumeSizeGB, labels, error
 func (gceutil *GCEDiskUtil) CreateVolume(c *gcePersistentDiskProvisioner) (string, int, map[string]string, error) {
-    cloud, err := getCloudProvider(c.gcePersistentDisk.plugin.host.GetCloudProvider())
->>>>>>> tags/v1.3.0
+	cloud, err := getCloudProvider(c.gcePersistentDisk.plugin.host.GetCloudProvider())
 	if err != nil {
 		return "", 0, nil, err
 	}
@@ -97,7 +96,6 @@ func (gceutil *GCEDiskUtil) CreateVolume(c *gcePersistentDiskProvisioner) (strin
 		return "", 0, nil, err
 	}
 	glog.V(2).Infof("Successfully created GCE PD volume %s", name)
-    >>>>>>> tags/v1.3.0
 
 	labels, err := cloud.GetAutoLabelsForPD(name, zone)
 	if err != nil {

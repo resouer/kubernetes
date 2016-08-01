@@ -36389,11 +36389,8 @@ func (x *NodeStatus) CodecEncodeSelf(e *codec1978.Encoder) {
 			yyq2[5] = true
 			yyq2[6] = true
 			yyq2[7] = len(x.Images) != 0
-<<<<<<< HEAD
-=======
-			yyq2[8] = len(x.VolumesInUse) != 0
+    yyq2[8] = len(x.VolumesInUse) != 0
 			yyq2[9] = len(x.VolumesAttached) != 0
->>>>>>> tags/v1.3.0
 			var yynn2 int
 			if yyr2 || yy2arr2 {
 				r.EncodeArrayStart(10)
@@ -36591,15 +36588,7 @@ func (x *NodeStatus) CodecEncodeSelf(e *codec1978.Encoder) {
 					z.EncSendContainerState(codecSelfer_containerMapValue1234)
 					if x.Images == nil {
 						r.EncodeNil()
-<<<<<<< HEAD
-					} else {
-						yym30 := z.EncBinary()
-						_ = yym30
-						if false {
-						} else {
-							h.encSliceContainerImage(([]ContainerImage)(x.Images), e)
-=======
-					} else {
+    } else {
 						yym30 := z.EncBinary()
 						_ = yym30
 						if false {
@@ -36671,7 +36660,6 @@ func (x *NodeStatus) CodecEncodeSelf(e *codec1978.Encoder) {
 						if false {
 						} else {
 							h.encSliceAttachedVolume(([]AttachedVolume)(x.VolumesAttached), e)
->>>>>>> tags/v1.3.0
 						}
 					}
 				}
@@ -59753,11 +59741,7 @@ func (x codecSelfer1234) decSliceNamespace(v *[]Namespace, d *codec1978.Decoder)
 
 			yyrg1 := len(yyv1) > 0
 			yyv21 := yyv1
-<<<<<<< HEAD
-			yyrl1, yyrt1 = z.DecInferLen(yyl1, z.DecBasicHandle().MaxInitLen, 248)
-=======
-			yyrl1, yyrt1 = z.DecInferLen(yyl1, z.DecBasicHandle().MaxInitLen, 280)
->>>>>>> tags/v1.3.0
+    yyrl1, yyrt1 = z.DecInferLen(yyl1, z.DecBasicHandle().MaxInitLen, 280)
 			if yyrt1 {
 				if yyrl1 <= cap(yyv1) {
 					yyv1 = yyv1[:yyrl1]

@@ -131,19 +131,7 @@ type HostPortRange struct {
 // VolumeSecurityPolicy allows and disallows the use of different types of volume plugins.
 type VolumeSecurityPolicy struct {
 	// HostPath allows or disallows the use of the HostPath volume plugin.
-<<<<<<< HEAD
-	// More info: http://releases.k8s.io/release-1.2/docs/user-guide/volumes.md#hostpath
-	HostPath bool `json:"hostPath,omitempty"`
-	// EmptyDir allows or disallows the use of the EmptyDir volume plugin.
-	// More info: http://releases.k8s.io/release-1.2/docs/user-guide/volumes.md#emptydir
-	EmptyDir bool `json:"emptyDir,omitempty"`
-	// GCEPersistentDisk allows or disallows the use of the GCEPersistentDisk volume plugin.
-	// More info: http://releases.k8s.io/release-1.2/docs/user-guide/volumes.md#gcepersistentdisk
-	GCEPersistentDisk bool `json:"gcePersistentDisk,omitempty"`
-	// AWSElasticBlockStore allows or disallows the use of the AWSElasticBlockStore volume plugin.
-	// More info: http://releases.k8s.io/release-1.2/docs/user-guide/volumes.md#awselasticblockstore
-=======
-	// More info: http://releases.k8s.io/release-1.3/docs/user-guide/volumes.md#hostpath
+    // More info: http://releases.k8s.io/release-1.3/docs/user-guide/volumes.md#hostpath
 	HostPath bool `json:"hostPath,omitempty"`
 	// EmptyDir allows or disallows the use of the EmptyDir volume plugin.
 	// More info: http://releases.k8s.io/release-1.3/docs/user-guide/volumes.md#emptydir
@@ -153,33 +141,11 @@ type VolumeSecurityPolicy struct {
 	GCEPersistentDisk bool `json:"gcePersistentDisk,omitempty"`
 	// AWSElasticBlockStore allows or disallows the use of the AWSElasticBlockStore volume plugin.
 	// More info: http://releases.k8s.io/release-1.3/docs/user-guide/volumes.md#awselasticblockstore
->>>>>>> tags/v1.3.0
-	AWSElasticBlockStore bool `json:"awsElasticBlockStore,omitempty"`
+    	AWSElasticBlockStore bool `json:"awsElasticBlockStore,omitempty"`
 	// GitRepo allows or disallows the use of the GitRepo volume plugin.
 	GitRepo bool `json:"gitRepo,omitempty"`
 	// Secret allows or disallows the use of the Secret volume plugin.
-<<<<<<< HEAD
-	// More info: http://releases.k8s.io/release-1.2/docs/user-guide/volumes.md#secrets
-	Secret bool `json:"secret,omitempty"`
-	// NFS allows or disallows the use of the NFS volume plugin.
-	// More info: http://releases.k8s.io/release-1.2/docs/user-guide/volumes.md#nfs
-	NFS bool `json:"nfs,omitempty"`
-	// ISCSI allows or disallows the use of the ISCSI volume plugin.
-	// More info: http://releases.k8s.io/release-1.2/examples/iscsi/README.md
-	ISCSI bool `json:"iscsi,omitempty"`
-	// Glusterfs allows or disallows the use of the Glusterfs volume plugin.
-	// More info: http://releases.k8s.io/release-1.2/examples/glusterfs/README.md
-	Glusterfs bool `json:"glusterfs,omitempty"`
-	// PersistentVolumeClaim allows or disallows the use of the PersistentVolumeClaim volume plugin.
-	// More info: http://releases.k8s.io/release-1.2/docs/user-guide/persistent-volumes.md#persistentvolumeclaims
-	PersistentVolumeClaim bool `json:"persistentVolumeClaim,omitempty"`
-	// RBD allows or disallows the use of the RBD volume plugin.
-	// More info: http://releases.k8s.io/release-1.2/examples/rbd/README.md
-	RBD bool `json:"rbd,omitempty"`
-	// Cinder allows or disallows the use of the Cinder volume plugin.
-	// More info: http://releases.k8s.io/release-1.2/examples/mysql-cinder-pd/README.md
-=======
-	// More info: http://releases.k8s.io/release-1.3/docs/user-guide/volumes.md#secrets
+    // More info: http://releases.k8s.io/release-1.3/docs/user-guide/volumes.md#secrets
 	Secret bool `json:"secret,omitempty"`
 	// NFS allows or disallows the use of the NFS volume plugin.
 	// More info: http://releases.k8s.io/release-1.3/docs/user-guide/volumes.md#nfs
@@ -198,8 +164,7 @@ type VolumeSecurityPolicy struct {
 	RBD bool `json:"rbd,omitempty"`
 	// Cinder allows or disallows the use of the Cinder volume plugin.
 	// More info: http://releases.k8s.io/release-1.3/examples/mysql-cinder-pd/README.md
->>>>>>> tags/v1.3.0
-	Cinder bool `json:"cinder,omitempty"`
+    	Cinder bool `json:"cinder,omitempty"`
 	// CephFS allows or disallows the use of the CephFS volume plugin.
 	CephFS bool `json:"cephfs,omitempty"`
 	// DownwardAPI allows or disallows the use of the DownwardAPI volume plugin.
@@ -213,12 +178,8 @@ type SELinuxContextStrategyOptions struct {
 	// Type is the strategy that will dictate the allowable labels that may be set.
 	Type SELinuxContextStrategy `json:"type"`
 	// seLinuxOptions required to run as; required for MustRunAs
-<<<<<<< HEAD
-	// More info: http://releases.k8s.io/release-1.2/docs/design/security_context.md#security-context
-=======
-	// More info: http://releases.k8s.io/release-1.3/docs/design/security_context.md#security-context
->>>>>>> tags/v1.3.0
-	SELinuxOptions *api.SELinuxOptions `json:"seLinuxOptions,omitempty"`
+    // More info: http://releases.k8s.io/release-1.3/docs/design/security_context.md#security-context
+    	SELinuxOptions *api.SELinuxOptions `json:"seLinuxOptions,omitempty"`
 }
 
 // SELinuxContextStrategyType denotes strategy types for generating SELinux options for a

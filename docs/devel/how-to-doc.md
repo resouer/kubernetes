@@ -49,12 +49,8 @@ After running `hack/update-munge-docs.sh`, you'll see a table of contents genera
 
 It's important to follow the rules when writing links. It helps us correctly versionize documents for each release.
 
-<<<<<<< HEAD
-Use inline links instead of urls at all times. When you add internal links to `docs/` or `examples/`, use relative links; otherwise, use `http://releases.k8s.io/release-1.2/<path/to/link>`. For example, avoid using:
-=======
-Use inline links instead of urls at all times. When you add internal links to `docs/` or `examples/`, use relative links; otherwise, use `http://releases.k8s.io/release-1.3/<path/to/link>`. For example, avoid using:
->>>>>>> tags/v1.3.0
-
+    Use inline links instead of urls at all times. When you add internal links to `docs/` or `examples/`, use relative links; otherwise, use `http://releases.k8s.io/release-1.3/<path/to/link>`. For example, avoid using:
+    
 ```
 [GCE](https://github.com/kubernetes/kubernetes/blob/master/docs/getting-started-guides/gce.md)  # note that it's under docs/
 [Kubernetes package](../../pkg/)                                                                # note that it's under pkg/
@@ -65,20 +61,12 @@ Instead, use:
 
 ```
 [GCE](../getting-started-guides/gce.md)                 # note that it's under docs/
-<<<<<<< HEAD
-[Kubernetes package](http://releases.k8s.io/release-1.2/pkg/)  # note that it's under pkg/
-[Kubernetes](http://kubernetes.io/)                     # external link
-```
-
-The above example generates the following links: [GCE](../getting-started-guides/gce.md), [Kubernetes package](http://releases.k8s.io/release-1.2/pkg/), and [Kubernetes](http://kubernetes.io/).
-=======
-[Kubernetes package](http://releases.k8s.io/release-1.3/pkg/)  # note that it's under pkg/
+    [Kubernetes package](http://releases.k8s.io/release-1.3/pkg/)  # note that it's under pkg/
 [Kubernetes](http://kubernetes.io/)                     # external link
 ```
 
 The above example generates the following links: [GCE](../getting-started-guides/gce.md), [Kubernetes package](http://releases.k8s.io/release-1.3/pkg/), and [Kubernetes](http://kubernetes.io/).
->>>>>>> tags/v1.3.0
-
+    
 ## How to Include an Example
 
 While writing examples, you may want to show the content of certain example files (e.g. [pod.yaml](../user-guide/pod.yaml)). In this case, insert the following code in the md file:
@@ -158,12 +146,8 @@ Mungers are like gofmt for md docs which we use to format documents. To use it, 
 <!-- END MUNGE: xxxx -->
 ```
 
-<<<<<<< HEAD
-in your md files. Note that xxxx is the placeholder for a specific munger. Appropriate content will be generated and inserted between two brackets after you run `hack/update-generated-docs.sh`. See [munger document](http://releases.k8s.io/release-1.2/cmd/mungedocs/) for more details.
-=======
-in your md files. Note that xxxx is the placeholder for a specific munger. Appropriate content will be generated and inserted between two brackets after you run `hack/update-munge-docs.sh`. See [munger document](http://releases.k8s.io/release-1.3/cmd/mungedocs/) for more details.
->>>>>>> tags/v1.3.0
-
+    in your md files. Note that xxxx is the placeholder for a specific munger. Appropriate content will be generated and inserted between two brackets after you run `hack/update-munge-docs.sh`. See [munger document](http://releases.k8s.io/release-1.3/cmd/mungedocs/) for more details.
+    
 ## Auto-added Mungers
 
 After running `hack/update-munge-docs.sh`, you may see some code / mungers in your md file that are auto-added. You don't have to add them manually. It's recommended to just read this section as a reference instead of messing up with the following mungers.

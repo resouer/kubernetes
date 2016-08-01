@@ -7,12 +7,8 @@
 
 ### Supported
 
-<<<<<<< HEAD
-   * [Go](http://releases.k8s.io/release-1.2/pkg/client/)
-=======
-   * [Go](http://releases.k8s.io/release-1.3/pkg/client/)
->>>>>>> tags/v1.3.0
-
+       * [Go](http://releases.k8s.io/release-1.3/pkg/client/)
+    
 ### User Contributed
 
 *Note: Libraries provided by outside parties are supported by their authors, not

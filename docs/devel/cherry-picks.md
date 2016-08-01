@@ -72,14 +72,7 @@ particular, they may be self-merged by the release branch owner without fanfare,
 in the case the release branch owner knows the cherry pick was already
 requested - this should not be the norm, but it may happen.
 
-<<<<<<< HEAD
-[Contributor License Agreements](http://releases.k8s.io/release-1.2/CONTRIBUTING.md) is considered implicit
-for all code within cherry-pick pull requests, ***unless there is a large
-conflict***.
-
-=======
->>>>>>> tags/v1.3.0
-## Searching for Cherry Picks
+        ## Searching for Cherry Picks
 
 See the [cherrypick queue dashboard](http://cherrypick.k8s.io/#/queue) for
 status of PRs labeled as `cherrypick-candidate`.

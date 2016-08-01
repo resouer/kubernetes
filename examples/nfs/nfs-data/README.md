@@ -1,9 +1,6 @@
 <!-- BEGIN MUNGE: UNVERSIONED_WARNING -->
 
-<<<<<<< HEAD
-=======
-
-<!-- END MUNGE: UNVERSIONED_WARNING -->
+    <!-- END MUNGE: UNVERSIONED_WARNING -->
 
 # NFS-exporter container with a file
 
@@ -14,8 +11,7 @@ only NFSv3 is opened in this container.
 Available as `gcr.io/google-samples/nfs-server`
 
 
->>>>>>> tags/v1.3.0
-
+    
 
 
 <!-- BEGIN MUNGE: IS_VERSIONED -->

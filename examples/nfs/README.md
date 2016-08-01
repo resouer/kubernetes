@@ -1,9 +1,6 @@
 <!-- BEGIN MUNGE: UNVERSIONED_WARNING -->
 
-<<<<<<< HEAD
-=======
-
-<!-- END MUNGE: UNVERSIONED_WARNING -->
+    <!-- END MUNGE: UNVERSIONED_WARNING -->
 
 # Outline
 
@@ -17,8 +14,7 @@ Demonstrated Kubernetes Concepts:
   locate one another.
 
 ![alt text][nfs pv example]
->>>>>>> tags/v1.3.0
-
+    
 As illustrated above, two persistent volumes are used in this example:
 
 - Web frontend Pod uses a persistent volume based on NFS server, and

@@ -161,8 +161,7 @@ func (fc *fcDisk) GetPath() string {
 	return fc.plugin.host.GetPodVolumeDir(fc.podUID, strings.EscapeQualifiedNameForDisk(name), fc.volName)
 }
 
-    type fcDiskMounter struct {
->>>>>>> tags/v1.3.0
+type fcDiskMounter struct {
 	*fcDisk
 	readOnly bool
 	fsType   string

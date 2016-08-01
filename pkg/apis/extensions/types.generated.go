@@ -12975,13 +12975,8 @@ func (x *FSGroupStrategyOptions) CodecEncodeSelf(e *codec1978.Encoder) {
 			var yyq2 [2]bool
 			_, _, _ = yysep2, yyq2, yy2arr2
 			const yyr2 bool = false
-<<<<<<< HEAD
-			yyq2[1] = x.Selector != nil
-			yyq2[2] = true
-=======
-			yyq2[0] = x.Rule != ""
+    yyq2[0] = x.Rule != ""
 			yyq2[1] = len(x.Ranges) != 0
->>>>>>> tags/v1.3.0
 			var yynn2 int
 			if yyr2 || yy2arr2 {
 				r.EncodeArrayStart(2)
@@ -13044,27 +13039,7 @@ func (x *FSGroupStrategyOptions) CodecEncodeSelf(e *codec1978.Encoder) {
 				}
 			}
 			if yyr2 || yy2arr2 {
-<<<<<<< HEAD
-				z.EncSendContainerState(codecSelfer_containerArrayElem1234)
-				if yyq2[2] {
-					yy10 := &x.Template
-					yy10.CodecEncodeSelf(e)
-				} else {
-					r.EncodeNil()
-				}
-			} else {
-				if yyq2[2] {
-					z.EncSendContainerState(codecSelfer_containerMapKey1234)
-					r.EncodeString(codecSelferC_UTF81234, string("template"))
-					z.EncSendContainerState(codecSelfer_containerMapValue1234)
-					yy12 := &x.Template
-					yy12.CodecEncodeSelf(e)
-				}
-			}
-			if yyr2 || yy2arr2 {
-=======
->>>>>>> tags/v1.3.0
-				z.EncSendContainerState(codecSelfer_containerArrayEnd1234)
+    z.EncSendContainerState(codecSelfer_containerArrayEnd1234)
 			} else {
 				z.EncSendContainerState(codecSelfer_containerMapEnd1234)
 			}
@@ -13139,20 +13114,8 @@ func (x *FSGroupStrategyOptions) codecDecodeSelfFromMap(l int, d *codec1978.Deco
 				_ = yym6
 				if false {
 				} else {
-<<<<<<< HEAD
-					z.DecFallback(x.Selector, false)
+    h.decSliceIDRange((*[]IDRange)(yyv5), d)
 				}
-			}
-		case "template":
-			if r.TryDecodeAsNil() {
-				x.Template = pkg2_api.PodTemplateSpec{}
-			} else {
-				yyv7 := &x.Template
-				yyv7.CodecDecodeSelf(d)
-=======
-					h.decSliceIDRange((*[]IDRange)(yyv5), d)
-				}
->>>>>>> tags/v1.3.0
 			}
 		default:
 			z.DecStructFieldNotFound(-1, yys3)
@@ -13203,30 +13166,8 @@ func (x *FSGroupStrategyOptions) codecDecodeSelfFromArray(l int, d *codec1978.De
 		_ = yym10
 		if false {
 		} else {
-<<<<<<< HEAD
-			z.DecFallback(x.Selector, false)
+    h.decSliceIDRange((*[]IDRange)(yyv9), d)
 		}
-	}
-	yyj8++
-	if yyhl8 {
-		yyb8 = yyj8 > l
-	} else {
-		yyb8 = r.CheckBreak()
-	}
-	if yyb8 {
-		z.DecSendContainerState(codecSelfer_containerArrayEnd1234)
-		return
-	}
-	z.DecSendContainerState(codecSelfer_containerArrayElem1234)
-	if r.TryDecodeAsNil() {
-		x.Template = pkg2_api.PodTemplateSpec{}
-	} else {
-		yyv12 := &x.Template
-		yyv12.CodecDecodeSelf(d)
-=======
-			h.decSliceIDRange((*[]IDRange)(yyv9), d)
-		}
->>>>>>> tags/v1.3.0
 	}
 	for {
 		yyj7++
@@ -13287,13 +13228,8 @@ func (x *SupplementalGroupsStrategyOptions) CodecEncodeSelf(e *codec1978.Encoder
 			var yyq2 [3]bool
 			_, _, _ = yysep2, yyq2, yy2arr2
 			const yyr2 bool = false
-<<<<<<< HEAD
-			yyq2[1] = x.FullyLabeledReplicas != 0
-			yyq2[2] = x.ObservedGeneration != 0
-=======
-			yyq2[0] = x.Rule != ""
+    yyq2[0] = x.Rule != ""
 			yyq2[1] = len(x.Ranges) != 0
->>>>>>> tags/v1.3.0
 			var yynn2 int
 			if yyr2 || yy2arr2 {
 				r.EncodeArrayStart(3)
@@ -13328,16 +13264,12 @@ func (x *SupplementalGroupsStrategyOptions) CodecEncodeSelf(e *codec1978.Encoder
 					if x.Ranges == nil {
 						r.EncodeNil()
 					} else {
-<<<<<<< HEAD
-						r.EncodeInt(int64(x.FullyLabeledReplicas))
-=======
-						yym7 := z.EncBinary()
+    yym7 := z.EncBinary()
 						_ = yym7
 						if false {
 						} else {
 							h.encSliceIDRange(([]IDRange)(x.Ranges), e)
 						}
->>>>>>> tags/v1.3.0
 					}
 				} else {
 					r.EncodeNil()
@@ -13345,50 +13277,17 @@ func (x *SupplementalGroupsStrategyOptions) CodecEncodeSelf(e *codec1978.Encoder
 			} else {
 				if yyq2[1] {
 					z.EncSendContainerState(codecSelfer_containerMapKey1234)
-<<<<<<< HEAD
-					r.EncodeString(codecSelferC_UTF81234, string("fullyLabeledReplicas"))
-=======
-					r.EncodeString(codecSelferC_UTF81234, string("ranges"))
->>>>>>> tags/v1.3.0
+    r.EncodeString(codecSelferC_UTF81234, string("ranges"))
 					z.EncSendContainerState(codecSelfer_containerMapValue1234)
 					if x.Ranges == nil {
 						r.EncodeNil()
 					} else {
-<<<<<<< HEAD
-						r.EncodeInt(int64(x.FullyLabeledReplicas))
-					}
-				}
-			}
-			if yyr2 || yy2arr2 {
-				z.EncSendContainerState(codecSelfer_containerArrayElem1234)
-				if yyq2[2] {
-					yym10 := z.EncBinary()
-					_ = yym10
-					if false {
-					} else {
-						r.EncodeInt(int64(x.ObservedGeneration))
-					}
-				} else {
-					r.EncodeInt(0)
-				}
-			} else {
-				if yyq2[2] {
-					z.EncSendContainerState(codecSelfer_containerMapKey1234)
-					r.EncodeString(codecSelferC_UTF81234, string("observedGeneration"))
-					z.EncSendContainerState(codecSelfer_containerMapValue1234)
-					yym11 := z.EncBinary()
-					_ = yym11
-					if false {
-					} else {
-						r.EncodeInt(int64(x.ObservedGeneration))
-=======
-						yym8 := z.EncBinary()
+    yym8 := z.EncBinary()
 						_ = yym8
 						if false {
 						} else {
 							h.encSliceIDRange(([]IDRange)(x.Ranges), e)
 						}
->>>>>>> tags/v1.3.0
 					}
 				}
 			}
@@ -13459,17 +13358,7 @@ func (x *SupplementalGroupsStrategyOptions) codecDecodeSelfFromMap(l int, d *cod
 			} else {
 				x.Rule = SupplementalGroupsStrategyType(r.DecodeString())
 			}
-<<<<<<< HEAD
-		case "fullyLabeledReplicas":
-			if r.TryDecodeAsNil() {
-				x.FullyLabeledReplicas = 0
-			} else {
-				x.FullyLabeledReplicas = int(r.DecodeInt(codecSelferBitsize1234))
-			}
-		case "observedGeneration":
-=======
-		case "ranges":
->>>>>>> tags/v1.3.0
+    case "ranges":
 			if r.TryDecodeAsNil() {
 				x.Ranges = nil
 			} else {
@@ -13518,26 +13407,7 @@ func (x *SupplementalGroupsStrategyOptions) codecDecodeSelfFromArray(l int, d *c
 		yyb7 = r.CheckBreak()
 	}
 	if yyb7 {
-<<<<<<< HEAD
-		z.DecSendContainerState(codecSelfer_containerArrayEnd1234)
-		return
-	}
-	z.DecSendContainerState(codecSelfer_containerArrayElem1234)
-	if r.TryDecodeAsNil() {
-		x.FullyLabeledReplicas = 0
-	} else {
-		x.FullyLabeledReplicas = int(r.DecodeInt(codecSelferBitsize1234))
-	}
-	yyj7++
-	if yyhl7 {
-		yyb7 = yyj7 > l
-	} else {
-		yyb7 = r.CheckBreak()
-	}
-	if yyb7 {
-=======
->>>>>>> tags/v1.3.0
-		z.DecSendContainerState(codecSelfer_containerArrayEnd1234)
+    z.DecSendContainerState(codecSelfer_containerArrayEnd1234)
 		return
 	}
 	z.DecSendContainerState(codecSelfer_containerArrayElem1234)
@@ -17445,11 +17315,7 @@ func (x codecSelfer1234) decSliceIDRange(v *[]IDRange, d *codec1978.Decoder) {
 
 			yyrg1 := len(yyv1) > 0
 			yyv21 := yyv1
-<<<<<<< HEAD
-			yyrl1, yyrt1 = z.DecInferLen(yyl1, z.DecBasicHandle().MaxInitLen, 560)
-=======
-			yyrl1, yyrt1 = z.DecInferLen(yyl1, z.DecBasicHandle().MaxInitLen, 16)
->>>>>>> tags/v1.3.0
+    yyrl1, yyrt1 = z.DecInferLen(yyl1, z.DecBasicHandle().MaxInitLen, 16)
 			if yyrt1 {
 				if yyrl1 <= cap(yyv1) {
 					yyv1 = yyv1[:yyrl1]

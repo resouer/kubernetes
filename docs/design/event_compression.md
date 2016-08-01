@@ -41,14 +41,10 @@ entries.
 
 ## Design
 
-<<<<<<< HEAD
-Instead of a single Timestamp, each event object [contains](http://releases.k8s.io/release-1.2/pkg/api/types.go#L1111) the following fields:
-=======
-Instead of a single Timestamp, each event object
+    Instead of a single Timestamp, each event object
 [contains](http://releases.k8s.io/release-1.3/pkg/api/types.go#L1111) the following
 fields:
->>>>>>> tags/v1.3.0
- * `FirstTimestamp unversioned.Time`
+     * `FirstTimestamp unversioned.Time`
    * The date/time of the first occurrence of the event.
  * `LastTimestamp unversioned.Time`
    * The date/time of the most recent occurrence of the event.
@@ -101,17 +97,7 @@ used to construct a unique key for an event:
      * `event.InvolvedObject.APIVersion`
      * `event.Reason`
      * `event.Message`
-<<<<<<< HEAD
-   * The LRU cache is capped at 4096 events for both `EventAggregator` and `EventLogger`. That means if a component (e.g. kubelet) runs for a long period of time and generates tons of unique events, the previously generated events cache will not grow unchecked in memory. Instead, after 4096 unique events are generated, the oldest events are evicted from the cache.
- * When an event is generated, the previously generated events cache is checked (see [`pkg/client/unversioned/record/event.go`](http://releases.k8s.io/release-1.2/pkg/client/record/event.go)).
-   * If the key for the new event matches the key for a previously generated event (meaning all of the above fields match between the new event and some previously generated event), then the event is considered to be a duplicate and the existing event entry is updated in etcd:
-     * The new PUT (update) event API is called to update the existing event entry in etcd with the new last seen timestamp and count.
-     * The event is also updated in the previously generated events cache with an incremented count, updated last seen timestamp, name, and new resource version (all required to issue a future event update).
-   * If the key for the new event does not match the key for any previously generated event (meaning none of the above fields match between the new event and any previously generated events), then the event is considered to be new/unique and a new event entry is created in etcd:
-     * The usual POST/create event API is called to create a new event entry in etcd.
-     * An entry for the event is also added to the previously generated events cache.
-=======
-   * The LRU cache is capped at 4096 events for both `EventAggregator` and
+       * The LRU cache is capped at 4096 events for both `EventAggregator` and
 `EventLogger`. That means if a component (e.g. kubelet) runs for a long period
 of time and generates tons of unique events, the previously generated events
 cache will not grow unchecked in memory. Instead, after 4096 unique events are
@@ -135,8 +121,7 @@ new/unique and a new event entry is created in etcd:
 etcd.
      * An entry for the event is also added to the previously generated events
 cache.
->>>>>>> tags/v1.3.0
-
+    
 ## Issues/Risks
 
  * Compression is not guaranteed, because each component keeps track of event

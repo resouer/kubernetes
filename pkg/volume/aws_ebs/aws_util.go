@@ -62,8 +62,7 @@ func (util *AWSDiskUtil) DeleteVolume(d *awsElasticBlockStoreDeleter) error {
 // CreateVolume creates an AWS EBS volume.
 // Returns: volumeID, volumeSizeGB, labels, error
 func (util *AWSDiskUtil) CreateVolume(c *awsElasticBlockStoreProvisioner) (string, int, map[string]string, error) {
-    cloud, err := getCloudProvider(c.awsElasticBlockStore.plugin.host.GetCloudProvider())
->>>>>>> tags/v1.3.0
+	cloud, err := getCloudProvider(c.awsElasticBlockStore.plugin.host.GetCloudProvider())
 	if err != nil {
 		return "", 0, nil, err
 	}
@@ -83,8 +82,7 @@ func (util *AWSDiskUtil) CreateVolume(c *awsElasticBlockStoreProvisioner) (strin
 	volumeOptions := &aws.VolumeOptions{
 		CapacityGB: requestGB,
 		Tags:       tags,
-    PVCName:    c.options.PVCName,
->>>>>>> tags/v1.3.0
+		PVCName:    c.options.PVCName,
 	}
 
 	name, err := cloud.CreateDisk(volumeOptions)
@@ -93,14 +91,13 @@ func (util *AWSDiskUtil) CreateVolume(c *awsElasticBlockStoreProvisioner) (strin
 		return "", 0, nil, err
 	}
 	glog.V(2).Infof("Successfully created EBS Disk volume %s", name)
-    labels, err := cloud.GetVolumeLabels(name)
+	labels, err := cloud.GetVolumeLabels(name)
 	if err != nil {
 		// We don't really want to leak the volume here...
 		glog.Errorf("error building labels for new EBS volume %q: %v", name, err)
 	}
 
 	return name, int(requestGB), labels, nil
->>>>>>> tags/v1.3.0
 }
 
 // Returns the first path that exists, or empty string if none exist.

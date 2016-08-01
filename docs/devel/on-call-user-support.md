@@ -1,13 +1,9 @@
 <!-- BEGIN MUNGE: UNVERSIONED_WARNING -->
 
-<<<<<<< HEAD
-=======
-
-<!-- END MUNGE: UNVERSIONED_WARNING -->
+    <!-- END MUNGE: UNVERSIONED_WARNING -->
 
 ## Kubernetes "User Support" Rotation
->>>>>>> tags/v1.3.0
-
+    
 ### Traffic sources and responsibilities
 
 * [StackOverflow](http://stackoverflow.com/questions/tagged/kubernetes) and

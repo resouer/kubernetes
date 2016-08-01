@@ -42,14 +42,13 @@ import (
 
 // fakeVolumeHost is useful for testing volume plugins.
 type fakeVolumeHost struct {
-    rootDir     string
+	rootDir     string
 	kubeClient  clientset.Interface
 	pluginMgr   VolumePluginMgr
 	cloud       cloudprovider.Interface
 	mounter     mount.Interface
 	writer      io.Writer
 	rootContext string
->>>>>>> tags/v1.3.0
 }
 
 func NewFakeVolumeHost(rootDir string, kubeClient clientset.Interface, plugins []VolumePlugin, rootContext string) *fakeVolumeHost {
@@ -458,8 +457,7 @@ func (fr *fakeRecycler) GetPath() string {
 	return fr.path
 }
 
-    func NewFakeRecycler(pvName string, spec *Spec, host VolumeHost, config VolumeConfig) (Recycler, error) {
->>>>>>> tags/v1.3.0
+func NewFakeRecycler(pvName string, spec *Spec, host VolumeHost, config VolumeConfig) (Recycler, error) {
 	if spec.PersistentVolume == nil || spec.PersistentVolume.Spec.HostPath == nil {
 		return nil, fmt.Errorf("fakeRecycler only supports spec.PersistentVolume.Spec.HostPath")
 	}

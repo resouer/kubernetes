@@ -46,11 +46,7 @@ func autoConvert_v1alpha1_KubeProxyConfiguration_To_componentconfig_KubeProxyCon
 		return err
 	}
 	out.BindAddress = in.BindAddress
-<<<<<<< HEAD
-	out.DisableHyperInternalService = in.DisableHyperInternalService
-=======
 	out.ClusterCIDR = in.ClusterCIDR
->>>>>>> tags/v1.3.0
 	out.HealthzBindAddress = in.HealthzBindAddress
 	out.HealthzPort = in.HealthzPort
 	out.HostnameOverride = in.HostnameOverride
@@ -78,11 +74,7 @@ func autoConvert_componentconfig_KubeProxyConfiguration_To_v1alpha1_KubeProxyCon
 		return err
 	}
 	out.BindAddress = in.BindAddress
-<<<<<<< HEAD
-	out.DisableHyperInternalService = in.DisableHyperInternalService
-=======
 	out.ClusterCIDR = in.ClusterCIDR
->>>>>>> tags/v1.3.0
 	out.HealthzBindAddress = in.HealthzBindAddress
 	out.HealthzPort = in.HealthzPort
 	out.HostnameOverride = in.HostnameOverride

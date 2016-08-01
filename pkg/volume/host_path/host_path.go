@@ -176,8 +176,7 @@ func (hp *hostPath) GetPath() string {
 	return hp.path
 }
 
-    type hostPathMounter struct {
->>>>>>> tags/v1.3.0
+type hostPathMounter struct {
 	*hostPath
 	readOnly bool
 }

@@ -77,15 +77,11 @@ func newSecuredLocalListener(t *testing.T, certFile, keyFile, caFile string) net
 		KeyFile:  keyFile,
 		CAFile:   caFile,
 	}
-<<<<<<< HEAD
-	l, err = transport.NewKeepAliveListener(l, "https", tlsInfo)
-=======
 	tlscfg, err := tlsInfo.ServerConfig()
 	if err != nil {
 		t.Fatalf("unexpected serverConfig error: %v", err)
 	}
 	l, err = transport.NewKeepAliveListener(l, "https", tlscfg)
->>>>>>> tags/v1.3.0
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -98,11 +94,7 @@ func newHttpTransport(t *testing.T, certFile, keyFile, caFile string) etcd.Cance
 		KeyFile:  keyFile,
 		CAFile:   caFile,
 	}
-<<<<<<< HEAD
-	tr, err := transport.NewTransport(tlsInfo)
-=======
 	tr, err := transport.NewTransport(tlsInfo, time.Second)
->>>>>>> tags/v1.3.0
 	if err != nil {
 		t.Fatal(err)
 	}

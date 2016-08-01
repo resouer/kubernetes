@@ -326,16 +326,7 @@ function detect-security-groups {
 #   AWS_IMAGE
 function detect-image () {
 case "${OS_DISTRIBUTION}" in
-<<<<<<< HEAD
-  trusty|coreos)
-    detect-trusty-image
-    ;;
-  vivid)
-    detect-vivid-image
-    ;;
-=======
->>>>>>> tags/v1.3.0
-  wily)
+      wily)
     detect-wily-image
     ;;
   jessie)

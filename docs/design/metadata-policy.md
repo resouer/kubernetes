@@ -76,40 +76,24 @@ type PolicyAction struct {
 type MetadataPolicy struct {
 	unversioned.TypeMeta `json:",inline"`
 	// Standard object's metadata.
-<<<<<<< HEAD
-	// More info: http://releases.k8s.io/release-1.2/docs/devel/api-conventions.md#metadata
-	ObjectMeta `json:"metadata,omitempty"`
-
-	// Spec defines the metadata policy that should be enforced.
-	// http://releases.k8s.io/release-1.2/docs/devel/api-conventions.md#spec-and-status
-=======
-	// More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#metadata
+    // More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#metadata
 	ObjectMeta `json:"metadata,omitempty"`
 
 	// Spec defines the metadata policy that should be enforced.
 	// http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#spec-and-status
->>>>>>> tags/v1.3.0
-	Spec MetadataPolicySpec `json:"spec,omitempty"`
+    	Spec MetadataPolicySpec `json:"spec,omitempty"`
 }
 
 // MetadataPolicyList is a list of MetadataPolicy items.
 type MetadataPolicyList struct {
 	unversioned.TypeMeta `json:",inline"`
 	// Standard list metadata.
-<<<<<<< HEAD
-	// More info: http://releases.k8s.io/release-1.2/docs/devel/api-conventions.md#types-kinds
-	unversioned.ListMeta `json:"metadata,omitempty"`
-
-	// Items is a list of MetadataPolicy objects.
-	// More info: http://releases.k8s.io/release-1.2/docs/design/admission_control_resource_quota.md#admissioncontrol-plugin-resourcequota
-=======
-	// More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#types-kinds
+    // More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#types-kinds
 	unversioned.ListMeta `json:"metadata,omitempty"`
 
 	// Items is a list of MetadataPolicy objects.
 	// More info: http://releases.k8s.io/release-1.3/docs/design/admission_control_resource_quota.md#admissioncontrol-plugin-resourcequota
->>>>>>> tags/v1.3.0
-	Items []MetadataPolicy `json:"items"`
+    	Items []MetadataPolicy `json:"items"`
 }
 ```
 

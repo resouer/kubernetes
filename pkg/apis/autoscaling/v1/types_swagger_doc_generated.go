@@ -29,13 +29,8 @@ package v1
 // AUTO-GENERATED FUNCTIONS START HERE
 var map_CrossVersionObjectReference = map[string]string{
 	"":           "CrossVersionObjectReference contains enough information to let you identify the referred resource.",
-<<<<<<< HEAD
-	"kind":       "Kind of the referent; More info: http://releases.k8s.io/release-1.2/docs/devel/api-conventions.md#types-kinds\"",
-	"name":       "Name of the referent; More info: http://releases.k8s.io/release-1.2/docs/user-guide/identifiers.md#names",
-=======
 	"kind":       "Kind of the referent; More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#types-kinds\"",
 	"name":       "Name of the referent; More info: http://releases.k8s.io/release-1.3/docs/user-guide/identifiers.md#names",
->>>>>>> tags/v1.3.0
 	"apiVersion": "API version of the referent",
 }
 
@@ -45,13 +40,8 @@ func (CrossVersionObjectReference) SwaggerDoc() map[string]string {
 
 var map_HorizontalPodAutoscaler = map[string]string{
 	"":         "configuration of a horizontal pod autoscaler.",
-<<<<<<< HEAD
-	"metadata": "Standard object metadata. More info: http://releases.k8s.io/release-1.2/docs/devel/api-conventions.md#metadata",
-	"spec":     "behaviour of autoscaler. More info: http://releases.k8s.io/release-1.2/docs/devel/api-conventions.md#spec-and-status.",
-=======
 	"metadata": "Standard object metadata. More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#metadata",
 	"spec":     "behaviour of autoscaler. More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#spec-and-status.",
->>>>>>> tags/v1.3.0
 	"status":   "current information about the autoscaler.",
 }
 
@@ -96,15 +86,9 @@ func (HorizontalPodAutoscalerStatus) SwaggerDoc() map[string]string {
 
 var map_Scale = map[string]string{
 	"":         "Scale represents a scaling request for a resource.",
-<<<<<<< HEAD
-	"metadata": "Standard object metadata; More info: http://releases.k8s.io/release-1.2/docs/devel/api-conventions.md#metadata.",
-	"spec":     "defines the behavior of the scale. More info: http://releases.k8s.io/release-1.2/docs/devel/api-conventions.md#spec-and-status.",
-	"status":   "current status of the scale. More info: http://releases.k8s.io/release-1.2/docs/devel/api-conventions.md#spec-and-status. Read-only.",
-=======
 	"metadata": "Standard object metadata; More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#metadata.",
 	"spec":     "defines the behavior of the scale. More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#spec-and-status.",
 	"status":   "current status of the scale. More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#spec-and-status. Read-only.",
->>>>>>> tags/v1.3.0
 }
 
 func (Scale) SwaggerDoc() map[string]string {
@@ -123,11 +107,7 @@ func (ScaleSpec) SwaggerDoc() map[string]string {
 var map_ScaleStatus = map[string]string{
 	"":         "ScaleStatus represents the current status of a scale subresource.",
 	"replicas": "actual number of observed instances of the scaled object.",
-<<<<<<< HEAD
-	"selector": "label query over pods that should match the replicas count. This is same as the label selector but in the string format to avoid introspection by clients. The string will be in the same format as the query-param syntax. More info about label selectors: http://releases.k8s.io/release-1.2/docs/user-guide/labels.md#label-selectors",
-=======
 	"selector": "label query over pods that should match the replicas count. This is same as the label selector but in the string format to avoid introspection by clients. The string will be in the same format as the query-param syntax. More info about label selectors: http://releases.k8s.io/release-1.3/docs/user-guide/labels.md#label-selectors",
->>>>>>> tags/v1.3.0
 }
 
 func (ScaleStatus) SwaggerDoc() map[string]string {

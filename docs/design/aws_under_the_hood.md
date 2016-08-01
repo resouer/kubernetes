@@ -309,11 +309,7 @@ install Kubernetes.
 
 
 
-<<<<<<< HEAD
-
-=======
->>>>>>> tags/v1.3.0
-<!-- BEGIN MUNGE: IS_VERSIONED -->
+        <!-- BEGIN MUNGE: IS_VERSIONED -->
 <!-- TAG IS_VERSIONED -->
 <!-- END MUNGE: IS_VERSIONED -->
 

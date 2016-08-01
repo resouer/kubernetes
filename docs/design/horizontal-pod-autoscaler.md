@@ -15,12 +15,8 @@ is responsible for dynamically controlling the number of replicas of some
 collection (e.g. the pods of a ReplicationController) to meet some objective(s),
 for example a target per-pod CPU utilization.
 
-<<<<<<< HEAD
-This design supersedes [autoscaling.md](http://releases.k8s.io/release-1.2/docs/proposals/autoscaling.md).
-=======
-This design supersedes [autoscaling.md](http://releases.k8s.io/release-1.3/docs/proposals/autoscaling.md).
->>>>>>> tags/v1.3.0
-
+    This design supersedes [autoscaling.md](http://releases.k8s.io/release-1.3/docs/proposals/autoscaling.md).
+    
 ## Overview
 
 The resource usage of a serving application usually varies over time: sometimes
