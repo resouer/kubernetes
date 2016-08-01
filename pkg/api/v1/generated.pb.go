@@ -1,5 +1,8 @@
+<<<<<<< HEAD
 // +build proto
 
+=======
+>>>>>>> tags/v1.3.0
 /*
 Copyright 2016 The Kubernetes Authors All rights reserved.
 
@@ -29,6 +32,10 @@ limitations under the License.
 	It has these top-level messages:
 		AWSElasticBlockStoreVolumeSource
 		Affinity
+<<<<<<< HEAD
+=======
+		AttachedVolume
+>>>>>>> tags/v1.3.0
 		AzureFileVolumeSource
 		Binding
 		Capabilities
@@ -93,10 +100,13 @@ limitations under the License.
 		NamespaceList
 		NamespaceSpec
 		NamespaceStatus
+<<<<<<< HEAD
 		Network
 		NetworkList
 		NetworkSpec
 		NetworkStatus
+=======
+>>>>>>> tags/v1.3.0
 		Node
 		NodeAddress
 		NodeAffinity
@@ -113,6 +123,10 @@ limitations under the License.
 		ObjectFieldSelector
 		ObjectMeta
 		ObjectReference
+<<<<<<< HEAD
+=======
+		OwnerReference
+>>>>>>> tags/v1.3.0
 		PersistentVolume
 		PersistentVolumeClaim
 		PersistentVolumeClaimList
@@ -124,6 +138,12 @@ limitations under the License.
 		PersistentVolumeSpec
 		PersistentVolumeStatus
 		Pod
+<<<<<<< HEAD
+=======
+		PodAffinity
+		PodAffinityTerm
+		PodAntiAffinity
+>>>>>>> tags/v1.3.0
 		PodAttachOptions
 		PodCondition
 		PodExecOptions
@@ -137,6 +157,10 @@ limitations under the License.
 		PodTemplate
 		PodTemplateList
 		PodTemplateSpec
+<<<<<<< HEAD
+=======
+		Preconditions
+>>>>>>> tags/v1.3.0
 		PreferredSchedulingTerm
 		Probe
 		RBDVolumeSource
@@ -145,6 +169,10 @@ limitations under the License.
 		ReplicationControllerList
 		ReplicationControllerSpec
 		ReplicationControllerStatus
+<<<<<<< HEAD
+=======
+		ResourceFieldSelector
+>>>>>>> tags/v1.3.0
 		ResourceQuota
 		ResourceQuotaList
 		ResourceQuotaSpec
@@ -165,18 +193,33 @@ limitations under the License.
 		ServiceProxyOptions
 		ServiceSpec
 		ServiceStatus
+<<<<<<< HEAD
 		Subnet
 		TCPSocketAction
 		Volume
 		VolumeMount
 		VolumeSource
+=======
+		TCPSocketAction
+		Taint
+		Toleration
+		Volume
+		VolumeMount
+		VolumeSource
+		VsphereVirtualDiskVolumeSource
+		WeightedPodAffinityTerm
+>>>>>>> tags/v1.3.0
 */
 package v1
 
 import proto "github.com/gogo/protobuf/proto"
 import fmt "fmt"
 import math "math"
+<<<<<<< HEAD
 import _ "github.com/gogo/protobuf/gogoproto"
+=======
+
+>>>>>>> tags/v1.3.0
 import k8s_io_kubernetes_pkg_api_resource "k8s.io/kubernetes/pkg/api/resource"
 import k8s_io_kubernetes_pkg_api_unversioned "k8s.io/kubernetes/pkg/api/unversioned"
 import k8s_io_kubernetes_pkg_runtime "k8s.io/kubernetes/pkg/runtime"
@@ -198,6 +241,13 @@ func (m *Affinity) Reset()         { *m = Affinity{} }
 func (m *Affinity) String() string { return proto.CompactTextString(m) }
 func (*Affinity) ProtoMessage()    {}
 
+<<<<<<< HEAD
+=======
+func (m *AttachedVolume) Reset()         { *m = AttachedVolume{} }
+func (m *AttachedVolume) String() string { return proto.CompactTextString(m) }
+func (*AttachedVolume) ProtoMessage()    {}
+
+>>>>>>> tags/v1.3.0
 func (m *AzureFileVolumeSource) Reset()         { *m = AzureFileVolumeSource{} }
 func (m *AzureFileVolumeSource) String() string { return proto.CompactTextString(m) }
 func (*AzureFileVolumeSource) ProtoMessage()    {}
@@ -454,6 +504,7 @@ func (m *NamespaceStatus) Reset()         { *m = NamespaceStatus{} }
 func (m *NamespaceStatus) String() string { return proto.CompactTextString(m) }
 func (*NamespaceStatus) ProtoMessage()    {}
 
+<<<<<<< HEAD
 func (m *Network) Reset()         { *m = Network{} }
 func (m *Network) String() string { return proto.CompactTextString(m) }
 func (*Network) ProtoMessage()    {}
@@ -470,6 +521,8 @@ func (m *NetworkStatus) Reset()         { *m = NetworkStatus{} }
 func (m *NetworkStatus) String() string { return proto.CompactTextString(m) }
 func (*NetworkStatus) ProtoMessage()    {}
 
+=======
+>>>>>>> tags/v1.3.0
 func (m *Node) Reset()         { *m = Node{} }
 func (m *Node) String() string { return proto.CompactTextString(m) }
 func (*Node) ProtoMessage()    {}
@@ -534,6 +587,13 @@ func (m *ObjectReference) Reset()         { *m = ObjectReference{} }
 func (m *ObjectReference) String() string { return proto.CompactTextString(m) }
 func (*ObjectReference) ProtoMessage()    {}
 
+<<<<<<< HEAD
+=======
+func (m *OwnerReference) Reset()         { *m = OwnerReference{} }
+func (m *OwnerReference) String() string { return proto.CompactTextString(m) }
+func (*OwnerReference) ProtoMessage()    {}
+
+>>>>>>> tags/v1.3.0
 func (m *PersistentVolume) Reset()         { *m = PersistentVolume{} }
 func (m *PersistentVolume) String() string { return proto.CompactTextString(m) }
 func (*PersistentVolume) ProtoMessage()    {}
@@ -578,6 +638,21 @@ func (m *Pod) Reset()         { *m = Pod{} }
 func (m *Pod) String() string { return proto.CompactTextString(m) }
 func (*Pod) ProtoMessage()    {}
 
+<<<<<<< HEAD
+=======
+func (m *PodAffinity) Reset()         { *m = PodAffinity{} }
+func (m *PodAffinity) String() string { return proto.CompactTextString(m) }
+func (*PodAffinity) ProtoMessage()    {}
+
+func (m *PodAffinityTerm) Reset()         { *m = PodAffinityTerm{} }
+func (m *PodAffinityTerm) String() string { return proto.CompactTextString(m) }
+func (*PodAffinityTerm) ProtoMessage()    {}
+
+func (m *PodAntiAffinity) Reset()         { *m = PodAntiAffinity{} }
+func (m *PodAntiAffinity) String() string { return proto.CompactTextString(m) }
+func (*PodAntiAffinity) ProtoMessage()    {}
+
+>>>>>>> tags/v1.3.0
 func (m *PodAttachOptions) Reset()         { *m = PodAttachOptions{} }
 func (m *PodAttachOptions) String() string { return proto.CompactTextString(m) }
 func (*PodAttachOptions) ProtoMessage()    {}
@@ -630,6 +705,13 @@ func (m *PodTemplateSpec) Reset()         { *m = PodTemplateSpec{} }
 func (m *PodTemplateSpec) String() string { return proto.CompactTextString(m) }
 func (*PodTemplateSpec) ProtoMessage()    {}
 
+<<<<<<< HEAD
+=======
+func (m *Preconditions) Reset()         { *m = Preconditions{} }
+func (m *Preconditions) String() string { return proto.CompactTextString(m) }
+func (*Preconditions) ProtoMessage()    {}
+
+>>>>>>> tags/v1.3.0
 func (m *PreferredSchedulingTerm) Reset()         { *m = PreferredSchedulingTerm{} }
 func (m *PreferredSchedulingTerm) String() string { return proto.CompactTextString(m) }
 func (*PreferredSchedulingTerm) ProtoMessage()    {}
@@ -662,6 +744,13 @@ func (m *ReplicationControllerStatus) Reset()         { *m = ReplicationControll
 func (m *ReplicationControllerStatus) String() string { return proto.CompactTextString(m) }
 func (*ReplicationControllerStatus) ProtoMessage()    {}
 
+<<<<<<< HEAD
+=======
+func (m *ResourceFieldSelector) Reset()         { *m = ResourceFieldSelector{} }
+func (m *ResourceFieldSelector) String() string { return proto.CompactTextString(m) }
+func (*ResourceFieldSelector) ProtoMessage()    {}
+
+>>>>>>> tags/v1.3.0
 func (m *ResourceQuota) Reset()         { *m = ResourceQuota{} }
 func (m *ResourceQuota) String() string { return proto.CompactTextString(m) }
 func (*ResourceQuota) ProtoMessage()    {}
@@ -742,14 +831,28 @@ func (m *ServiceStatus) Reset()         { *m = ServiceStatus{} }
 func (m *ServiceStatus) String() string { return proto.CompactTextString(m) }
 func (*ServiceStatus) ProtoMessage()    {}
 
+<<<<<<< HEAD
 func (m *Subnet) Reset()         { *m = Subnet{} }
 func (m *Subnet) String() string { return proto.CompactTextString(m) }
 func (*Subnet) ProtoMessage()    {}
 
+=======
+>>>>>>> tags/v1.3.0
 func (m *TCPSocketAction) Reset()         { *m = TCPSocketAction{} }
 func (m *TCPSocketAction) String() string { return proto.CompactTextString(m) }
 func (*TCPSocketAction) ProtoMessage()    {}
 
+<<<<<<< HEAD
+=======
+func (m *Taint) Reset()         { *m = Taint{} }
+func (m *Taint) String() string { return proto.CompactTextString(m) }
+func (*Taint) ProtoMessage()    {}
+
+func (m *Toleration) Reset()         { *m = Toleration{} }
+func (m *Toleration) String() string { return proto.CompactTextString(m) }
+func (*Toleration) ProtoMessage()    {}
+
+>>>>>>> tags/v1.3.0
 func (m *Volume) Reset()         { *m = Volume{} }
 func (m *Volume) String() string { return proto.CompactTextString(m) }
 func (*Volume) ProtoMessage()    {}
@@ -762,9 +865,24 @@ func (m *VolumeSource) Reset()         { *m = VolumeSource{} }
 func (m *VolumeSource) String() string { return proto.CompactTextString(m) }
 func (*VolumeSource) ProtoMessage()    {}
 
+<<<<<<< HEAD
 func init() {
 	proto.RegisterType((*AWSElasticBlockStoreVolumeSource)(nil), "k8s.io.kubernetes.pkg.api.v1.AWSElasticBlockStoreVolumeSource")
 	proto.RegisterType((*Affinity)(nil), "k8s.io.kubernetes.pkg.api.v1.Affinity")
+=======
+func (m *VsphereVirtualDiskVolumeSource) Reset()         { *m = VsphereVirtualDiskVolumeSource{} }
+func (m *VsphereVirtualDiskVolumeSource) String() string { return proto.CompactTextString(m) }
+func (*VsphereVirtualDiskVolumeSource) ProtoMessage()    {}
+
+func (m *WeightedPodAffinityTerm) Reset()         { *m = WeightedPodAffinityTerm{} }
+func (m *WeightedPodAffinityTerm) String() string { return proto.CompactTextString(m) }
+func (*WeightedPodAffinityTerm) ProtoMessage()    {}
+
+func init() {
+	proto.RegisterType((*AWSElasticBlockStoreVolumeSource)(nil), "k8s.io.kubernetes.pkg.api.v1.AWSElasticBlockStoreVolumeSource")
+	proto.RegisterType((*Affinity)(nil), "k8s.io.kubernetes.pkg.api.v1.Affinity")
+	proto.RegisterType((*AttachedVolume)(nil), "k8s.io.kubernetes.pkg.api.v1.AttachedVolume")
+>>>>>>> tags/v1.3.0
 	proto.RegisterType((*AzureFileVolumeSource)(nil), "k8s.io.kubernetes.pkg.api.v1.AzureFileVolumeSource")
 	proto.RegisterType((*Binding)(nil), "k8s.io.kubernetes.pkg.api.v1.Binding")
 	proto.RegisterType((*Capabilities)(nil), "k8s.io.kubernetes.pkg.api.v1.Capabilities")
@@ -829,10 +947,13 @@ func init() {
 	proto.RegisterType((*NamespaceList)(nil), "k8s.io.kubernetes.pkg.api.v1.NamespaceList")
 	proto.RegisterType((*NamespaceSpec)(nil), "k8s.io.kubernetes.pkg.api.v1.NamespaceSpec")
 	proto.RegisterType((*NamespaceStatus)(nil), "k8s.io.kubernetes.pkg.api.v1.NamespaceStatus")
+<<<<<<< HEAD
 	proto.RegisterType((*Network)(nil), "k8s.io.kubernetes.pkg.api.v1.Network")
 	proto.RegisterType((*NetworkList)(nil), "k8s.io.kubernetes.pkg.api.v1.NetworkList")
 	proto.RegisterType((*NetworkSpec)(nil), "k8s.io.kubernetes.pkg.api.v1.NetworkSpec")
 	proto.RegisterType((*NetworkStatus)(nil), "k8s.io.kubernetes.pkg.api.v1.NetworkStatus")
+=======
+>>>>>>> tags/v1.3.0
 	proto.RegisterType((*Node)(nil), "k8s.io.kubernetes.pkg.api.v1.Node")
 	proto.RegisterType((*NodeAddress)(nil), "k8s.io.kubernetes.pkg.api.v1.NodeAddress")
 	proto.RegisterType((*NodeAffinity)(nil), "k8s.io.kubernetes.pkg.api.v1.NodeAffinity")
@@ -849,6 +970,10 @@ func init() {
 	proto.RegisterType((*ObjectFieldSelector)(nil), "k8s.io.kubernetes.pkg.api.v1.ObjectFieldSelector")
 	proto.RegisterType((*ObjectMeta)(nil), "k8s.io.kubernetes.pkg.api.v1.ObjectMeta")
 	proto.RegisterType((*ObjectReference)(nil), "k8s.io.kubernetes.pkg.api.v1.ObjectReference")
+<<<<<<< HEAD
+=======
+	proto.RegisterType((*OwnerReference)(nil), "k8s.io.kubernetes.pkg.api.v1.OwnerReference")
+>>>>>>> tags/v1.3.0
 	proto.RegisterType((*PersistentVolume)(nil), "k8s.io.kubernetes.pkg.api.v1.PersistentVolume")
 	proto.RegisterType((*PersistentVolumeClaim)(nil), "k8s.io.kubernetes.pkg.api.v1.PersistentVolumeClaim")
 	proto.RegisterType((*PersistentVolumeClaimList)(nil), "k8s.io.kubernetes.pkg.api.v1.PersistentVolumeClaimList")
@@ -860,6 +985,12 @@ func init() {
 	proto.RegisterType((*PersistentVolumeSpec)(nil), "k8s.io.kubernetes.pkg.api.v1.PersistentVolumeSpec")
 	proto.RegisterType((*PersistentVolumeStatus)(nil), "k8s.io.kubernetes.pkg.api.v1.PersistentVolumeStatus")
 	proto.RegisterType((*Pod)(nil), "k8s.io.kubernetes.pkg.api.v1.Pod")
+<<<<<<< HEAD
+=======
+	proto.RegisterType((*PodAffinity)(nil), "k8s.io.kubernetes.pkg.api.v1.PodAffinity")
+	proto.RegisterType((*PodAffinityTerm)(nil), "k8s.io.kubernetes.pkg.api.v1.PodAffinityTerm")
+	proto.RegisterType((*PodAntiAffinity)(nil), "k8s.io.kubernetes.pkg.api.v1.PodAntiAffinity")
+>>>>>>> tags/v1.3.0
 	proto.RegisterType((*PodAttachOptions)(nil), "k8s.io.kubernetes.pkg.api.v1.PodAttachOptions")
 	proto.RegisterType((*PodCondition)(nil), "k8s.io.kubernetes.pkg.api.v1.PodCondition")
 	proto.RegisterType((*PodExecOptions)(nil), "k8s.io.kubernetes.pkg.api.v1.PodExecOptions")
@@ -873,6 +1004,10 @@ func init() {
 	proto.RegisterType((*PodTemplate)(nil), "k8s.io.kubernetes.pkg.api.v1.PodTemplate")
 	proto.RegisterType((*PodTemplateList)(nil), "k8s.io.kubernetes.pkg.api.v1.PodTemplateList")
 	proto.RegisterType((*PodTemplateSpec)(nil), "k8s.io.kubernetes.pkg.api.v1.PodTemplateSpec")
+<<<<<<< HEAD
+=======
+	proto.RegisterType((*Preconditions)(nil), "k8s.io.kubernetes.pkg.api.v1.Preconditions")
+>>>>>>> tags/v1.3.0
 	proto.RegisterType((*PreferredSchedulingTerm)(nil), "k8s.io.kubernetes.pkg.api.v1.PreferredSchedulingTerm")
 	proto.RegisterType((*Probe)(nil), "k8s.io.kubernetes.pkg.api.v1.Probe")
 	proto.RegisterType((*RBDVolumeSource)(nil), "k8s.io.kubernetes.pkg.api.v1.RBDVolumeSource")
@@ -881,6 +1016,10 @@ func init() {
 	proto.RegisterType((*ReplicationControllerList)(nil), "k8s.io.kubernetes.pkg.api.v1.ReplicationControllerList")
 	proto.RegisterType((*ReplicationControllerSpec)(nil), "k8s.io.kubernetes.pkg.api.v1.ReplicationControllerSpec")
 	proto.RegisterType((*ReplicationControllerStatus)(nil), "k8s.io.kubernetes.pkg.api.v1.ReplicationControllerStatus")
+<<<<<<< HEAD
+=======
+	proto.RegisterType((*ResourceFieldSelector)(nil), "k8s.io.kubernetes.pkg.api.v1.ResourceFieldSelector")
+>>>>>>> tags/v1.3.0
 	proto.RegisterType((*ResourceQuota)(nil), "k8s.io.kubernetes.pkg.api.v1.ResourceQuota")
 	proto.RegisterType((*ResourceQuotaList)(nil), "k8s.io.kubernetes.pkg.api.v1.ResourceQuotaList")
 	proto.RegisterType((*ResourceQuotaSpec)(nil), "k8s.io.kubernetes.pkg.api.v1.ResourceQuotaSpec")
@@ -901,11 +1040,22 @@ func init() {
 	proto.RegisterType((*ServiceProxyOptions)(nil), "k8s.io.kubernetes.pkg.api.v1.ServiceProxyOptions")
 	proto.RegisterType((*ServiceSpec)(nil), "k8s.io.kubernetes.pkg.api.v1.ServiceSpec")
 	proto.RegisterType((*ServiceStatus)(nil), "k8s.io.kubernetes.pkg.api.v1.ServiceStatus")
+<<<<<<< HEAD
 	proto.RegisterType((*Subnet)(nil), "k8s.io.kubernetes.pkg.api.v1.Subnet")
 	proto.RegisterType((*TCPSocketAction)(nil), "k8s.io.kubernetes.pkg.api.v1.TCPSocketAction")
 	proto.RegisterType((*Volume)(nil), "k8s.io.kubernetes.pkg.api.v1.Volume")
 	proto.RegisterType((*VolumeMount)(nil), "k8s.io.kubernetes.pkg.api.v1.VolumeMount")
 	proto.RegisterType((*VolumeSource)(nil), "k8s.io.kubernetes.pkg.api.v1.VolumeSource")
+=======
+	proto.RegisterType((*TCPSocketAction)(nil), "k8s.io.kubernetes.pkg.api.v1.TCPSocketAction")
+	proto.RegisterType((*Taint)(nil), "k8s.io.kubernetes.pkg.api.v1.Taint")
+	proto.RegisterType((*Toleration)(nil), "k8s.io.kubernetes.pkg.api.v1.Toleration")
+	proto.RegisterType((*Volume)(nil), "k8s.io.kubernetes.pkg.api.v1.Volume")
+	proto.RegisterType((*VolumeMount)(nil), "k8s.io.kubernetes.pkg.api.v1.VolumeMount")
+	proto.RegisterType((*VolumeSource)(nil), "k8s.io.kubernetes.pkg.api.v1.VolumeSource")
+	proto.RegisterType((*VsphereVirtualDiskVolumeSource)(nil), "k8s.io.kubernetes.pkg.api.v1.VsphereVirtualDiskVolumeSource")
+	proto.RegisterType((*WeightedPodAffinityTerm)(nil), "k8s.io.kubernetes.pkg.api.v1.WeightedPodAffinityTerm")
+>>>>>>> tags/v1.3.0
 }
 func (m *AWSElasticBlockStoreVolumeSource) Marshal() (data []byte, err error) {
 	size := m.Size()
@@ -969,6 +1119,55 @@ func (m *Affinity) MarshalTo(data []byte) (int, error) {
 		}
 		i += n1
 	}
+<<<<<<< HEAD
+=======
+	if m.PodAffinity != nil {
+		data[i] = 0x12
+		i++
+		i = encodeVarintGenerated(data, i, uint64(m.PodAffinity.Size()))
+		n2, err := m.PodAffinity.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n2
+	}
+	if m.PodAntiAffinity != nil {
+		data[i] = 0x1a
+		i++
+		i = encodeVarintGenerated(data, i, uint64(m.PodAntiAffinity.Size()))
+		n3, err := m.PodAntiAffinity.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n3
+	}
+	return i, nil
+}
+
+func (m *AttachedVolume) Marshal() (data []byte, err error) {
+	size := m.Size()
+	data = make([]byte, size)
+	n, err := m.MarshalTo(data)
+	if err != nil {
+		return nil, err
+	}
+	return data[:n], nil
+}
+
+func (m *AttachedVolume) MarshalTo(data []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	data[i] = 0xa
+	i++
+	i = encodeVarintGenerated(data, i, uint64(len(m.Name)))
+	i += copy(data[i:], m.Name)
+	data[i] = 0x12
+	i++
+	i = encodeVarintGenerated(data, i, uint64(len(m.DevicePath)))
+	i += copy(data[i:], m.DevicePath)
+>>>>>>> tags/v1.3.0
 	return i, nil
 }
 
@@ -1024,6 +1223,7 @@ func (m *Binding) MarshalTo(data []byte) (int, error) {
 	data[i] = 0xa
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.ObjectMeta.Size()))
+<<<<<<< HEAD
 	n2, err := m.ObjectMeta.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
@@ -1037,6 +1237,21 @@ func (m *Binding) MarshalTo(data []byte) (int, error) {
 		return 0, err
 	}
 	i += n3
+=======
+	n4, err := m.ObjectMeta.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n4
+	data[i] = 0x12
+	i++
+	i = encodeVarintGenerated(data, i, uint64(m.Target.Size()))
+	n5, err := m.Target.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n5
+>>>>>>> tags/v1.3.0
 	return i, nil
 }
 
@@ -1134,11 +1349,19 @@ func (m *CephFSVolumeSource) MarshalTo(data []byte) (int, error) {
 		data[i] = 0x2a
 		i++
 		i = encodeVarintGenerated(data, i, uint64(m.SecretRef.Size()))
+<<<<<<< HEAD
 		n4, err := m.SecretRef.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
 		i += n4
+=======
+		n6, err := m.SecretRef.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n6
+>>>>>>> tags/v1.3.0
 	}
 	data[i] = 0x30
 	i++
@@ -1182,6 +1405,7 @@ func (m *CinderVolumeSource) MarshalTo(data []byte) (int, error) {
 		data[i] = 0
 	}
 	i++
+<<<<<<< HEAD
 	data[i] = 0x20
 	i++
 	if m.WithOpenStackCP {
@@ -1190,6 +1414,8 @@ func (m *CinderVolumeSource) MarshalTo(data []byte) (int, error) {
 		data[i] = 0
 	}
 	i++
+=======
+>>>>>>> tags/v1.3.0
 	return i, nil
 }
 
@@ -1245,11 +1471,19 @@ func (m *ComponentStatus) MarshalTo(data []byte) (int, error) {
 	data[i] = 0xa
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.ObjectMeta.Size()))
+<<<<<<< HEAD
 	n5, err := m.ObjectMeta.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
 	i += n5
+=======
+	n7, err := m.ObjectMeta.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n7
+>>>>>>> tags/v1.3.0
 	if len(m.Conditions) > 0 {
 		for _, msg := range m.Conditions {
 			data[i] = 0x12
@@ -1283,11 +1517,19 @@ func (m *ComponentStatusList) MarshalTo(data []byte) (int, error) {
 	data[i] = 0xa
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.ListMeta.Size()))
+<<<<<<< HEAD
 	n6, err := m.ListMeta.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
 	i += n6
+=======
+	n8, err := m.ListMeta.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n8
+>>>>>>> tags/v1.3.0
 	if len(m.Items) > 0 {
 		for _, msg := range m.Items {
 			data[i] = 0x12
@@ -1321,11 +1563,19 @@ func (m *ConfigMap) MarshalTo(data []byte) (int, error) {
 	data[i] = 0xa
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.ObjectMeta.Size()))
+<<<<<<< HEAD
 	n7, err := m.ObjectMeta.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
 	i += n7
+=======
+	n9, err := m.ObjectMeta.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n9
+>>>>>>> tags/v1.3.0
 	if len(m.Data) > 0 {
 		for k := range m.Data {
 			data[i] = 0x12
@@ -1364,11 +1614,19 @@ func (m *ConfigMapKeySelector) MarshalTo(data []byte) (int, error) {
 	data[i] = 0xa
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.LocalObjectReference.Size()))
+<<<<<<< HEAD
 	n8, err := m.LocalObjectReference.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
 	i += n8
+=======
+	n10, err := m.LocalObjectReference.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n10
+>>>>>>> tags/v1.3.0
 	data[i] = 0x12
 	i++
 	i = encodeVarintGenerated(data, i, uint64(len(m.Key)))
@@ -1394,11 +1652,19 @@ func (m *ConfigMapList) MarshalTo(data []byte) (int, error) {
 	data[i] = 0xa
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.ListMeta.Size()))
+<<<<<<< HEAD
 	n9, err := m.ListMeta.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
 	i += n9
+=======
+	n11, err := m.ListMeta.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n11
+>>>>>>> tags/v1.3.0
 	if len(m.Items) > 0 {
 		for _, msg := range m.Items {
 			data[i] = 0x12
@@ -1432,11 +1698,19 @@ func (m *ConfigMapVolumeSource) MarshalTo(data []byte) (int, error) {
 	data[i] = 0xa
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.LocalObjectReference.Size()))
+<<<<<<< HEAD
 	n10, err := m.LocalObjectReference.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
 	i += n10
+=======
+	n12, err := m.LocalObjectReference.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n12
+>>>>>>> tags/v1.3.0
 	if len(m.Items) > 0 {
 		for _, msg := range m.Items {
 			data[i] = 0x12
@@ -1536,11 +1810,19 @@ func (m *Container) MarshalTo(data []byte) (int, error) {
 	data[i] = 0x42
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.Resources.Size()))
+<<<<<<< HEAD
 	n11, err := m.Resources.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
 	i += n11
+=======
+	n13, err := m.Resources.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n13
+>>>>>>> tags/v1.3.0
 	if len(m.VolumeMounts) > 0 {
 		for _, msg := range m.VolumeMounts {
 			data[i] = 0x4a
@@ -1557,31 +1839,55 @@ func (m *Container) MarshalTo(data []byte) (int, error) {
 		data[i] = 0x52
 		i++
 		i = encodeVarintGenerated(data, i, uint64(m.LivenessProbe.Size()))
+<<<<<<< HEAD
 		n12, err := m.LivenessProbe.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
 		i += n12
+=======
+		n14, err := m.LivenessProbe.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n14
+>>>>>>> tags/v1.3.0
 	}
 	if m.ReadinessProbe != nil {
 		data[i] = 0x5a
 		i++
 		i = encodeVarintGenerated(data, i, uint64(m.ReadinessProbe.Size()))
+<<<<<<< HEAD
 		n13, err := m.ReadinessProbe.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
 		i += n13
+=======
+		n15, err := m.ReadinessProbe.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n15
+>>>>>>> tags/v1.3.0
 	}
 	if m.Lifecycle != nil {
 		data[i] = 0x62
 		i++
 		i = encodeVarintGenerated(data, i, uint64(m.Lifecycle.Size()))
+<<<<<<< HEAD
 		n14, err := m.Lifecycle.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
 		i += n14
+=======
+		n16, err := m.Lifecycle.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n16
+>>>>>>> tags/v1.3.0
 	}
 	data[i] = 0x6a
 	i++
@@ -1595,11 +1901,19 @@ func (m *Container) MarshalTo(data []byte) (int, error) {
 		data[i] = 0x7a
 		i++
 		i = encodeVarintGenerated(data, i, uint64(m.SecurityContext.Size()))
+<<<<<<< HEAD
 		n15, err := m.SecurityContext.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
 		i += n15
+=======
+		n17, err := m.SecurityContext.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n17
+>>>>>>> tags/v1.3.0
 	}
 	data[i] = 0x80
 	i++
@@ -1725,31 +2039,55 @@ func (m *ContainerState) MarshalTo(data []byte) (int, error) {
 		data[i] = 0xa
 		i++
 		i = encodeVarintGenerated(data, i, uint64(m.Waiting.Size()))
+<<<<<<< HEAD
 		n16, err := m.Waiting.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
 		i += n16
+=======
+		n18, err := m.Waiting.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n18
+>>>>>>> tags/v1.3.0
 	}
 	if m.Running != nil {
 		data[i] = 0x12
 		i++
 		i = encodeVarintGenerated(data, i, uint64(m.Running.Size()))
+<<<<<<< HEAD
 		n17, err := m.Running.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
 		i += n17
+=======
+		n19, err := m.Running.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n19
+>>>>>>> tags/v1.3.0
 	}
 	if m.Terminated != nil {
 		data[i] = 0x1a
 		i++
 		i = encodeVarintGenerated(data, i, uint64(m.Terminated.Size()))
+<<<<<<< HEAD
 		n18, err := m.Terminated.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
 		i += n18
+=======
+		n20, err := m.Terminated.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n20
+>>>>>>> tags/v1.3.0
 	}
 	return i, nil
 }
@@ -1772,11 +2110,19 @@ func (m *ContainerStateRunning) MarshalTo(data []byte) (int, error) {
 	data[i] = 0xa
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.StartedAt.Size()))
+<<<<<<< HEAD
 	n19, err := m.StartedAt.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
 	i += n19
+=======
+	n21, err := m.StartedAt.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n21
+>>>>>>> tags/v1.3.0
 	return i, nil
 }
 
@@ -1812,6 +2158,7 @@ func (m *ContainerStateTerminated) MarshalTo(data []byte) (int, error) {
 	data[i] = 0x2a
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.StartedAt.Size()))
+<<<<<<< HEAD
 	n20, err := m.StartedAt.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
@@ -1825,6 +2172,21 @@ func (m *ContainerStateTerminated) MarshalTo(data []byte) (int, error) {
 		return 0, err
 	}
 	i += n21
+=======
+	n22, err := m.StartedAt.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n22
+	data[i] = 0x32
+	i++
+	i = encodeVarintGenerated(data, i, uint64(m.FinishedAt.Size()))
+	n23, err := m.FinishedAt.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n23
+>>>>>>> tags/v1.3.0
 	data[i] = 0x3a
 	i++
 	i = encodeVarintGenerated(data, i, uint64(len(m.ContainerID)))
@@ -1880,6 +2242,7 @@ func (m *ContainerStatus) MarshalTo(data []byte) (int, error) {
 	data[i] = 0x12
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.State.Size()))
+<<<<<<< HEAD
 	n22, err := m.State.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
@@ -1893,6 +2256,21 @@ func (m *ContainerStatus) MarshalTo(data []byte) (int, error) {
 		return 0, err
 	}
 	i += n23
+=======
+	n24, err := m.State.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n24
+	data[i] = 0x1a
+	i++
+	i = encodeVarintGenerated(data, i, uint64(m.LastTerminationState.Size()))
+	n25, err := m.LastTerminationState.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n25
+>>>>>>> tags/v1.3.0
 	data[i] = 0x20
 	i++
 	if m.Ready {
@@ -1960,6 +2338,29 @@ func (m *DeleteOptions) MarshalTo(data []byte) (int, error) {
 		i++
 		i = encodeVarintGenerated(data, i, uint64(*m.GracePeriodSeconds))
 	}
+<<<<<<< HEAD
+=======
+	if m.Preconditions != nil {
+		data[i] = 0x12
+		i++
+		i = encodeVarintGenerated(data, i, uint64(m.Preconditions.Size()))
+		n26, err := m.Preconditions.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n26
+	}
+	if m.OrphanDependents != nil {
+		data[i] = 0x18
+		i++
+		if *m.OrphanDependents {
+			data[i] = 1
+		} else {
+			data[i] = 0
+		}
+		i++
+	}
+>>>>>>> tags/v1.3.0
 	return i, nil
 }
 
@@ -1982,6 +2383,7 @@ func (m *DownwardAPIVolumeFile) MarshalTo(data []byte) (int, error) {
 	i++
 	i = encodeVarintGenerated(data, i, uint64(len(m.Path)))
 	i += copy(data[i:], m.Path)
+<<<<<<< HEAD
 	data[i] = 0x12
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.FieldRef.Size()))
@@ -1990,6 +2392,28 @@ func (m *DownwardAPIVolumeFile) MarshalTo(data []byte) (int, error) {
 		return 0, err
 	}
 	i += n24
+=======
+	if m.FieldRef != nil {
+		data[i] = 0x12
+		i++
+		i = encodeVarintGenerated(data, i, uint64(m.FieldRef.Size()))
+		n27, err := m.FieldRef.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n27
+	}
+	if m.ResourceFieldRef != nil {
+		data[i] = 0x1a
+		i++
+		i = encodeVarintGenerated(data, i, uint64(m.ResourceFieldRef.Size()))
+		n28, err := m.ResourceFieldRef.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n28
+	}
+>>>>>>> tags/v1.3.0
 	return i, nil
 }
 
@@ -2068,12 +2492,25 @@ func (m *EndpointAddress) MarshalTo(data []byte) (int, error) {
 		data[i] = 0x12
 		i++
 		i = encodeVarintGenerated(data, i, uint64(m.TargetRef.Size()))
+<<<<<<< HEAD
 		n25, err := m.TargetRef.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
 		i += n25
 	}
+=======
+		n29, err := m.TargetRef.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n29
+	}
+	data[i] = 0x1a
+	i++
+	i = encodeVarintGenerated(data, i, uint64(len(m.Hostname)))
+	i += copy(data[i:], m.Hostname)
+>>>>>>> tags/v1.3.0
 	return i, nil
 }
 
@@ -2178,11 +2615,19 @@ func (m *Endpoints) MarshalTo(data []byte) (int, error) {
 	data[i] = 0xa
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.ObjectMeta.Size()))
+<<<<<<< HEAD
 	n26, err := m.ObjectMeta.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
 	i += n26
+=======
+	n30, err := m.ObjectMeta.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n30
+>>>>>>> tags/v1.3.0
 	if len(m.Subsets) > 0 {
 		for _, msg := range m.Subsets {
 			data[i] = 0x12
@@ -2216,11 +2661,19 @@ func (m *EndpointsList) MarshalTo(data []byte) (int, error) {
 	data[i] = 0xa
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.ListMeta.Size()))
+<<<<<<< HEAD
 	n27, err := m.ListMeta.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
 	i += n27
+=======
+	n31, err := m.ListMeta.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n31
+>>>>>>> tags/v1.3.0
 	if len(m.Items) > 0 {
 		for _, msg := range m.Items {
 			data[i] = 0x12
@@ -2263,11 +2716,19 @@ func (m *EnvVar) MarshalTo(data []byte) (int, error) {
 		data[i] = 0x1a
 		i++
 		i = encodeVarintGenerated(data, i, uint64(m.ValueFrom.Size()))
+<<<<<<< HEAD
 		n28, err := m.ValueFrom.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
 		i += n28
+=======
+		n32, err := m.ValueFrom.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n32
+>>>>>>> tags/v1.3.0
 	}
 	return i, nil
 }
@@ -2291,6 +2752,7 @@ func (m *EnvVarSource) MarshalTo(data []byte) (int, error) {
 		data[i] = 0xa
 		i++
 		i = encodeVarintGenerated(data, i, uint64(m.FieldRef.Size()))
+<<<<<<< HEAD
 		n29, err := m.FieldRef.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
@@ -2316,6 +2778,43 @@ func (m *EnvVarSource) MarshalTo(data []byte) (int, error) {
 			return 0, err
 		}
 		i += n31
+=======
+		n33, err := m.FieldRef.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n33
+	}
+	if m.ResourceFieldRef != nil {
+		data[i] = 0x12
+		i++
+		i = encodeVarintGenerated(data, i, uint64(m.ResourceFieldRef.Size()))
+		n34, err := m.ResourceFieldRef.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n34
+	}
+	if m.ConfigMapKeyRef != nil {
+		data[i] = 0x1a
+		i++
+		i = encodeVarintGenerated(data, i, uint64(m.ConfigMapKeyRef.Size()))
+		n35, err := m.ConfigMapKeyRef.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n35
+	}
+	if m.SecretKeyRef != nil {
+		data[i] = 0x22
+		i++
+		i = encodeVarintGenerated(data, i, uint64(m.SecretKeyRef.Size()))
+		n36, err := m.SecretKeyRef.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n36
+>>>>>>> tags/v1.3.0
 	}
 	return i, nil
 }
@@ -2338,6 +2837,7 @@ func (m *Event) MarshalTo(data []byte) (int, error) {
 	data[i] = 0xa
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.ObjectMeta.Size()))
+<<<<<<< HEAD
 	n32, err := m.ObjectMeta.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
@@ -2351,6 +2851,21 @@ func (m *Event) MarshalTo(data []byte) (int, error) {
 		return 0, err
 	}
 	i += n33
+=======
+	n37, err := m.ObjectMeta.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n37
+	data[i] = 0x12
+	i++
+	i = encodeVarintGenerated(data, i, uint64(m.InvolvedObject.Size()))
+	n38, err := m.InvolvedObject.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n38
+>>>>>>> tags/v1.3.0
 	data[i] = 0x1a
 	i++
 	i = encodeVarintGenerated(data, i, uint64(len(m.Reason)))
@@ -2362,6 +2877,7 @@ func (m *Event) MarshalTo(data []byte) (int, error) {
 	data[i] = 0x2a
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.Source.Size()))
+<<<<<<< HEAD
 	n34, err := m.Source.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
@@ -2383,6 +2899,29 @@ func (m *Event) MarshalTo(data []byte) (int, error) {
 		return 0, err
 	}
 	i += n36
+=======
+	n39, err := m.Source.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n39
+	data[i] = 0x32
+	i++
+	i = encodeVarintGenerated(data, i, uint64(m.FirstTimestamp.Size()))
+	n40, err := m.FirstTimestamp.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n40
+	data[i] = 0x3a
+	i++
+	i = encodeVarintGenerated(data, i, uint64(m.LastTimestamp.Size()))
+	n41, err := m.LastTimestamp.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n41
+>>>>>>> tags/v1.3.0
 	data[i] = 0x40
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.Count))
@@ -2411,11 +2950,19 @@ func (m *EventList) MarshalTo(data []byte) (int, error) {
 	data[i] = 0xa
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.ListMeta.Size()))
+<<<<<<< HEAD
 	n37, err := m.ListMeta.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
 	i += n37
+=======
+	n42, err := m.ListMeta.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n42
+>>>>>>> tags/v1.3.0
 	if len(m.Items) > 0 {
 		for _, msg := range m.Items {
 			data[i] = 0x12
@@ -2601,11 +3148,19 @@ func (m *FlexVolumeSource) MarshalTo(data []byte) (int, error) {
 		data[i] = 0x1a
 		i++
 		i = encodeVarintGenerated(data, i, uint64(m.SecretRef.Size()))
+<<<<<<< HEAD
 		n38, err := m.SecretRef.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
 		i += n38
+=======
+		n43, err := m.SecretRef.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n43
+>>>>>>> tags/v1.3.0
 	}
 	data[i] = 0x20
 	i++
@@ -2780,11 +3335,19 @@ func (m *HTTPGetAction) MarshalTo(data []byte) (int, error) {
 	data[i] = 0x12
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.Port.Size()))
+<<<<<<< HEAD
 	n39, err := m.Port.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
 	i += n39
+=======
+	n44, err := m.Port.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n44
+>>>>>>> tags/v1.3.0
 	data[i] = 0x1a
 	i++
 	i = encodeVarintGenerated(data, i, uint64(len(m.Host)))
@@ -2853,31 +3416,55 @@ func (m *Handler) MarshalTo(data []byte) (int, error) {
 		data[i] = 0xa
 		i++
 		i = encodeVarintGenerated(data, i, uint64(m.Exec.Size()))
+<<<<<<< HEAD
 		n40, err := m.Exec.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
 		i += n40
+=======
+		n45, err := m.Exec.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n45
+>>>>>>> tags/v1.3.0
 	}
 	if m.HTTPGet != nil {
 		data[i] = 0x12
 		i++
 		i = encodeVarintGenerated(data, i, uint64(m.HTTPGet.Size()))
+<<<<<<< HEAD
 		n41, err := m.HTTPGet.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
 		i += n41
+=======
+		n46, err := m.HTTPGet.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n46
+>>>>>>> tags/v1.3.0
 	}
 	if m.TCPSocket != nil {
 		data[i] = 0x1a
 		i++
 		i = encodeVarintGenerated(data, i, uint64(m.TCPSocket.Size()))
+<<<<<<< HEAD
 		n42, err := m.TCPSocket.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
 		i += n42
+=======
+		n47, err := m.TCPSocket.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n47
+>>>>>>> tags/v1.3.0
 	}
 	return i, nil
 }
@@ -2994,21 +3581,37 @@ func (m *Lifecycle) MarshalTo(data []byte) (int, error) {
 		data[i] = 0xa
 		i++
 		i = encodeVarintGenerated(data, i, uint64(m.PostStart.Size()))
+<<<<<<< HEAD
 		n43, err := m.PostStart.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
 		i += n43
+=======
+		n48, err := m.PostStart.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n48
+>>>>>>> tags/v1.3.0
 	}
 	if m.PreStop != nil {
 		data[i] = 0x12
 		i++
 		i = encodeVarintGenerated(data, i, uint64(m.PreStop.Size()))
+<<<<<<< HEAD
 		n44, err := m.PreStop.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
 		i += n44
+=======
+		n49, err := m.PreStop.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n49
+>>>>>>> tags/v1.3.0
 	}
 	return i, nil
 }
@@ -3031,6 +3634,7 @@ func (m *LimitRange) MarshalTo(data []byte) (int, error) {
 	data[i] = 0xa
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.ObjectMeta.Size()))
+<<<<<<< HEAD
 	n45, err := m.ObjectMeta.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
@@ -3044,6 +3648,21 @@ func (m *LimitRange) MarshalTo(data []byte) (int, error) {
 		return 0, err
 	}
 	i += n46
+=======
+	n50, err := m.ObjectMeta.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n50
+	data[i] = 0x12
+	i++
+	i = encodeVarintGenerated(data, i, uint64(m.Spec.Size()))
+	n51, err := m.Spec.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n51
+>>>>>>> tags/v1.3.0
 	return i, nil
 }
 
@@ -3081,11 +3700,19 @@ func (m *LimitRangeItem) MarshalTo(data []byte) (int, error) {
 			data[i] = 0x12
 			i++
 			i = encodeVarintGenerated(data, i, uint64((&v).Size()))
+<<<<<<< HEAD
 			n47, err := (&v).MarshalTo(data[i:])
 			if err != nil {
 				return 0, err
 			}
 			i += n47
+=======
+			n52, err := (&v).MarshalTo(data[i:])
+			if err != nil {
+				return 0, err
+			}
+			i += n52
+>>>>>>> tags/v1.3.0
 		}
 	}
 	if len(m.Min) > 0 {
@@ -3103,11 +3730,19 @@ func (m *LimitRangeItem) MarshalTo(data []byte) (int, error) {
 			data[i] = 0x12
 			i++
 			i = encodeVarintGenerated(data, i, uint64((&v).Size()))
+<<<<<<< HEAD
 			n48, err := (&v).MarshalTo(data[i:])
 			if err != nil {
 				return 0, err
 			}
 			i += n48
+=======
+			n53, err := (&v).MarshalTo(data[i:])
+			if err != nil {
+				return 0, err
+			}
+			i += n53
+>>>>>>> tags/v1.3.0
 		}
 	}
 	if len(m.Default) > 0 {
@@ -3125,11 +3760,19 @@ func (m *LimitRangeItem) MarshalTo(data []byte) (int, error) {
 			data[i] = 0x12
 			i++
 			i = encodeVarintGenerated(data, i, uint64((&v).Size()))
+<<<<<<< HEAD
 			n49, err := (&v).MarshalTo(data[i:])
 			if err != nil {
 				return 0, err
 			}
 			i += n49
+=======
+			n54, err := (&v).MarshalTo(data[i:])
+			if err != nil {
+				return 0, err
+			}
+			i += n54
+>>>>>>> tags/v1.3.0
 		}
 	}
 	if len(m.DefaultRequest) > 0 {
@@ -3147,11 +3790,19 @@ func (m *LimitRangeItem) MarshalTo(data []byte) (int, error) {
 			data[i] = 0x12
 			i++
 			i = encodeVarintGenerated(data, i, uint64((&v).Size()))
+<<<<<<< HEAD
 			n50, err := (&v).MarshalTo(data[i:])
 			if err != nil {
 				return 0, err
 			}
 			i += n50
+=======
+			n55, err := (&v).MarshalTo(data[i:])
+			if err != nil {
+				return 0, err
+			}
+			i += n55
+>>>>>>> tags/v1.3.0
 		}
 	}
 	if len(m.MaxLimitRequestRatio) > 0 {
@@ -3169,11 +3820,19 @@ func (m *LimitRangeItem) MarshalTo(data []byte) (int, error) {
 			data[i] = 0x12
 			i++
 			i = encodeVarintGenerated(data, i, uint64((&v).Size()))
+<<<<<<< HEAD
 			n51, err := (&v).MarshalTo(data[i:])
 			if err != nil {
 				return 0, err
 			}
 			i += n51
+=======
+			n56, err := (&v).MarshalTo(data[i:])
+			if err != nil {
+				return 0, err
+			}
+			i += n56
+>>>>>>> tags/v1.3.0
 		}
 	}
 	return i, nil
@@ -3197,11 +3856,19 @@ func (m *LimitRangeList) MarshalTo(data []byte) (int, error) {
 	data[i] = 0xa
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.ListMeta.Size()))
+<<<<<<< HEAD
 	n52, err := m.ListMeta.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
 	i += n52
+=======
+	n57, err := m.ListMeta.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n57
+>>>>>>> tags/v1.3.0
 	if len(m.Items) > 0 {
 		for _, msg := range m.Items {
 			data[i] = 0x12
@@ -3265,11 +3932,19 @@ func (m *List) MarshalTo(data []byte) (int, error) {
 	data[i] = 0xa
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.ListMeta.Size()))
+<<<<<<< HEAD
 	n53, err := m.ListMeta.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
 	i += n53
+=======
+	n58, err := m.ListMeta.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n58
+>>>>>>> tags/v1.3.0
 	if len(m.Items) > 0 {
 		for _, msg := range m.Items {
 			data[i] = 0x12
@@ -3458,6 +4133,7 @@ func (m *Namespace) MarshalTo(data []byte) (int, error) {
 	data[i] = 0xa
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.ObjectMeta.Size()))
+<<<<<<< HEAD
 	n54, err := m.ObjectMeta.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
@@ -3479,6 +4155,29 @@ func (m *Namespace) MarshalTo(data []byte) (int, error) {
 		return 0, err
 	}
 	i += n56
+=======
+	n59, err := m.ObjectMeta.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n59
+	data[i] = 0x12
+	i++
+	i = encodeVarintGenerated(data, i, uint64(m.Spec.Size()))
+	n60, err := m.Spec.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n60
+	data[i] = 0x1a
+	i++
+	i = encodeVarintGenerated(data, i, uint64(m.Status.Size()))
+	n61, err := m.Status.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n61
+>>>>>>> tags/v1.3.0
 	return i, nil
 }
 
@@ -3500,11 +4199,19 @@ func (m *NamespaceList) MarshalTo(data []byte) (int, error) {
 	data[i] = 0xa
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.ListMeta.Size()))
+<<<<<<< HEAD
 	n57, err := m.ListMeta.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
 	i += n57
+=======
+	n62, err := m.ListMeta.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n62
+>>>>>>> tags/v1.3.0
 	if len(m.Items) > 0 {
 		for _, msg := range m.Items {
 			data[i] = 0x12
@@ -3550,10 +4257,13 @@ func (m *NamespaceSpec) MarshalTo(data []byte) (int, error) {
 			i += copy(data[i:], s)
 		}
 	}
+<<<<<<< HEAD
 	data[i] = 0x12
 	i++
 	i = encodeVarintGenerated(data, i, uint64(len(m.Network)))
 	i += copy(data[i:], m.Network)
+=======
+>>>>>>> tags/v1.3.0
 	return i, nil
 }
 
@@ -3579,6 +4289,7 @@ func (m *NamespaceStatus) MarshalTo(data []byte) (int, error) {
 	return i, nil
 }
 
+<<<<<<< HEAD
 func (m *Network) Marshal() (data []byte, err error) {
 	size := m.Size()
 	data = make([]byte, size)
@@ -3729,6 +4440,8 @@ func (m *NetworkStatus) MarshalTo(data []byte) (int, error) {
 	return i, nil
 }
 
+=======
+>>>>>>> tags/v1.3.0
 func (m *Node) Marshal() (data []byte, err error) {
 	size := m.Size()
 	data = make([]byte, size)
@@ -4227,6 +4940,36 @@ func (m *NodeStatus) MarshalTo(data []byte) (int, error) {
 			i += n
 		}
 	}
+<<<<<<< HEAD
+=======
+	if len(m.VolumesInUse) > 0 {
+		for _, s := range m.VolumesInUse {
+			data[i] = 0x4a
+			i++
+			l = len(s)
+			for l >= 1<<7 {
+				data[i] = uint8(uint64(l)&0x7f | 0x80)
+				l >>= 7
+				i++
+			}
+			data[i] = uint8(l)
+			i++
+			i += copy(data[i:], s)
+		}
+	}
+	if len(m.VolumesAttached) > 0 {
+		for _, msg := range m.VolumesAttached {
+			data[i] = 0x52
+			i++
+			i = encodeVarintGenerated(data, i, uint64(msg.Size()))
+			n, err := msg.MarshalTo(data[i:])
+			if err != nil {
+				return 0, err
+			}
+			i += n
+		}
+	}
+>>>>>>> tags/v1.3.0
 	return i, nil
 }
 
@@ -4277,6 +5020,17 @@ func (m *NodeSystemInfo) MarshalTo(data []byte) (int, error) {
 	i++
 	i = encodeVarintGenerated(data, i, uint64(len(m.KubeProxyVersion)))
 	i += copy(data[i:], m.KubeProxyVersion)
+<<<<<<< HEAD
+=======
+	data[i] = 0x4a
+	i++
+	i = encodeVarintGenerated(data, i, uint64(len(m.OperatingSystem)))
+	i += copy(data[i:], m.OperatingSystem)
+	data[i] = 0x52
+	i++
+	i = encodeVarintGenerated(data, i, uint64(len(m.Architecture)))
+	i += copy(data[i:], m.Architecture)
+>>>>>>> tags/v1.3.0
 	return i, nil
 }
 
@@ -4405,6 +5159,36 @@ func (m *ObjectMeta) MarshalTo(data []byte) (int, error) {
 			i += copy(data[i:], v)
 		}
 	}
+<<<<<<< HEAD
+=======
+	if len(m.OwnerReferences) > 0 {
+		for _, msg := range m.OwnerReferences {
+			data[i] = 0x6a
+			i++
+			i = encodeVarintGenerated(data, i, uint64(msg.Size()))
+			n, err := msg.MarshalTo(data[i:])
+			if err != nil {
+				return 0, err
+			}
+			i += n
+		}
+	}
+	if len(m.Finalizers) > 0 {
+		for _, s := range m.Finalizers {
+			data[i] = 0x72
+			i++
+			l = len(s)
+			for l >= 1<<7 {
+				data[i] = uint8(uint64(l)&0x7f | 0x80)
+				l >>= 7
+				i++
+			}
+			data[i] = uint8(l)
+			i++
+			i += copy(data[i:], s)
+		}
+	}
+>>>>>>> tags/v1.3.0
 	return i, nil
 }
 
@@ -4454,6 +5238,53 @@ func (m *ObjectReference) MarshalTo(data []byte) (int, error) {
 	return i, nil
 }
 
+<<<<<<< HEAD
+=======
+func (m *OwnerReference) Marshal() (data []byte, err error) {
+	size := m.Size()
+	data = make([]byte, size)
+	n, err := m.MarshalTo(data)
+	if err != nil {
+		return nil, err
+	}
+	return data[:n], nil
+}
+
+func (m *OwnerReference) MarshalTo(data []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	data[i] = 0xa
+	i++
+	i = encodeVarintGenerated(data, i, uint64(len(m.Kind)))
+	i += copy(data[i:], m.Kind)
+	data[i] = 0x1a
+	i++
+	i = encodeVarintGenerated(data, i, uint64(len(m.Name)))
+	i += copy(data[i:], m.Name)
+	data[i] = 0x22
+	i++
+	i = encodeVarintGenerated(data, i, uint64(len(m.UID)))
+	i += copy(data[i:], m.UID)
+	data[i] = 0x2a
+	i++
+	i = encodeVarintGenerated(data, i, uint64(len(m.APIVersion)))
+	i += copy(data[i:], m.APIVersion)
+	if m.Controller != nil {
+		data[i] = 0x30
+		i++
+		if *m.Controller {
+			data[i] = 1
+		} else {
+			data[i] = 0
+		}
+		i++
+	}
+	return i, nil
+}
+
+>>>>>>> tags/v1.3.0
 func (m *PersistentVolume) Marshal() (data []byte, err error) {
 	size := m.Size()
 	data = make([]byte, size)
@@ -4618,6 +5449,19 @@ func (m *PersistentVolumeClaimSpec) MarshalTo(data []byte) (int, error) {
 	i++
 	i = encodeVarintGenerated(data, i, uint64(len(m.VolumeName)))
 	i += copy(data[i:], m.VolumeName)
+<<<<<<< HEAD
+=======
+	if m.Selector != nil {
+		data[i] = 0x22
+		i++
+		i = encodeVarintGenerated(data, i, uint64(m.Selector.Size()))
+		n85, err := m.Selector.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n85
+	}
+>>>>>>> tags/v1.3.0
 	return i, nil
 }
 
@@ -4670,11 +5514,19 @@ func (m *PersistentVolumeClaimStatus) MarshalTo(data []byte) (int, error) {
 			data[i] = 0x12
 			i++
 			i = encodeVarintGenerated(data, i, uint64((&v).Size()))
+<<<<<<< HEAD
 			n85, err := (&v).MarshalTo(data[i:])
 			if err != nil {
 				return 0, err
 			}
 			i += n85
+=======
+			n86, err := (&v).MarshalTo(data[i:])
+			if err != nil {
+				return 0, err
+			}
+			i += n86
+>>>>>>> tags/v1.3.0
 		}
 	}
 	return i, nil
@@ -4728,11 +5580,19 @@ func (m *PersistentVolumeList) MarshalTo(data []byte) (int, error) {
 	data[i] = 0xa
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.ListMeta.Size()))
+<<<<<<< HEAD
 	n86, err := m.ListMeta.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
 	i += n86
+=======
+	n87, err := m.ListMeta.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n87
+>>>>>>> tags/v1.3.0
 	if len(m.Items) > 0 {
 		for _, msg := range m.Items {
 			data[i] = 0x12
@@ -4767,131 +5627,245 @@ func (m *PersistentVolumeSource) MarshalTo(data []byte) (int, error) {
 		data[i] = 0xa
 		i++
 		i = encodeVarintGenerated(data, i, uint64(m.GCEPersistentDisk.Size()))
+<<<<<<< HEAD
 		n87, err := m.GCEPersistentDisk.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
 		i += n87
+=======
+		n88, err := m.GCEPersistentDisk.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n88
+>>>>>>> tags/v1.3.0
 	}
 	if m.AWSElasticBlockStore != nil {
 		data[i] = 0x12
 		i++
 		i = encodeVarintGenerated(data, i, uint64(m.AWSElasticBlockStore.Size()))
+<<<<<<< HEAD
 		n88, err := m.AWSElasticBlockStore.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
 		i += n88
+=======
+		n89, err := m.AWSElasticBlockStore.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n89
+>>>>>>> tags/v1.3.0
 	}
 	if m.HostPath != nil {
 		data[i] = 0x1a
 		i++
 		i = encodeVarintGenerated(data, i, uint64(m.HostPath.Size()))
+<<<<<<< HEAD
 		n89, err := m.HostPath.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
 		i += n89
+=======
+		n90, err := m.HostPath.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n90
+>>>>>>> tags/v1.3.0
 	}
 	if m.Glusterfs != nil {
 		data[i] = 0x22
 		i++
 		i = encodeVarintGenerated(data, i, uint64(m.Glusterfs.Size()))
+<<<<<<< HEAD
 		n90, err := m.Glusterfs.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
 		i += n90
+=======
+		n91, err := m.Glusterfs.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n91
+>>>>>>> tags/v1.3.0
 	}
 	if m.NFS != nil {
 		data[i] = 0x2a
 		i++
 		i = encodeVarintGenerated(data, i, uint64(m.NFS.Size()))
+<<<<<<< HEAD
 		n91, err := m.NFS.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
 		i += n91
+=======
+		n92, err := m.NFS.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n92
+>>>>>>> tags/v1.3.0
 	}
 	if m.RBD != nil {
 		data[i] = 0x32
 		i++
 		i = encodeVarintGenerated(data, i, uint64(m.RBD.Size()))
+<<<<<<< HEAD
 		n92, err := m.RBD.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
 		i += n92
+=======
+		n93, err := m.RBD.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n93
+>>>>>>> tags/v1.3.0
 	}
 	if m.ISCSI != nil {
 		data[i] = 0x3a
 		i++
 		i = encodeVarintGenerated(data, i, uint64(m.ISCSI.Size()))
+<<<<<<< HEAD
 		n93, err := m.ISCSI.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
 		i += n93
+=======
+		n94, err := m.ISCSI.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n94
+>>>>>>> tags/v1.3.0
 	}
 	if m.Cinder != nil {
 		data[i] = 0x42
 		i++
 		i = encodeVarintGenerated(data, i, uint64(m.Cinder.Size()))
+<<<<<<< HEAD
 		n94, err := m.Cinder.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
 		i += n94
+=======
+		n95, err := m.Cinder.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n95
+>>>>>>> tags/v1.3.0
 	}
 	if m.CephFS != nil {
 		data[i] = 0x4a
 		i++
 		i = encodeVarintGenerated(data, i, uint64(m.CephFS.Size()))
+<<<<<<< HEAD
 		n95, err := m.CephFS.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
 		i += n95
+=======
+		n96, err := m.CephFS.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n96
+>>>>>>> tags/v1.3.0
 	}
 	if m.FC != nil {
 		data[i] = 0x52
 		i++
 		i = encodeVarintGenerated(data, i, uint64(m.FC.Size()))
+<<<<<<< HEAD
 		n96, err := m.FC.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
 		i += n96
+=======
+		n97, err := m.FC.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n97
+>>>>>>> tags/v1.3.0
 	}
 	if m.Flocker != nil {
 		data[i] = 0x5a
 		i++
 		i = encodeVarintGenerated(data, i, uint64(m.Flocker.Size()))
+<<<<<<< HEAD
 		n97, err := m.Flocker.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
 		i += n97
+=======
+		n98, err := m.Flocker.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n98
+>>>>>>> tags/v1.3.0
 	}
 	if m.FlexVolume != nil {
 		data[i] = 0x62
 		i++
 		i = encodeVarintGenerated(data, i, uint64(m.FlexVolume.Size()))
+<<<<<<< HEAD
 		n98, err := m.FlexVolume.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
 		i += n98
+=======
+		n99, err := m.FlexVolume.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n99
+>>>>>>> tags/v1.3.0
 	}
 	if m.AzureFile != nil {
 		data[i] = 0x6a
 		i++
 		i = encodeVarintGenerated(data, i, uint64(m.AzureFile.Size()))
+<<<<<<< HEAD
 		n99, err := m.AzureFile.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
 		i += n99
+=======
+		n100, err := m.AzureFile.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n100
+	}
+	if m.VsphereVolume != nil {
+		data[i] = 0x72
+		i++
+		i = encodeVarintGenerated(data, i, uint64(m.VsphereVolume.Size()))
+		n101, err := m.VsphereVolume.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n101
+>>>>>>> tags/v1.3.0
 	}
 	return i, nil
 }
@@ -4926,21 +5900,37 @@ func (m *PersistentVolumeSpec) MarshalTo(data []byte) (int, error) {
 			data[i] = 0x12
 			i++
 			i = encodeVarintGenerated(data, i, uint64((&v).Size()))
+<<<<<<< HEAD
 			n100, err := (&v).MarshalTo(data[i:])
 			if err != nil {
 				return 0, err
 			}
 			i += n100
+=======
+			n102, err := (&v).MarshalTo(data[i:])
+			if err != nil {
+				return 0, err
+			}
+			i += n102
+>>>>>>> tags/v1.3.0
 		}
 	}
 	data[i] = 0x12
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.PersistentVolumeSource.Size()))
+<<<<<<< HEAD
 	n101, err := m.PersistentVolumeSource.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
 	i += n101
+=======
+	n103, err := m.PersistentVolumeSource.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n103
+>>>>>>> tags/v1.3.0
 	if len(m.AccessModes) > 0 {
 		for _, s := range m.AccessModes {
 			data[i] = 0x1a
@@ -4960,11 +5950,19 @@ func (m *PersistentVolumeSpec) MarshalTo(data []byte) (int, error) {
 		data[i] = 0x22
 		i++
 		i = encodeVarintGenerated(data, i, uint64(m.ClaimRef.Size()))
+<<<<<<< HEAD
 		n102, err := m.ClaimRef.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
 		i += n102
+=======
+		n104, err := m.ClaimRef.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n104
+>>>>>>> tags/v1.3.0
 	}
 	data[i] = 0x2a
 	i++
@@ -5021,6 +6019,7 @@ func (m *Pod) MarshalTo(data []byte) (int, error) {
 	data[i] = 0xa
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.ObjectMeta.Size()))
+<<<<<<< HEAD
 	n103, err := m.ObjectMeta.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
@@ -5042,6 +6041,160 @@ func (m *Pod) MarshalTo(data []byte) (int, error) {
 		return 0, err
 	}
 	i += n105
+=======
+	n105, err := m.ObjectMeta.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n105
+	data[i] = 0x12
+	i++
+	i = encodeVarintGenerated(data, i, uint64(m.Spec.Size()))
+	n106, err := m.Spec.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n106
+	data[i] = 0x1a
+	i++
+	i = encodeVarintGenerated(data, i, uint64(m.Status.Size()))
+	n107, err := m.Status.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n107
+	return i, nil
+}
+
+func (m *PodAffinity) Marshal() (data []byte, err error) {
+	size := m.Size()
+	data = make([]byte, size)
+	n, err := m.MarshalTo(data)
+	if err != nil {
+		return nil, err
+	}
+	return data[:n], nil
+}
+
+func (m *PodAffinity) MarshalTo(data []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if len(m.RequiredDuringSchedulingIgnoredDuringExecution) > 0 {
+		for _, msg := range m.RequiredDuringSchedulingIgnoredDuringExecution {
+			data[i] = 0xa
+			i++
+			i = encodeVarintGenerated(data, i, uint64(msg.Size()))
+			n, err := msg.MarshalTo(data[i:])
+			if err != nil {
+				return 0, err
+			}
+			i += n
+		}
+	}
+	if len(m.PreferredDuringSchedulingIgnoredDuringExecution) > 0 {
+		for _, msg := range m.PreferredDuringSchedulingIgnoredDuringExecution {
+			data[i] = 0x12
+			i++
+			i = encodeVarintGenerated(data, i, uint64(msg.Size()))
+			n, err := msg.MarshalTo(data[i:])
+			if err != nil {
+				return 0, err
+			}
+			i += n
+		}
+	}
+	return i, nil
+}
+
+func (m *PodAffinityTerm) Marshal() (data []byte, err error) {
+	size := m.Size()
+	data = make([]byte, size)
+	n, err := m.MarshalTo(data)
+	if err != nil {
+		return nil, err
+	}
+	return data[:n], nil
+}
+
+func (m *PodAffinityTerm) MarshalTo(data []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if m.LabelSelector != nil {
+		data[i] = 0xa
+		i++
+		i = encodeVarintGenerated(data, i, uint64(m.LabelSelector.Size()))
+		n108, err := m.LabelSelector.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n108
+	}
+	if len(m.Namespaces) > 0 {
+		for _, s := range m.Namespaces {
+			data[i] = 0x12
+			i++
+			l = len(s)
+			for l >= 1<<7 {
+				data[i] = uint8(uint64(l)&0x7f | 0x80)
+				l >>= 7
+				i++
+			}
+			data[i] = uint8(l)
+			i++
+			i += copy(data[i:], s)
+		}
+	}
+	data[i] = 0x1a
+	i++
+	i = encodeVarintGenerated(data, i, uint64(len(m.TopologyKey)))
+	i += copy(data[i:], m.TopologyKey)
+	return i, nil
+}
+
+func (m *PodAntiAffinity) Marshal() (data []byte, err error) {
+	size := m.Size()
+	data = make([]byte, size)
+	n, err := m.MarshalTo(data)
+	if err != nil {
+		return nil, err
+	}
+	return data[:n], nil
+}
+
+func (m *PodAntiAffinity) MarshalTo(data []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if len(m.RequiredDuringSchedulingIgnoredDuringExecution) > 0 {
+		for _, msg := range m.RequiredDuringSchedulingIgnoredDuringExecution {
+			data[i] = 0xa
+			i++
+			i = encodeVarintGenerated(data, i, uint64(msg.Size()))
+			n, err := msg.MarshalTo(data[i:])
+			if err != nil {
+				return 0, err
+			}
+			i += n
+		}
+	}
+	if len(m.PreferredDuringSchedulingIgnoredDuringExecution) > 0 {
+		for _, msg := range m.PreferredDuringSchedulingIgnoredDuringExecution {
+			data[i] = 0x12
+			i++
+			i = encodeVarintGenerated(data, i, uint64(msg.Size()))
+			n, err := msg.MarshalTo(data[i:])
+			if err != nil {
+				return 0, err
+			}
+			i += n
+		}
+	}
+>>>>>>> tags/v1.3.0
 	return i, nil
 }
 
@@ -5125,6 +6278,7 @@ func (m *PodCondition) MarshalTo(data []byte) (int, error) {
 	data[i] = 0x1a
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.LastProbeTime.Size()))
+<<<<<<< HEAD
 	n106, err := m.LastProbeTime.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
@@ -5138,6 +6292,21 @@ func (m *PodCondition) MarshalTo(data []byte) (int, error) {
 		return 0, err
 	}
 	i += n107
+=======
+	n109, err := m.LastProbeTime.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n109
+	data[i] = 0x22
+	i++
+	i = encodeVarintGenerated(data, i, uint64(m.LastTransitionTime.Size()))
+	n110, err := m.LastTransitionTime.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n110
+>>>>>>> tags/v1.3.0
 	data[i] = 0x2a
 	i++
 	i = encodeVarintGenerated(data, i, uint64(len(m.Reason)))
@@ -5236,11 +6405,19 @@ func (m *PodList) MarshalTo(data []byte) (int, error) {
 	data[i] = 0xa
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.ListMeta.Size()))
+<<<<<<< HEAD
 	n108, err := m.ListMeta.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
 	i += n108
+=======
+	n111, err := m.ListMeta.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n111
+>>>>>>> tags/v1.3.0
 	if len(m.Items) > 0 {
 		for _, msg := range m.Items {
 			data[i] = 0x12
@@ -5300,11 +6477,19 @@ func (m *PodLogOptions) MarshalTo(data []byte) (int, error) {
 		data[i] = 0x2a
 		i++
 		i = encodeVarintGenerated(data, i, uint64(m.SinceTime.Size()))
+<<<<<<< HEAD
 		n109, err := m.SinceTime.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
 		i += n109
+=======
+		n112, err := m.SinceTime.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n112
+>>>>>>> tags/v1.3.0
 	}
 	data[i] = 0x30
 	i++
@@ -5368,11 +6553,19 @@ func (m *PodSecurityContext) MarshalTo(data []byte) (int, error) {
 		data[i] = 0xa
 		i++
 		i = encodeVarintGenerated(data, i, uint64(m.SELinuxOptions.Size()))
+<<<<<<< HEAD
 		n110, err := m.SELinuxOptions.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
 		i += n110
+=======
+		n113, err := m.SELinuxOptions.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n113
+>>>>>>> tags/v1.3.0
 	}
 	if m.RunAsUser != nil {
 		data[i] = 0x10
@@ -5518,11 +6711,19 @@ func (m *PodSpec) MarshalTo(data []byte) (int, error) {
 		data[i] = 0x72
 		i++
 		i = encodeVarintGenerated(data, i, uint64(m.SecurityContext.Size()))
+<<<<<<< HEAD
 		n111, err := m.SecurityContext.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
 		i += n111
+=======
+		n114, err := m.SecurityContext.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n114
+>>>>>>> tags/v1.3.0
 	}
 	if len(m.ImagePullSecrets) > 0 {
 		for _, msg := range m.ImagePullSecrets {
@@ -5536,6 +6737,21 @@ func (m *PodSpec) MarshalTo(data []byte) (int, error) {
 			i += n
 		}
 	}
+<<<<<<< HEAD
+=======
+	data[i] = 0x82
+	i++
+	data[i] = 0x1
+	i++
+	i = encodeVarintGenerated(data, i, uint64(len(m.Hostname)))
+	i += copy(data[i:], m.Hostname)
+	data[i] = 0x8a
+	i++
+	data[i] = 0x1
+	i++
+	i = encodeVarintGenerated(data, i, uint64(len(m.Subdomain)))
+	i += copy(data[i:], m.Subdomain)
+>>>>>>> tags/v1.3.0
 	return i, nil
 }
 
@@ -5590,11 +6806,19 @@ func (m *PodStatus) MarshalTo(data []byte) (int, error) {
 		data[i] = 0x3a
 		i++
 		i = encodeVarintGenerated(data, i, uint64(m.StartTime.Size()))
+<<<<<<< HEAD
 		n112, err := m.StartTime.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
 		i += n112
+=======
+		n115, err := m.StartTime.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n115
+>>>>>>> tags/v1.3.0
 	}
 	if len(m.ContainerStatuses) > 0 {
 		for _, msg := range m.ContainerStatuses {
@@ -5629,6 +6853,7 @@ func (m *PodStatusResult) MarshalTo(data []byte) (int, error) {
 	data[i] = 0xa
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.ObjectMeta.Size()))
+<<<<<<< HEAD
 	n113, err := m.ObjectMeta.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
@@ -5642,6 +6867,21 @@ func (m *PodStatusResult) MarshalTo(data []byte) (int, error) {
 		return 0, err
 	}
 	i += n114
+=======
+	n116, err := m.ObjectMeta.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n116
+	data[i] = 0x12
+	i++
+	i = encodeVarintGenerated(data, i, uint64(m.Status.Size()))
+	n117, err := m.Status.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n117
+>>>>>>> tags/v1.3.0
 	return i, nil
 }
 
@@ -5663,6 +6903,7 @@ func (m *PodTemplate) MarshalTo(data []byte) (int, error) {
 	data[i] = 0xa
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.ObjectMeta.Size()))
+<<<<<<< HEAD
 	n115, err := m.ObjectMeta.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
@@ -5676,6 +6917,21 @@ func (m *PodTemplate) MarshalTo(data []byte) (int, error) {
 		return 0, err
 	}
 	i += n116
+=======
+	n118, err := m.ObjectMeta.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n118
+	data[i] = 0x12
+	i++
+	i = encodeVarintGenerated(data, i, uint64(m.Template.Size()))
+	n119, err := m.Template.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n119
+>>>>>>> tags/v1.3.0
 	return i, nil
 }
 
@@ -5697,11 +6953,19 @@ func (m *PodTemplateList) MarshalTo(data []byte) (int, error) {
 	data[i] = 0xa
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.ListMeta.Size()))
+<<<<<<< HEAD
 	n117, err := m.ListMeta.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
 	i += n117
+=======
+	n120, err := m.ListMeta.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n120
+>>>>>>> tags/v1.3.0
 	if len(m.Items) > 0 {
 		for _, msg := range m.Items {
 			data[i] = 0x12
@@ -5735,6 +6999,7 @@ func (m *PodTemplateSpec) MarshalTo(data []byte) (int, error) {
 	data[i] = 0xa
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.ObjectMeta.Size()))
+<<<<<<< HEAD
 	n118, err := m.ObjectMeta.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
@@ -5748,6 +7013,45 @@ func (m *PodTemplateSpec) MarshalTo(data []byte) (int, error) {
 		return 0, err
 	}
 	i += n119
+=======
+	n121, err := m.ObjectMeta.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n121
+	data[i] = 0x12
+	i++
+	i = encodeVarintGenerated(data, i, uint64(m.Spec.Size()))
+	n122, err := m.Spec.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n122
+	return i, nil
+}
+
+func (m *Preconditions) Marshal() (data []byte, err error) {
+	size := m.Size()
+	data = make([]byte, size)
+	n, err := m.MarshalTo(data)
+	if err != nil {
+		return nil, err
+	}
+	return data[:n], nil
+}
+
+func (m *Preconditions) MarshalTo(data []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if m.UID != nil {
+		data[i] = 0xa
+		i++
+		i = encodeVarintGenerated(data, i, uint64(len(*m.UID)))
+		i += copy(data[i:], *m.UID)
+	}
+>>>>>>> tags/v1.3.0
 	return i, nil
 }
 
@@ -5772,11 +7076,19 @@ func (m *PreferredSchedulingTerm) MarshalTo(data []byte) (int, error) {
 	data[i] = 0x12
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.Preference.Size()))
+<<<<<<< HEAD
 	n120, err := m.Preference.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
 	i += n120
+=======
+	n123, err := m.Preference.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n123
+>>>>>>> tags/v1.3.0
 	return i, nil
 }
 
@@ -5798,11 +7110,19 @@ func (m *Probe) MarshalTo(data []byte) (int, error) {
 	data[i] = 0xa
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.Handler.Size()))
+<<<<<<< HEAD
 	n121, err := m.Handler.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
 	i += n121
+=======
+	n124, err := m.Handler.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n124
+>>>>>>> tags/v1.3.0
 	data[i] = 0x10
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.InitialDelaySeconds))
@@ -5875,11 +7195,19 @@ func (m *RBDVolumeSource) MarshalTo(data []byte) (int, error) {
 		data[i] = 0x3a
 		i++
 		i = encodeVarintGenerated(data, i, uint64(m.SecretRef.Size()))
+<<<<<<< HEAD
 		n122, err := m.SecretRef.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
 		i += n122
+=======
+		n125, err := m.SecretRef.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n125
+>>>>>>> tags/v1.3.0
 	}
 	data[i] = 0x40
 	i++
@@ -5910,11 +7238,19 @@ func (m *RangeAllocation) MarshalTo(data []byte) (int, error) {
 	data[i] = 0xa
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.ObjectMeta.Size()))
+<<<<<<< HEAD
 	n123, err := m.ObjectMeta.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
 	i += n123
+=======
+	n126, err := m.ObjectMeta.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n126
+>>>>>>> tags/v1.3.0
 	data[i] = 0x12
 	i++
 	i = encodeVarintGenerated(data, i, uint64(len(m.Range)))
@@ -5946,6 +7282,7 @@ func (m *ReplicationController) MarshalTo(data []byte) (int, error) {
 	data[i] = 0xa
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.ObjectMeta.Size()))
+<<<<<<< HEAD
 	n124, err := m.ObjectMeta.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
@@ -5967,6 +7304,29 @@ func (m *ReplicationController) MarshalTo(data []byte) (int, error) {
 		return 0, err
 	}
 	i += n126
+=======
+	n127, err := m.ObjectMeta.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n127
+	data[i] = 0x12
+	i++
+	i = encodeVarintGenerated(data, i, uint64(m.Spec.Size()))
+	n128, err := m.Spec.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n128
+	data[i] = 0x1a
+	i++
+	i = encodeVarintGenerated(data, i, uint64(m.Status.Size()))
+	n129, err := m.Status.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n129
+>>>>>>> tags/v1.3.0
 	return i, nil
 }
 
@@ -5988,11 +7348,19 @@ func (m *ReplicationControllerList) MarshalTo(data []byte) (int, error) {
 	data[i] = 0xa
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.ListMeta.Size()))
+<<<<<<< HEAD
 	n127, err := m.ListMeta.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
 	i += n127
+=======
+	n130, err := m.ListMeta.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n130
+>>>>>>> tags/v1.3.0
 	if len(m.Items) > 0 {
 		for _, msg := range m.Items {
 			data[i] = 0x12
@@ -6049,11 +7417,19 @@ func (m *ReplicationControllerSpec) MarshalTo(data []byte) (int, error) {
 		data[i] = 0x1a
 		i++
 		i = encodeVarintGenerated(data, i, uint64(m.Template.Size()))
+<<<<<<< HEAD
 		n128, err := m.Template.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
 		i += n128
+=======
+		n131, err := m.Template.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n131
+>>>>>>> tags/v1.3.0
 	}
 	return i, nil
 }
@@ -6078,10 +7454,51 @@ func (m *ReplicationControllerStatus) MarshalTo(data []byte) (int, error) {
 	i = encodeVarintGenerated(data, i, uint64(m.Replicas))
 	data[i] = 0x10
 	i++
+<<<<<<< HEAD
 	i = encodeVarintGenerated(data, i, uint64(m.ObservedGeneration))
 	data[i] = 0x18
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.FullyLabeledReplicas))
+=======
+	i = encodeVarintGenerated(data, i, uint64(m.FullyLabeledReplicas))
+	data[i] = 0x18
+	i++
+	i = encodeVarintGenerated(data, i, uint64(m.ObservedGeneration))
+	return i, nil
+}
+
+func (m *ResourceFieldSelector) Marshal() (data []byte, err error) {
+	size := m.Size()
+	data = make([]byte, size)
+	n, err := m.MarshalTo(data)
+	if err != nil {
+		return nil, err
+	}
+	return data[:n], nil
+}
+
+func (m *ResourceFieldSelector) MarshalTo(data []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	data[i] = 0xa
+	i++
+	i = encodeVarintGenerated(data, i, uint64(len(m.ContainerName)))
+	i += copy(data[i:], m.ContainerName)
+	data[i] = 0x12
+	i++
+	i = encodeVarintGenerated(data, i, uint64(len(m.Resource)))
+	i += copy(data[i:], m.Resource)
+	data[i] = 0x1a
+	i++
+	i = encodeVarintGenerated(data, i, uint64(m.Divisor.Size()))
+	n132, err := m.Divisor.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n132
+>>>>>>> tags/v1.3.0
 	return i, nil
 }
 
@@ -6103,6 +7520,7 @@ func (m *ResourceQuota) MarshalTo(data []byte) (int, error) {
 	data[i] = 0xa
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.ObjectMeta.Size()))
+<<<<<<< HEAD
 	n129, err := m.ObjectMeta.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
@@ -6124,6 +7542,29 @@ func (m *ResourceQuota) MarshalTo(data []byte) (int, error) {
 		return 0, err
 	}
 	i += n131
+=======
+	n133, err := m.ObjectMeta.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n133
+	data[i] = 0x12
+	i++
+	i = encodeVarintGenerated(data, i, uint64(m.Spec.Size()))
+	n134, err := m.Spec.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n134
+	data[i] = 0x1a
+	i++
+	i = encodeVarintGenerated(data, i, uint64(m.Status.Size()))
+	n135, err := m.Status.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n135
+>>>>>>> tags/v1.3.0
 	return i, nil
 }
 
@@ -6145,11 +7586,19 @@ func (m *ResourceQuotaList) MarshalTo(data []byte) (int, error) {
 	data[i] = 0xa
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.ListMeta.Size()))
+<<<<<<< HEAD
 	n132, err := m.ListMeta.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
 	i += n132
+=======
+	n136, err := m.ListMeta.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n136
+>>>>>>> tags/v1.3.0
 	if len(m.Items) > 0 {
 		for _, msg := range m.Items {
 			data[i] = 0x12
@@ -6195,11 +7644,19 @@ func (m *ResourceQuotaSpec) MarshalTo(data []byte) (int, error) {
 			data[i] = 0x12
 			i++
 			i = encodeVarintGenerated(data, i, uint64((&v).Size()))
+<<<<<<< HEAD
 			n133, err := (&v).MarshalTo(data[i:])
 			if err != nil {
 				return 0, err
 			}
 			i += n133
+=======
+			n137, err := (&v).MarshalTo(data[i:])
+			if err != nil {
+				return 0, err
+			}
+			i += n137
+>>>>>>> tags/v1.3.0
 		}
 	}
 	if len(m.Scopes) > 0 {
@@ -6250,11 +7707,19 @@ func (m *ResourceQuotaStatus) MarshalTo(data []byte) (int, error) {
 			data[i] = 0x12
 			i++
 			i = encodeVarintGenerated(data, i, uint64((&v).Size()))
+<<<<<<< HEAD
 			n134, err := (&v).MarshalTo(data[i:])
 			if err != nil {
 				return 0, err
 			}
 			i += n134
+=======
+			n138, err := (&v).MarshalTo(data[i:])
+			if err != nil {
+				return 0, err
+			}
+			i += n138
+>>>>>>> tags/v1.3.0
 		}
 	}
 	if len(m.Used) > 0 {
@@ -6272,11 +7737,19 @@ func (m *ResourceQuotaStatus) MarshalTo(data []byte) (int, error) {
 			data[i] = 0x12
 			i++
 			i = encodeVarintGenerated(data, i, uint64((&v).Size()))
+<<<<<<< HEAD
 			n135, err := (&v).MarshalTo(data[i:])
 			if err != nil {
 				return 0, err
 			}
 			i += n135
+=======
+			n139, err := (&v).MarshalTo(data[i:])
+			if err != nil {
+				return 0, err
+			}
+			i += n139
+>>>>>>> tags/v1.3.0
 		}
 	}
 	return i, nil
@@ -6312,11 +7785,19 @@ func (m *ResourceRequirements) MarshalTo(data []byte) (int, error) {
 			data[i] = 0x12
 			i++
 			i = encodeVarintGenerated(data, i, uint64((&v).Size()))
+<<<<<<< HEAD
 			n136, err := (&v).MarshalTo(data[i:])
 			if err != nil {
 				return 0, err
 			}
 			i += n136
+=======
+			n140, err := (&v).MarshalTo(data[i:])
+			if err != nil {
+				return 0, err
+			}
+			i += n140
+>>>>>>> tags/v1.3.0
 		}
 	}
 	if len(m.Requests) > 0 {
@@ -6334,11 +7815,19 @@ func (m *ResourceRequirements) MarshalTo(data []byte) (int, error) {
 			data[i] = 0x12
 			i++
 			i = encodeVarintGenerated(data, i, uint64((&v).Size()))
+<<<<<<< HEAD
 			n137, err := (&v).MarshalTo(data[i:])
 			if err != nil {
 				return 0, err
 			}
 			i += n137
+=======
+			n141, err := (&v).MarshalTo(data[i:])
+			if err != nil {
+				return 0, err
+			}
+			i += n141
+>>>>>>> tags/v1.3.0
 		}
 	}
 	return i, nil
@@ -6396,11 +7885,19 @@ func (m *Secret) MarshalTo(data []byte) (int, error) {
 	data[i] = 0xa
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.ObjectMeta.Size()))
+<<<<<<< HEAD
 	n138, err := m.ObjectMeta.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
 	i += n138
+=======
+	n142, err := m.ObjectMeta.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n142
+>>>>>>> tags/v1.3.0
 	if len(m.Data) > 0 {
 		for k := range m.Data {
 			data[i] = 0x12
@@ -6443,11 +7940,19 @@ func (m *SecretKeySelector) MarshalTo(data []byte) (int, error) {
 	data[i] = 0xa
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.LocalObjectReference.Size()))
+<<<<<<< HEAD
 	n139, err := m.LocalObjectReference.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
 	i += n139
+=======
+	n143, err := m.LocalObjectReference.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n143
+>>>>>>> tags/v1.3.0
 	data[i] = 0x12
 	i++
 	i = encodeVarintGenerated(data, i, uint64(len(m.Key)))
@@ -6473,11 +7978,19 @@ func (m *SecretList) MarshalTo(data []byte) (int, error) {
 	data[i] = 0xa
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.ListMeta.Size()))
+<<<<<<< HEAD
 	n140, err := m.ListMeta.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
 	i += n140
+=======
+	n144, err := m.ListMeta.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n144
+>>>>>>> tags/v1.3.0
 	if len(m.Items) > 0 {
 		for _, msg := range m.Items {
 			data[i] = 0x12
@@ -6512,6 +8025,21 @@ func (m *SecretVolumeSource) MarshalTo(data []byte) (int, error) {
 	i++
 	i = encodeVarintGenerated(data, i, uint64(len(m.SecretName)))
 	i += copy(data[i:], m.SecretName)
+<<<<<<< HEAD
+=======
+	if len(m.Items) > 0 {
+		for _, msg := range m.Items {
+			data[i] = 0x12
+			i++
+			i = encodeVarintGenerated(data, i, uint64(msg.Size()))
+			n, err := msg.MarshalTo(data[i:])
+			if err != nil {
+				return 0, err
+			}
+			i += n
+		}
+	}
+>>>>>>> tags/v1.3.0
 	return i, nil
 }
 
@@ -6534,11 +8062,19 @@ func (m *SecurityContext) MarshalTo(data []byte) (int, error) {
 		data[i] = 0xa
 		i++
 		i = encodeVarintGenerated(data, i, uint64(m.Capabilities.Size()))
+<<<<<<< HEAD
 		n141, err := m.Capabilities.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
 		i += n141
+=======
+		n145, err := m.Capabilities.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n145
+>>>>>>> tags/v1.3.0
 	}
 	if m.Privileged != nil {
 		data[i] = 0x10
@@ -6554,11 +8090,19 @@ func (m *SecurityContext) MarshalTo(data []byte) (int, error) {
 		data[i] = 0x1a
 		i++
 		i = encodeVarintGenerated(data, i, uint64(m.SELinuxOptions.Size()))
+<<<<<<< HEAD
 		n142, err := m.SELinuxOptions.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
 		i += n142
+=======
+		n146, err := m.SELinuxOptions.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n146
+>>>>>>> tags/v1.3.0
 	}
 	if m.RunAsUser != nil {
 		data[i] = 0x20
@@ -6606,11 +8150,19 @@ func (m *SerializedReference) MarshalTo(data []byte) (int, error) {
 	data[i] = 0xa
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.Reference.Size()))
+<<<<<<< HEAD
 	n143, err := m.Reference.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
 	i += n143
+=======
+	n147, err := m.Reference.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n147
+>>>>>>> tags/v1.3.0
 	return i, nil
 }
 
@@ -6632,6 +8184,7 @@ func (m *Service) MarshalTo(data []byte) (int, error) {
 	data[i] = 0xa
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.ObjectMeta.Size()))
+<<<<<<< HEAD
 	n144, err := m.ObjectMeta.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
@@ -6653,6 +8206,29 @@ func (m *Service) MarshalTo(data []byte) (int, error) {
 		return 0, err
 	}
 	i += n146
+=======
+	n148, err := m.ObjectMeta.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n148
+	data[i] = 0x12
+	i++
+	i = encodeVarintGenerated(data, i, uint64(m.Spec.Size()))
+	n149, err := m.Spec.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n149
+	data[i] = 0x1a
+	i++
+	i = encodeVarintGenerated(data, i, uint64(m.Status.Size()))
+	n150, err := m.Status.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n150
+>>>>>>> tags/v1.3.0
 	return i, nil
 }
 
@@ -6674,11 +8250,19 @@ func (m *ServiceAccount) MarshalTo(data []byte) (int, error) {
 	data[i] = 0xa
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.ObjectMeta.Size()))
+<<<<<<< HEAD
 	n147, err := m.ObjectMeta.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
 	i += n147
+=======
+	n151, err := m.ObjectMeta.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n151
+>>>>>>> tags/v1.3.0
 	if len(m.Secrets) > 0 {
 		for _, msg := range m.Secrets {
 			data[i] = 0x12
@@ -6724,11 +8308,19 @@ func (m *ServiceAccountList) MarshalTo(data []byte) (int, error) {
 	data[i] = 0xa
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.ListMeta.Size()))
+<<<<<<< HEAD
 	n148, err := m.ListMeta.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
 	i += n148
+=======
+	n152, err := m.ListMeta.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n152
+>>>>>>> tags/v1.3.0
 	if len(m.Items) > 0 {
 		for _, msg := range m.Items {
 			data[i] = 0x12
@@ -6762,11 +8354,19 @@ func (m *ServiceList) MarshalTo(data []byte) (int, error) {
 	data[i] = 0xa
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.ListMeta.Size()))
+<<<<<<< HEAD
 	n149, err := m.ListMeta.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
 	i += n149
+=======
+	n153, err := m.ListMeta.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n153
+>>>>>>> tags/v1.3.0
 	if len(m.Items) > 0 {
 		for _, msg := range m.Items {
 			data[i] = 0x12
@@ -6811,11 +8411,19 @@ func (m *ServicePort) MarshalTo(data []byte) (int, error) {
 	data[i] = 0x22
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.TargetPort.Size()))
+<<<<<<< HEAD
 	n150, err := m.TargetPort.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
 	i += n150
+=======
+	n154, err := m.TargetPort.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n154
+>>>>>>> tags/v1.3.0
 	data[i] = 0x28
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.NodePort))
@@ -6934,6 +8542,24 @@ func (m *ServiceSpec) MarshalTo(data []byte) (int, error) {
 	i++
 	i = encodeVarintGenerated(data, i, uint64(len(m.LoadBalancerIP)))
 	i += copy(data[i:], m.LoadBalancerIP)
+<<<<<<< HEAD
+=======
+	if len(m.LoadBalancerSourceRanges) > 0 {
+		for _, s := range m.LoadBalancerSourceRanges {
+			data[i] = 0x4a
+			i++
+			l = len(s)
+			for l >= 1<<7 {
+				data[i] = uint8(uint64(l)&0x7f | 0x80)
+				l >>= 7
+				i++
+			}
+			data[i] = uint8(l)
+			i++
+			i += copy(data[i:], s)
+		}
+	}
+>>>>>>> tags/v1.3.0
 	return i, nil
 }
 
@@ -6955,6 +8581,7 @@ func (m *ServiceStatus) MarshalTo(data []byte) (int, error) {
 	data[i] = 0xa
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.LoadBalancer.Size()))
+<<<<<<< HEAD
 	n151, err := m.LoadBalancer.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
@@ -6964,6 +8591,17 @@ func (m *ServiceStatus) MarshalTo(data []byte) (int, error) {
 }
 
 func (m *Subnet) Marshal() (data []byte, err error) {
+=======
+	n155, err := m.LoadBalancer.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n155
+	return i, nil
+}
+
+func (m *TCPSocketAction) Marshal() (data []byte, err error) {
+>>>>>>> tags/v1.3.0
 	size := m.Size()
 	data = make([]byte, size)
 	n, err := m.MarshalTo(data)
@@ -6973,13 +8611,18 @@ func (m *Subnet) Marshal() (data []byte, err error) {
 	return data[:n], nil
 }
 
+<<<<<<< HEAD
 func (m *Subnet) MarshalTo(data []byte) (int, error) {
+=======
+func (m *TCPSocketAction) MarshalTo(data []byte) (int, error) {
+>>>>>>> tags/v1.3.0
 	var i int
 	_ = i
 	var l int
 	_ = l
 	data[i] = 0xa
 	i++
+<<<<<<< HEAD
 	i = encodeVarintGenerated(data, i, uint64(len(m.CIDR)))
 	i += copy(data[i:], m.CIDR)
 	data[i] = 0x12
@@ -6990,6 +8633,18 @@ func (m *Subnet) MarshalTo(data []byte) (int, error) {
 }
 
 func (m *TCPSocketAction) Marshal() (data []byte, err error) {
+=======
+	i = encodeVarintGenerated(data, i, uint64(m.Port.Size()))
+	n156, err := m.Port.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n156
+	return i, nil
+}
+
+func (m *Taint) Marshal() (data []byte, err error) {
+>>>>>>> tags/v1.3.0
 	size := m.Size()
 	data = make([]byte, size)
 	n, err := m.MarshalTo(data)
@@ -6999,19 +8654,70 @@ func (m *TCPSocketAction) Marshal() (data []byte, err error) {
 	return data[:n], nil
 }
 
+<<<<<<< HEAD
 func (m *TCPSocketAction) MarshalTo(data []byte) (int, error) {
+=======
+func (m *Taint) MarshalTo(data []byte) (int, error) {
+>>>>>>> tags/v1.3.0
 	var i int
 	_ = i
 	var l int
 	_ = l
 	data[i] = 0xa
 	i++
+<<<<<<< HEAD
 	i = encodeVarintGenerated(data, i, uint64(m.Port.Size()))
 	n152, err := m.Port.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
 	i += n152
+=======
+	i = encodeVarintGenerated(data, i, uint64(len(m.Key)))
+	i += copy(data[i:], m.Key)
+	data[i] = 0x12
+	i++
+	i = encodeVarintGenerated(data, i, uint64(len(m.Value)))
+	i += copy(data[i:], m.Value)
+	data[i] = 0x1a
+	i++
+	i = encodeVarintGenerated(data, i, uint64(len(m.Effect)))
+	i += copy(data[i:], m.Effect)
+	return i, nil
+}
+
+func (m *Toleration) Marshal() (data []byte, err error) {
+	size := m.Size()
+	data = make([]byte, size)
+	n, err := m.MarshalTo(data)
+	if err != nil {
+		return nil, err
+	}
+	return data[:n], nil
+}
+
+func (m *Toleration) MarshalTo(data []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	data[i] = 0xa
+	i++
+	i = encodeVarintGenerated(data, i, uint64(len(m.Key)))
+	i += copy(data[i:], m.Key)
+	data[i] = 0x12
+	i++
+	i = encodeVarintGenerated(data, i, uint64(len(m.Operator)))
+	i += copy(data[i:], m.Operator)
+	data[i] = 0x1a
+	i++
+	i = encodeVarintGenerated(data, i, uint64(len(m.Value)))
+	i += copy(data[i:], m.Value)
+	data[i] = 0x22
+	i++
+	i = encodeVarintGenerated(data, i, uint64(len(m.Effect)))
+	i += copy(data[i:], m.Effect)
+>>>>>>> tags/v1.3.0
 	return i, nil
 }
 
@@ -7037,11 +8743,19 @@ func (m *Volume) MarshalTo(data []byte) (int, error) {
 	data[i] = 0x12
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.VolumeSource.Size()))
+<<<<<<< HEAD
 	n153, err := m.VolumeSource.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
 	i += n153
+=======
+	n157, err := m.VolumeSource.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n157
+>>>>>>> tags/v1.3.0
 	return i, nil
 }
 
@@ -7076,6 +8790,13 @@ func (m *VolumeMount) MarshalTo(data []byte) (int, error) {
 	i++
 	i = encodeVarintGenerated(data, i, uint64(len(m.MountPath)))
 	i += copy(data[i:], m.MountPath)
+<<<<<<< HEAD
+=======
+	data[i] = 0x22
+	i++
+	i = encodeVarintGenerated(data, i, uint64(len(m.SubPath)))
+	i += copy(data[i:], m.SubPath)
+>>>>>>> tags/v1.3.0
 	return i, nil
 }
 
@@ -7098,151 +8819,271 @@ func (m *VolumeSource) MarshalTo(data []byte) (int, error) {
 		data[i] = 0xa
 		i++
 		i = encodeVarintGenerated(data, i, uint64(m.HostPath.Size()))
+<<<<<<< HEAD
 		n154, err := m.HostPath.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
 		i += n154
+=======
+		n158, err := m.HostPath.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n158
+>>>>>>> tags/v1.3.0
 	}
 	if m.EmptyDir != nil {
 		data[i] = 0x12
 		i++
 		i = encodeVarintGenerated(data, i, uint64(m.EmptyDir.Size()))
+<<<<<<< HEAD
 		n155, err := m.EmptyDir.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
 		i += n155
+=======
+		n159, err := m.EmptyDir.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n159
+>>>>>>> tags/v1.3.0
 	}
 	if m.GCEPersistentDisk != nil {
 		data[i] = 0x1a
 		i++
 		i = encodeVarintGenerated(data, i, uint64(m.GCEPersistentDisk.Size()))
+<<<<<<< HEAD
 		n156, err := m.GCEPersistentDisk.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
 		i += n156
+=======
+		n160, err := m.GCEPersistentDisk.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n160
+>>>>>>> tags/v1.3.0
 	}
 	if m.AWSElasticBlockStore != nil {
 		data[i] = 0x22
 		i++
 		i = encodeVarintGenerated(data, i, uint64(m.AWSElasticBlockStore.Size()))
+<<<<<<< HEAD
 		n157, err := m.AWSElasticBlockStore.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
 		i += n157
+=======
+		n161, err := m.AWSElasticBlockStore.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n161
+>>>>>>> tags/v1.3.0
 	}
 	if m.GitRepo != nil {
 		data[i] = 0x2a
 		i++
 		i = encodeVarintGenerated(data, i, uint64(m.GitRepo.Size()))
+<<<<<<< HEAD
 		n158, err := m.GitRepo.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
 		i += n158
+=======
+		n162, err := m.GitRepo.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n162
+>>>>>>> tags/v1.3.0
 	}
 	if m.Secret != nil {
 		data[i] = 0x32
 		i++
 		i = encodeVarintGenerated(data, i, uint64(m.Secret.Size()))
+<<<<<<< HEAD
 		n159, err := m.Secret.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
 		i += n159
+=======
+		n163, err := m.Secret.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n163
+>>>>>>> tags/v1.3.0
 	}
 	if m.NFS != nil {
 		data[i] = 0x3a
 		i++
 		i = encodeVarintGenerated(data, i, uint64(m.NFS.Size()))
+<<<<<<< HEAD
 		n160, err := m.NFS.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
 		i += n160
+=======
+		n164, err := m.NFS.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n164
+>>>>>>> tags/v1.3.0
 	}
 	if m.ISCSI != nil {
 		data[i] = 0x42
 		i++
 		i = encodeVarintGenerated(data, i, uint64(m.ISCSI.Size()))
+<<<<<<< HEAD
 		n161, err := m.ISCSI.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
 		i += n161
+=======
+		n165, err := m.ISCSI.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n165
+>>>>>>> tags/v1.3.0
 	}
 	if m.Glusterfs != nil {
 		data[i] = 0x4a
 		i++
 		i = encodeVarintGenerated(data, i, uint64(m.Glusterfs.Size()))
+<<<<<<< HEAD
 		n162, err := m.Glusterfs.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
 		i += n162
+=======
+		n166, err := m.Glusterfs.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n166
+>>>>>>> tags/v1.3.0
 	}
 	if m.PersistentVolumeClaim != nil {
 		data[i] = 0x52
 		i++
 		i = encodeVarintGenerated(data, i, uint64(m.PersistentVolumeClaim.Size()))
+<<<<<<< HEAD
 		n163, err := m.PersistentVolumeClaim.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
 		i += n163
+=======
+		n167, err := m.PersistentVolumeClaim.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n167
+>>>>>>> tags/v1.3.0
 	}
 	if m.RBD != nil {
 		data[i] = 0x5a
 		i++
 		i = encodeVarintGenerated(data, i, uint64(m.RBD.Size()))
+<<<<<<< HEAD
 		n164, err := m.RBD.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
 		i += n164
+=======
+		n168, err := m.RBD.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n168
+>>>>>>> tags/v1.3.0
 	}
 	if m.FlexVolume != nil {
 		data[i] = 0x62
 		i++
 		i = encodeVarintGenerated(data, i, uint64(m.FlexVolume.Size()))
+<<<<<<< HEAD
 		n165, err := m.FlexVolume.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
 		i += n165
+=======
+		n169, err := m.FlexVolume.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n169
+>>>>>>> tags/v1.3.0
 	}
 	if m.Cinder != nil {
 		data[i] = 0x6a
 		i++
 		i = encodeVarintGenerated(data, i, uint64(m.Cinder.Size()))
+<<<<<<< HEAD
 		n166, err := m.Cinder.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
 		i += n166
+=======
+		n170, err := m.Cinder.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n170
+>>>>>>> tags/v1.3.0
 	}
 	if m.CephFS != nil {
 		data[i] = 0x72
 		i++
 		i = encodeVarintGenerated(data, i, uint64(m.CephFS.Size()))
+<<<<<<< HEAD
 		n167, err := m.CephFS.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
 		i += n167
+=======
+		n171, err := m.CephFS.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n171
+>>>>>>> tags/v1.3.0
 	}
 	if m.Flocker != nil {
 		data[i] = 0x7a
 		i++
 		i = encodeVarintGenerated(data, i, uint64(m.Flocker.Size()))
+<<<<<<< HEAD
 		n168, err := m.Flocker.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
 		i += n168
+=======
+		n172, err := m.Flocker.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n172
+>>>>>>> tags/v1.3.0
 	}
 	if m.DownwardAPI != nil {
 		data[i] = 0x82
@@ -7250,11 +9091,19 @@ func (m *VolumeSource) MarshalTo(data []byte) (int, error) {
 		data[i] = 0x1
 		i++
 		i = encodeVarintGenerated(data, i, uint64(m.DownwardAPI.Size()))
+<<<<<<< HEAD
 		n169, err := m.DownwardAPI.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
 		i += n169
+=======
+		n173, err := m.DownwardAPI.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n173
+>>>>>>> tags/v1.3.0
 	}
 	if m.FC != nil {
 		data[i] = 0x8a
@@ -7262,11 +9111,19 @@ func (m *VolumeSource) MarshalTo(data []byte) (int, error) {
 		data[i] = 0x1
 		i++
 		i = encodeVarintGenerated(data, i, uint64(m.FC.Size()))
+<<<<<<< HEAD
 		n170, err := m.FC.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
 		i += n170
+=======
+		n174, err := m.FC.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n174
+>>>>>>> tags/v1.3.0
 	}
 	if m.AzureFile != nil {
 		data[i] = 0x92
@@ -7274,11 +9131,19 @@ func (m *VolumeSource) MarshalTo(data []byte) (int, error) {
 		data[i] = 0x1
 		i++
 		i = encodeVarintGenerated(data, i, uint64(m.AzureFile.Size()))
+<<<<<<< HEAD
 		n171, err := m.AzureFile.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
 		i += n171
+=======
+		n175, err := m.AzureFile.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n175
+>>>>>>> tags/v1.3.0
 	}
 	if m.ConfigMap != nil {
 		data[i] = 0x9a
@@ -7286,12 +9151,88 @@ func (m *VolumeSource) MarshalTo(data []byte) (int, error) {
 		data[i] = 0x1
 		i++
 		i = encodeVarintGenerated(data, i, uint64(m.ConfigMap.Size()))
+<<<<<<< HEAD
 		n172, err := m.ConfigMap.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
 		i += n172
 	}
+=======
+		n176, err := m.ConfigMap.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n176
+	}
+	if m.VsphereVolume != nil {
+		data[i] = 0xa2
+		i++
+		data[i] = 0x1
+		i++
+		i = encodeVarintGenerated(data, i, uint64(m.VsphereVolume.Size()))
+		n177, err := m.VsphereVolume.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n177
+	}
+	return i, nil
+}
+
+func (m *VsphereVirtualDiskVolumeSource) Marshal() (data []byte, err error) {
+	size := m.Size()
+	data = make([]byte, size)
+	n, err := m.MarshalTo(data)
+	if err != nil {
+		return nil, err
+	}
+	return data[:n], nil
+}
+
+func (m *VsphereVirtualDiskVolumeSource) MarshalTo(data []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	data[i] = 0xa
+	i++
+	i = encodeVarintGenerated(data, i, uint64(len(m.VolumePath)))
+	i += copy(data[i:], m.VolumePath)
+	data[i] = 0x12
+	i++
+	i = encodeVarintGenerated(data, i, uint64(len(m.FSType)))
+	i += copy(data[i:], m.FSType)
+	return i, nil
+}
+
+func (m *WeightedPodAffinityTerm) Marshal() (data []byte, err error) {
+	size := m.Size()
+	data = make([]byte, size)
+	n, err := m.MarshalTo(data)
+	if err != nil {
+		return nil, err
+	}
+	return data[:n], nil
+}
+
+func (m *WeightedPodAffinityTerm) MarshalTo(data []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	data[i] = 0x8
+	i++
+	i = encodeVarintGenerated(data, i, uint64(m.Weight))
+	data[i] = 0x12
+	i++
+	i = encodeVarintGenerated(data, i, uint64(m.PodAffinityTerm.Size()))
+	n178, err := m.PodAffinityTerm.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n178
+>>>>>>> tags/v1.3.0
 	return i, nil
 }
 
@@ -7341,6 +9282,27 @@ func (m *Affinity) Size() (n int) {
 		l = m.NodeAffinity.Size()
 		n += 1 + l + sovGenerated(uint64(l))
 	}
+<<<<<<< HEAD
+=======
+	if m.PodAffinity != nil {
+		l = m.PodAffinity.Size()
+		n += 1 + l + sovGenerated(uint64(l))
+	}
+	if m.PodAntiAffinity != nil {
+		l = m.PodAntiAffinity.Size()
+		n += 1 + l + sovGenerated(uint64(l))
+	}
+	return n
+}
+
+func (m *AttachedVolume) Size() (n int) {
+	var l int
+	_ = l
+	l = len(m.Name)
+	n += 1 + l + sovGenerated(uint64(l))
+	l = len(m.DevicePath)
+	n += 1 + l + sovGenerated(uint64(l))
+>>>>>>> tags/v1.3.0
 	return n
 }
 
@@ -7414,7 +9376,10 @@ func (m *CinderVolumeSource) Size() (n int) {
 	l = len(m.FSType)
 	n += 1 + l + sovGenerated(uint64(l))
 	n += 2
+<<<<<<< HEAD
 	n += 2
+=======
+>>>>>>> tags/v1.3.0
 	return n
 }
 
@@ -7695,6 +9660,16 @@ func (m *DeleteOptions) Size() (n int) {
 	if m.GracePeriodSeconds != nil {
 		n += 1 + sovGenerated(uint64(*m.GracePeriodSeconds))
 	}
+<<<<<<< HEAD
+=======
+	if m.Preconditions != nil {
+		l = m.Preconditions.Size()
+		n += 1 + l + sovGenerated(uint64(l))
+	}
+	if m.OrphanDependents != nil {
+		n += 2
+	}
+>>>>>>> tags/v1.3.0
 	return n
 }
 
@@ -7703,8 +9678,19 @@ func (m *DownwardAPIVolumeFile) Size() (n int) {
 	_ = l
 	l = len(m.Path)
 	n += 1 + l + sovGenerated(uint64(l))
+<<<<<<< HEAD
 	l = m.FieldRef.Size()
 	n += 1 + l + sovGenerated(uint64(l))
+=======
+	if m.FieldRef != nil {
+		l = m.FieldRef.Size()
+		n += 1 + l + sovGenerated(uint64(l))
+	}
+	if m.ResourceFieldRef != nil {
+		l = m.ResourceFieldRef.Size()
+		n += 1 + l + sovGenerated(uint64(l))
+	}
+>>>>>>> tags/v1.3.0
 	return n
 }
 
@@ -7737,6 +9723,11 @@ func (m *EndpointAddress) Size() (n int) {
 		l = m.TargetRef.Size()
 		n += 1 + l + sovGenerated(uint64(l))
 	}
+<<<<<<< HEAD
+=======
+	l = len(m.Hostname)
+	n += 1 + l + sovGenerated(uint64(l))
+>>>>>>> tags/v1.3.0
 	return n
 }
 
@@ -7824,6 +9815,13 @@ func (m *EnvVarSource) Size() (n int) {
 		l = m.FieldRef.Size()
 		n += 1 + l + sovGenerated(uint64(l))
 	}
+<<<<<<< HEAD
+=======
+	if m.ResourceFieldRef != nil {
+		l = m.ResourceFieldRef.Size()
+		n += 1 + l + sovGenerated(uint64(l))
+	}
+>>>>>>> tags/v1.3.0
 	if m.ConfigMapKeyRef != nil {
 		l = m.ConfigMapKeyRef.Size()
 		n += 1 + l + sovGenerated(uint64(l))
@@ -8277,8 +10275,11 @@ func (m *NamespaceSpec) Size() (n int) {
 			n += 1 + l + sovGenerated(uint64(l))
 		}
 	}
+<<<<<<< HEAD
 	l = len(m.Network)
 	n += 1 + l + sovGenerated(uint64(l))
+=======
+>>>>>>> tags/v1.3.0
 	return n
 }
 
@@ -8290,6 +10291,7 @@ func (m *NamespaceStatus) Size() (n int) {
 	return n
 }
 
+<<<<<<< HEAD
 func (m *Network) Size() (n int) {
 	var l int
 	_ = l
@@ -8343,6 +10345,8 @@ func (m *NetworkStatus) Size() (n int) {
 	return n
 }
 
+=======
+>>>>>>> tags/v1.3.0
 func (m *Node) Size() (n int) {
 	var l int
 	_ = l
@@ -8527,6 +10531,21 @@ func (m *NodeStatus) Size() (n int) {
 			n += 1 + l + sovGenerated(uint64(l))
 		}
 	}
+<<<<<<< HEAD
+=======
+	if len(m.VolumesInUse) > 0 {
+		for _, s := range m.VolumesInUse {
+			l = len(s)
+			n += 1 + l + sovGenerated(uint64(l))
+		}
+	}
+	if len(m.VolumesAttached) > 0 {
+		for _, e := range m.VolumesAttached {
+			l = e.Size()
+			n += 1 + l + sovGenerated(uint64(l))
+		}
+	}
+>>>>>>> tags/v1.3.0
 	return n
 }
 
@@ -8549,6 +10568,13 @@ func (m *NodeSystemInfo) Size() (n int) {
 	n += 1 + l + sovGenerated(uint64(l))
 	l = len(m.KubeProxyVersion)
 	n += 1 + l + sovGenerated(uint64(l))
+<<<<<<< HEAD
+=======
+	l = len(m.OperatingSystem)
+	n += 1 + l + sovGenerated(uint64(l))
+	l = len(m.Architecture)
+	n += 1 + l + sovGenerated(uint64(l))
+>>>>>>> tags/v1.3.0
 	return n
 }
 
@@ -8603,6 +10629,21 @@ func (m *ObjectMeta) Size() (n int) {
 			n += mapEntrySize + 1 + sovGenerated(uint64(mapEntrySize))
 		}
 	}
+<<<<<<< HEAD
+=======
+	if len(m.OwnerReferences) > 0 {
+		for _, e := range m.OwnerReferences {
+			l = e.Size()
+			n += 1 + l + sovGenerated(uint64(l))
+		}
+	}
+	if len(m.Finalizers) > 0 {
+		for _, s := range m.Finalizers {
+			l = len(s)
+			n += 1 + l + sovGenerated(uint64(l))
+		}
+	}
+>>>>>>> tags/v1.3.0
 	return n
 }
 
@@ -8626,6 +10667,26 @@ func (m *ObjectReference) Size() (n int) {
 	return n
 }
 
+<<<<<<< HEAD
+=======
+func (m *OwnerReference) Size() (n int) {
+	var l int
+	_ = l
+	l = len(m.Kind)
+	n += 1 + l + sovGenerated(uint64(l))
+	l = len(m.Name)
+	n += 1 + l + sovGenerated(uint64(l))
+	l = len(m.UID)
+	n += 1 + l + sovGenerated(uint64(l))
+	l = len(m.APIVersion)
+	n += 1 + l + sovGenerated(uint64(l))
+	if m.Controller != nil {
+		n += 2
+	}
+	return n
+}
+
+>>>>>>> tags/v1.3.0
 func (m *PersistentVolume) Size() (n int) {
 	var l int
 	_ = l
@@ -8677,6 +10738,13 @@ func (m *PersistentVolumeClaimSpec) Size() (n int) {
 	n += 1 + l + sovGenerated(uint64(l))
 	l = len(m.VolumeName)
 	n += 1 + l + sovGenerated(uint64(l))
+<<<<<<< HEAD
+=======
+	if m.Selector != nil {
+		l = m.Selector.Size()
+		n += 1 + l + sovGenerated(uint64(l))
+	}
+>>>>>>> tags/v1.3.0
 	return n
 }
 
@@ -8781,6 +10849,13 @@ func (m *PersistentVolumeSource) Size() (n int) {
 		l = m.AzureFile.Size()
 		n += 1 + l + sovGenerated(uint64(l))
 	}
+<<<<<<< HEAD
+=======
+	if m.VsphereVolume != nil {
+		l = m.VsphereVolume.Size()
+		n += 1 + l + sovGenerated(uint64(l))
+	}
+>>>>>>> tags/v1.3.0
 	return n
 }
 
@@ -8837,6 +10912,63 @@ func (m *Pod) Size() (n int) {
 	return n
 }
 
+<<<<<<< HEAD
+=======
+func (m *PodAffinity) Size() (n int) {
+	var l int
+	_ = l
+	if len(m.RequiredDuringSchedulingIgnoredDuringExecution) > 0 {
+		for _, e := range m.RequiredDuringSchedulingIgnoredDuringExecution {
+			l = e.Size()
+			n += 1 + l + sovGenerated(uint64(l))
+		}
+	}
+	if len(m.PreferredDuringSchedulingIgnoredDuringExecution) > 0 {
+		for _, e := range m.PreferredDuringSchedulingIgnoredDuringExecution {
+			l = e.Size()
+			n += 1 + l + sovGenerated(uint64(l))
+		}
+	}
+	return n
+}
+
+func (m *PodAffinityTerm) Size() (n int) {
+	var l int
+	_ = l
+	if m.LabelSelector != nil {
+		l = m.LabelSelector.Size()
+		n += 1 + l + sovGenerated(uint64(l))
+	}
+	if len(m.Namespaces) > 0 {
+		for _, s := range m.Namespaces {
+			l = len(s)
+			n += 1 + l + sovGenerated(uint64(l))
+		}
+	}
+	l = len(m.TopologyKey)
+	n += 1 + l + sovGenerated(uint64(l))
+	return n
+}
+
+func (m *PodAntiAffinity) Size() (n int) {
+	var l int
+	_ = l
+	if len(m.RequiredDuringSchedulingIgnoredDuringExecution) > 0 {
+		for _, e := range m.RequiredDuringSchedulingIgnoredDuringExecution {
+			l = e.Size()
+			n += 1 + l + sovGenerated(uint64(l))
+		}
+	}
+	if len(m.PreferredDuringSchedulingIgnoredDuringExecution) > 0 {
+		for _, e := range m.PreferredDuringSchedulingIgnoredDuringExecution {
+			l = e.Size()
+			n += 1 + l + sovGenerated(uint64(l))
+		}
+	}
+	return n
+}
+
+>>>>>>> tags/v1.3.0
 func (m *PodAttachOptions) Size() (n int) {
 	var l int
 	_ = l
@@ -9007,6 +11139,13 @@ func (m *PodSpec) Size() (n int) {
 			n += 1 + l + sovGenerated(uint64(l))
 		}
 	}
+<<<<<<< HEAD
+=======
+	l = len(m.Hostname)
+	n += 2 + l + sovGenerated(uint64(l))
+	l = len(m.Subdomain)
+	n += 2 + l + sovGenerated(uint64(l))
+>>>>>>> tags/v1.3.0
 	return n
 }
 
@@ -9086,6 +11225,19 @@ func (m *PodTemplateSpec) Size() (n int) {
 	return n
 }
 
+<<<<<<< HEAD
+=======
+func (m *Preconditions) Size() (n int) {
+	var l int
+	_ = l
+	if m.UID != nil {
+		l = len(*m.UID)
+		n += 1 + l + sovGenerated(uint64(l))
+	}
+	return n
+}
+
+>>>>>>> tags/v1.3.0
 func (m *PreferredSchedulingTerm) Size() (n int) {
 	var l int
 	_ = l
@@ -9200,8 +11352,25 @@ func (m *ReplicationControllerStatus) Size() (n int) {
 	var l int
 	_ = l
 	n += 1 + sovGenerated(uint64(m.Replicas))
+<<<<<<< HEAD
 	n += 1 + sovGenerated(uint64(m.ObservedGeneration))
 	n += 1 + sovGenerated(uint64(m.FullyLabeledReplicas))
+=======
+	n += 1 + sovGenerated(uint64(m.FullyLabeledReplicas))
+	n += 1 + sovGenerated(uint64(m.ObservedGeneration))
+	return n
+}
+
+func (m *ResourceFieldSelector) Size() (n int) {
+	var l int
+	_ = l
+	l = len(m.ContainerName)
+	n += 1 + l + sovGenerated(uint64(l))
+	l = len(m.Resource)
+	n += 1 + l + sovGenerated(uint64(l))
+	l = m.Divisor.Size()
+	n += 1 + l + sovGenerated(uint64(l))
+>>>>>>> tags/v1.3.0
 	return n
 }
 
@@ -9361,6 +11530,15 @@ func (m *SecretVolumeSource) Size() (n int) {
 	_ = l
 	l = len(m.SecretName)
 	n += 1 + l + sovGenerated(uint64(l))
+<<<<<<< HEAD
+=======
+	if len(m.Items) > 0 {
+		for _, e := range m.Items {
+			l = e.Size()
+			n += 1 + l + sovGenerated(uint64(l))
+		}
+	}
+>>>>>>> tags/v1.3.0
 	return n
 }
 
@@ -9517,6 +11695,15 @@ func (m *ServiceSpec) Size() (n int) {
 	n += 1 + l + sovGenerated(uint64(l))
 	l = len(m.LoadBalancerIP)
 	n += 1 + l + sovGenerated(uint64(l))
+<<<<<<< HEAD
+=======
+	if len(m.LoadBalancerSourceRanges) > 0 {
+		for _, s := range m.LoadBalancerSourceRanges {
+			l = len(s)
+			n += 1 + l + sovGenerated(uint64(l))
+		}
+	}
+>>>>>>> tags/v1.3.0
 	return n
 }
 
@@ -9528,20 +11715,52 @@ func (m *ServiceStatus) Size() (n int) {
 	return n
 }
 
+<<<<<<< HEAD
 func (m *Subnet) Size() (n int) {
 	var l int
 	_ = l
 	l = len(m.CIDR)
 	n += 1 + l + sovGenerated(uint64(l))
 	l = len(m.Gateway)
-	n += 1 + l + sovGenerated(uint64(l))
-	return n
-}
-
+=======
 func (m *TCPSocketAction) Size() (n int) {
 	var l int
 	_ = l
 	l = m.Port.Size()
+	n += 1 + l + sovGenerated(uint64(l))
+	return n
+}
+
+func (m *Taint) Size() (n int) {
+	var l int
+	_ = l
+	l = len(m.Key)
+	n += 1 + l + sovGenerated(uint64(l))
+	l = len(m.Value)
+	n += 1 + l + sovGenerated(uint64(l))
+	l = len(m.Effect)
+>>>>>>> tags/v1.3.0
+	n += 1 + l + sovGenerated(uint64(l))
+	return n
+}
+
+<<<<<<< HEAD
+func (m *TCPSocketAction) Size() (n int) {
+	var l int
+	_ = l
+	l = m.Port.Size()
+=======
+func (m *Toleration) Size() (n int) {
+	var l int
+	_ = l
+	l = len(m.Key)
+	n += 1 + l + sovGenerated(uint64(l))
+	l = len(m.Operator)
+	n += 1 + l + sovGenerated(uint64(l))
+	l = len(m.Value)
+	n += 1 + l + sovGenerated(uint64(l))
+	l = len(m.Effect)
+>>>>>>> tags/v1.3.0
 	n += 1 + l + sovGenerated(uint64(l))
 	return n
 }
@@ -9564,6 +11783,11 @@ func (m *VolumeMount) Size() (n int) {
 	n += 2
 	l = len(m.MountPath)
 	n += 1 + l + sovGenerated(uint64(l))
+<<<<<<< HEAD
+=======
+	l = len(m.SubPath)
+	n += 1 + l + sovGenerated(uint64(l))
+>>>>>>> tags/v1.3.0
 	return n
 }
 
@@ -9646,6 +11870,32 @@ func (m *VolumeSource) Size() (n int) {
 		l = m.ConfigMap.Size()
 		n += 2 + l + sovGenerated(uint64(l))
 	}
+<<<<<<< HEAD
+=======
+	if m.VsphereVolume != nil {
+		l = m.VsphereVolume.Size()
+		n += 2 + l + sovGenerated(uint64(l))
+	}
+	return n
+}
+
+func (m *VsphereVirtualDiskVolumeSource) Size() (n int) {
+	var l int
+	_ = l
+	l = len(m.VolumePath)
+	n += 1 + l + sovGenerated(uint64(l))
+	l = len(m.FSType)
+	n += 1 + l + sovGenerated(uint64(l))
+	return n
+}
+
+func (m *WeightedPodAffinityTerm) Size() (n int) {
+	var l int
+	_ = l
+	n += 1 + sovGenerated(uint64(m.Weight))
+	l = m.PodAffinityTerm.Size()
+	n += 1 + l + sovGenerated(uint64(l))
+>>>>>>> tags/v1.3.0
 	return n
 }
 
@@ -9871,6 +12121,183 @@ func (m *Affinity) Unmarshal(data []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+<<<<<<< HEAD
+=======
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PodAffinity", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.PodAffinity == nil {
+				m.PodAffinity = &PodAffinity{}
+			}
+			if err := m.PodAffinity.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PodAntiAffinity", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.PodAntiAffinity == nil {
+				m.PodAntiAffinity = &PodAntiAffinity{}
+			}
+			if err := m.PodAntiAffinity.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipGenerated(data[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *AttachedVolume) Unmarshal(data []byte) error {
+	l := len(data)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowGenerated
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := data[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: AttachedVolume: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: AttachedVolume: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Name", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				stringLen |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Name = UniqueVolumeName(data[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DevicePath", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				stringLen |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.DevicePath = string(data[iNdEx:postIndex])
+			iNdEx = postIndex
+>>>>>>> tags/v1.3.0
 		default:
 			iNdEx = preIndex
 			skippy, err := skipGenerated(data[iNdEx:])
@@ -10564,6 +12991,7 @@ func (m *CinderVolumeSource) Unmarshal(data []byte) error {
 				}
 			}
 			m.ReadOnly = bool(v != 0)
+<<<<<<< HEAD
 		case 4:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field WithOpenStackCP", wireType)
@@ -10584,6 +13012,8 @@ func (m *CinderVolumeSource) Unmarshal(data []byte) error {
 				}
 			}
 			m.WithOpenStackCP = bool(v != 0)
+=======
+>>>>>>> tags/v1.3.0
 		default:
 			iNdEx = preIndex
 			skippy, err := skipGenerated(data[iNdEx:])
@@ -13311,6 +15741,63 @@ func (m *DeleteOptions) Unmarshal(data []byte) error {
 				}
 			}
 			m.GracePeriodSeconds = &v
+<<<<<<< HEAD
+=======
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Preconditions", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Preconditions == nil {
+				m.Preconditions = &Preconditions{}
+			}
+			if err := m.Preconditions.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field OrphanDependents", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				v |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			b := bool(v != 0)
+			m.OrphanDependents = &b
+>>>>>>> tags/v1.3.0
 		default:
 			iNdEx = preIndex
 			skippy, err := skipGenerated(data[iNdEx:])
@@ -13416,10 +15903,17 @@ func (m *DownwardAPIVolumeFile) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
+<<<<<<< HEAD
+=======
+			if m.FieldRef == nil {
+				m.FieldRef = &ObjectFieldSelector{}
+			}
+>>>>>>> tags/v1.3.0
 			if err := m.FieldRef.Unmarshal(data[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
+<<<<<<< HEAD
 		default:
 			iNdEx = preIndex
 			skippy, err := skipGenerated(data[iNdEx:])
@@ -13473,6 +15967,11 @@ func (m *DownwardAPIVolumeSource) Unmarshal(data []byte) error {
 		case 1:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Items", wireType)
+=======
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ResourceFieldRef", wireType)
+>>>>>>> tags/v1.3.0
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -13496,8 +15995,15 @@ func (m *DownwardAPIVolumeSource) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
+<<<<<<< HEAD
 			m.Items = append(m.Items, DownwardAPIVolumeFile{})
 			if err := m.Items[len(m.Items)-1].Unmarshal(data[iNdEx:postIndex]); err != nil {
+=======
+			if m.ResourceFieldRef == nil {
+				m.ResourceFieldRef = &ResourceFieldSelector{}
+			}
+			if err := m.ResourceFieldRef.Unmarshal(data[iNdEx:postIndex]); err != nil {
+>>>>>>> tags/v1.3.0
 				return err
 			}
 			iNdEx = postIndex
@@ -13522,7 +16028,11 @@ func (m *DownwardAPIVolumeSource) Unmarshal(data []byte) error {
 	}
 	return nil
 }
+<<<<<<< HEAD
 func (m *EmptyDirVolumeSource) Unmarshal(data []byte) error {
+=======
+func (m *DownwardAPIVolumeSource) Unmarshal(data []byte) error {
+>>>>>>> tags/v1.3.0
 	l := len(data)
 	iNdEx := 0
 	for iNdEx < l {
@@ -13545,17 +16055,30 @@ func (m *EmptyDirVolumeSource) Unmarshal(data []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
+<<<<<<< HEAD
 			return fmt.Errorf("proto: EmptyDirVolumeSource: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
 			return fmt.Errorf("proto: EmptyDirVolumeSource: illegal tag %d (wire type %d)", fieldNum, wire)
+=======
+			return fmt.Errorf("proto: DownwardAPIVolumeSource: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: DownwardAPIVolumeSource: illegal tag %d (wire type %d)", fieldNum, wire)
+>>>>>>> tags/v1.3.0
 		}
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
+<<<<<<< HEAD
 				return fmt.Errorf("proto: wrong wireType = %d for field Medium", wireType)
 			}
 			var stringLen uint64
+=======
+				return fmt.Errorf("proto: wrong wireType = %d for field Items", wireType)
+			}
+			var msglen int
+>>>>>>> tags/v1.3.0
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowGenerated
@@ -13565,11 +16088,16 @@ func (m *EmptyDirVolumeSource) Unmarshal(data []byte) error {
 				}
 				b := data[iNdEx]
 				iNdEx++
+<<<<<<< HEAD
 				stringLen |= (uint64(b) & 0x7F) << shift
+=======
+				msglen |= (int(b) & 0x7F) << shift
+>>>>>>> tags/v1.3.0
 				if b < 0x80 {
 					break
 				}
 			}
+<<<<<<< HEAD
 			intStringLen := int(stringLen)
 			if intStringLen < 0 {
 				return ErrInvalidLengthGenerated
@@ -13579,6 +16107,19 @@ func (m *EmptyDirVolumeSource) Unmarshal(data []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.Medium = StorageMedium(data[iNdEx:postIndex])
+=======
+			if msglen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Items = append(m.Items, DownwardAPIVolumeFile{})
+			if err := m.Items[len(m.Items)-1].Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+>>>>>>> tags/v1.3.0
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -13601,7 +16142,11 @@ func (m *EmptyDirVolumeSource) Unmarshal(data []byte) error {
 	}
 	return nil
 }
+<<<<<<< HEAD
 func (m *EndpointAddress) Unmarshal(data []byte) error {
+=======
+func (m *EmptyDirVolumeSource) Unmarshal(data []byte) error {
+>>>>>>> tags/v1.3.0
 	l := len(data)
 	iNdEx := 0
 	for iNdEx < l {
@@ -13624,15 +16169,26 @@ func (m *EndpointAddress) Unmarshal(data []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
+<<<<<<< HEAD
 			return fmt.Errorf("proto: EndpointAddress: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
 			return fmt.Errorf("proto: EndpointAddress: illegal tag %d (wire type %d)", fieldNum, wire)
+=======
+			return fmt.Errorf("proto: EmptyDirVolumeSource: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: EmptyDirVolumeSource: illegal tag %d (wire type %d)", fieldNum, wire)
+>>>>>>> tags/v1.3.0
 		}
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
+<<<<<<< HEAD
 				return fmt.Errorf("proto: wrong wireType = %d for field IP", wireType)
+=======
+				return fmt.Errorf("proto: wrong wireType = %d for field Medium", wireType)
+>>>>>>> tags/v1.3.0
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
@@ -13657,6 +16213,7 @@ func (m *EndpointAddress) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
+<<<<<<< HEAD
 			m.IP = string(data[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 2:
@@ -13691,6 +16248,9 @@ func (m *EndpointAddress) Unmarshal(data []byte) error {
 			if err := m.TargetRef.Unmarshal(data[iNdEx:postIndex]); err != nil {
 				return err
 			}
+=======
+			m.Medium = StorageMedium(data[iNdEx:postIndex])
+>>>>>>> tags/v1.3.0
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -13713,7 +16273,11 @@ func (m *EndpointAddress) Unmarshal(data []byte) error {
 	}
 	return nil
 }
+<<<<<<< HEAD
 func (m *EndpointPort) Unmarshal(data []byte) error {
+=======
+func (m *EndpointAddress) Unmarshal(data []byte) error {
+>>>>>>> tags/v1.3.0
 	l := len(data)
 	iNdEx := 0
 	for iNdEx < l {
@@ -13736,15 +16300,26 @@ func (m *EndpointPort) Unmarshal(data []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
+<<<<<<< HEAD
 			return fmt.Errorf("proto: EndpointPort: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
 			return fmt.Errorf("proto: EndpointPort: illegal tag %d (wire type %d)", fieldNum, wire)
+=======
+			return fmt.Errorf("proto: EndpointAddress: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: EndpointAddress: illegal tag %d (wire type %d)", fieldNum, wire)
+>>>>>>> tags/v1.3.0
 		}
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
+<<<<<<< HEAD
 				return fmt.Errorf("proto: wrong wireType = %d for field Name", wireType)
+=======
+				return fmt.Errorf("proto: wrong wireType = %d for field IP", wireType)
+>>>>>>> tags/v1.3.0
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
@@ -13769,6 +16344,7 @@ func (m *EndpointPort) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
+<<<<<<< HEAD
 			m.Name = string(data[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 2:
@@ -13776,6 +16352,15 @@ func (m *EndpointPort) Unmarshal(data []byte) error {
 				return fmt.Errorf("proto: wrong wireType = %d for field Port", wireType)
 			}
 			m.Port = 0
+=======
+			m.IP = string(data[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TargetRef", wireType)
+			}
+			var msglen int
+>>>>>>> tags/v1.3.0
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowGenerated
@@ -13785,14 +16370,38 @@ func (m *EndpointPort) Unmarshal(data []byte) error {
 				}
 				b := data[iNdEx]
 				iNdEx++
+<<<<<<< HEAD
 				m.Port |= (int32(b) & 0x7F) << shift
+=======
+				msglen |= (int(b) & 0x7F) << shift
+>>>>>>> tags/v1.3.0
 				if b < 0x80 {
 					break
 				}
 			}
+<<<<<<< HEAD
 		case 3:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Protocol", wireType)
+=======
+			if msglen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.TargetRef == nil {
+				m.TargetRef = &ObjectReference{}
+			}
+			if err := m.TargetRef.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Hostname", wireType)
+>>>>>>> tags/v1.3.0
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
@@ -13817,7 +16426,11 @@ func (m *EndpointPort) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
+<<<<<<< HEAD
 			m.Protocol = Protocol(data[iNdEx:postIndex])
+=======
+			m.Hostname = string(data[iNdEx:postIndex])
+>>>>>>> tags/v1.3.0
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -13840,7 +16453,11 @@ func (m *EndpointPort) Unmarshal(data []byte) error {
 	}
 	return nil
 }
+<<<<<<< HEAD
 func (m *EndpointSubset) Unmarshal(data []byte) error {
+=======
+func (m *EndpointPort) Unmarshal(data []byte) error {
+>>>>>>> tags/v1.3.0
 	l := len(data)
 	iNdEx := 0
 	for iNdEx < l {
@@ -13863,17 +16480,30 @@ func (m *EndpointSubset) Unmarshal(data []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
+<<<<<<< HEAD
 			return fmt.Errorf("proto: EndpointSubset: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
 			return fmt.Errorf("proto: EndpointSubset: illegal tag %d (wire type %d)", fieldNum, wire)
+=======
+			return fmt.Errorf("proto: EndpointPort: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: EndpointPort: illegal tag %d (wire type %d)", fieldNum, wire)
+>>>>>>> tags/v1.3.0
 		}
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
+<<<<<<< HEAD
 				return fmt.Errorf("proto: wrong wireType = %d for field Addresses", wireType)
 			}
 			var msglen int
+=======
+				return fmt.Errorf("proto: wrong wireType = %d for field Name", wireType)
+			}
+			var stringLen uint64
+>>>>>>> tags/v1.3.0
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowGenerated
@@ -13883,11 +16513,16 @@ func (m *EndpointSubset) Unmarshal(data []byte) error {
 				}
 				b := data[iNdEx]
 				iNdEx++
+<<<<<<< HEAD
 				msglen |= (int(b) & 0x7F) << shift
+=======
+				stringLen |= (uint64(b) & 0x7F) << shift
+>>>>>>> tags/v1.3.0
 				if b < 0x80 {
 					break
 				}
 			}
+<<<<<<< HEAD
 			if msglen < 0 {
 				return ErrInvalidLengthGenerated
 			}
@@ -13905,6 +16540,178 @@ func (m *EndpointSubset) Unmarshal(data []byte) error {
 				return fmt.Errorf("proto: wrong wireType = %d for field NotReadyAddresses", wireType)
 			}
 			var msglen int
+=======
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Name = string(data[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Port", wireType)
+			}
+			m.Port = 0
+>>>>>>> tags/v1.3.0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+<<<<<<< HEAD
+				msglen |= (int(b) & 0x7F) << shift
+=======
+				m.Port |= (int32(b) & 0x7F) << shift
+>>>>>>> tags/v1.3.0
+				if b < 0x80 {
+					break
+				}
+			}
+<<<<<<< HEAD
+			if msglen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.NotReadyAddresses = append(m.NotReadyAddresses, EndpointAddress{})
+			if err := m.NotReadyAddresses[len(m.NotReadyAddresses)-1].Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Ports", wireType)
+			}
+			var msglen int
+=======
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Protocol", wireType)
+			}
+			var stringLen uint64
+>>>>>>> tags/v1.3.0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+<<<<<<< HEAD
+				msglen |= (int(b) & 0x7F) << shift
+=======
+				stringLen |= (uint64(b) & 0x7F) << shift
+>>>>>>> tags/v1.3.0
+				if b < 0x80 {
+					break
+				}
+			}
+<<<<<<< HEAD
+			if msglen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Ports = append(m.Ports, EndpointPort{})
+			if err := m.Ports[len(m.Ports)-1].Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+=======
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Protocol = Protocol(data[iNdEx:postIndex])
+>>>>>>> tags/v1.3.0
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipGenerated(data[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+<<<<<<< HEAD
+func (m *Endpoints) Unmarshal(data []byte) error {
+=======
+func (m *EndpointSubset) Unmarshal(data []byte) error {
+>>>>>>> tags/v1.3.0
+	l := len(data)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowGenerated
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := data[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+<<<<<<< HEAD
+			return fmt.Errorf("proto: Endpoints: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: Endpoints: illegal tag %d (wire type %d)", fieldNum, wire)
+=======
+			return fmt.Errorf("proto: EndpointSubset: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: EndpointSubset: illegal tag %d (wire type %d)", fieldNum, wire)
+>>>>>>> tags/v1.3.0
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+<<<<<<< HEAD
+				return fmt.Errorf("proto: wrong wireType = %d for field ObjectMeta", wireType)
+=======
+				return fmt.Errorf("proto: wrong wireType = %d for field Addresses", wireType)
+>>>>>>> tags/v1.3.0
+			}
+			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowGenerated
@@ -13926,6 +16733,49 @@ func (m *EndpointSubset) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
+<<<<<<< HEAD
+			if err := m.ObjectMeta.Unmarshal(data[iNdEx:postIndex]); err != nil {
+=======
+			m.Addresses = append(m.Addresses, EndpointAddress{})
+			if err := m.Addresses[len(m.Addresses)-1].Unmarshal(data[iNdEx:postIndex]); err != nil {
+>>>>>>> tags/v1.3.0
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+<<<<<<< HEAD
+				return fmt.Errorf("proto: wrong wireType = %d for field Subsets", wireType)
+=======
+				return fmt.Errorf("proto: wrong wireType = %d for field NotReadyAddresses", wireType)
+>>>>>>> tags/v1.3.0
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+<<<<<<< HEAD
+			m.Subsets = append(m.Subsets, EndpointSubset{})
+			if err := m.Subsets[len(m.Subsets)-1].Unmarshal(data[iNdEx:postIndex]); err != nil {
+=======
 			m.NotReadyAddresses = append(m.NotReadyAddresses, EndpointAddress{})
 			if err := m.NotReadyAddresses[len(m.NotReadyAddresses)-1].Unmarshal(data[iNdEx:postIndex]); err != nil {
 				return err
@@ -13959,6 +16809,7 @@ func (m *EndpointSubset) Unmarshal(data []byte) error {
 			}
 			m.Ports = append(m.Ports, EndpointPort{})
 			if err := m.Ports[len(m.Ports)-1].Unmarshal(data[iNdEx:postIndex]); err != nil {
+>>>>>>> tags/v1.3.0
 				return err
 			}
 			iNdEx = postIndex
@@ -13983,7 +16834,11 @@ func (m *EndpointSubset) Unmarshal(data []byte) error {
 	}
 	return nil
 }
+<<<<<<< HEAD
+func (m *EndpointsList) Unmarshal(data []byte) error {
+=======
 func (m *Endpoints) Unmarshal(data []byte) error {
+>>>>>>> tags/v1.3.0
 	l := len(data)
 	iNdEx := 0
 	for iNdEx < l {
@@ -14006,15 +16861,26 @@ func (m *Endpoints) Unmarshal(data []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
+<<<<<<< HEAD
+			return fmt.Errorf("proto: EndpointsList: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: EndpointsList: illegal tag %d (wire type %d)", fieldNum, wire)
+=======
 			return fmt.Errorf("proto: Endpoints: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
 			return fmt.Errorf("proto: Endpoints: illegal tag %d (wire type %d)", fieldNum, wire)
+>>>>>>> tags/v1.3.0
 		}
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
+<<<<<<< HEAD
+				return fmt.Errorf("proto: wrong wireType = %d for field ListMeta", wireType)
+=======
 				return fmt.Errorf("proto: wrong wireType = %d for field ObjectMeta", wireType)
+>>>>>>> tags/v1.3.0
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -14038,13 +16904,21 @@ func (m *Endpoints) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
+<<<<<<< HEAD
+			if err := m.ListMeta.Unmarshal(data[iNdEx:postIndex]); err != nil {
+=======
 			if err := m.ObjectMeta.Unmarshal(data[iNdEx:postIndex]); err != nil {
+>>>>>>> tags/v1.3.0
 				return err
 			}
 			iNdEx = postIndex
 		case 2:
 			if wireType != 2 {
+<<<<<<< HEAD
+				return fmt.Errorf("proto: wrong wireType = %d for field Items", wireType)
+=======
 				return fmt.Errorf("proto: wrong wireType = %d for field Subsets", wireType)
+>>>>>>> tags/v1.3.0
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -14068,8 +16942,13 @@ func (m *Endpoints) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
+<<<<<<< HEAD
+			m.Items = append(m.Items, Endpoints{})
+			if err := m.Items[len(m.Items)-1].Unmarshal(data[iNdEx:postIndex]); err != nil {
+=======
 			m.Subsets = append(m.Subsets, EndpointSubset{})
 			if err := m.Subsets[len(m.Subsets)-1].Unmarshal(data[iNdEx:postIndex]); err != nil {
+>>>>>>> tags/v1.3.0
 				return err
 			}
 			iNdEx = postIndex
@@ -14094,7 +16973,11 @@ func (m *Endpoints) Unmarshal(data []byte) error {
 	}
 	return nil
 }
+<<<<<<< HEAD
+func (m *EnvVar) Unmarshal(data []byte) error {
+=======
 func (m *EndpointsList) Unmarshal(data []byte) error {
+>>>>>>> tags/v1.3.0
 	l := len(data)
 	iNdEx := 0
 	for iNdEx < l {
@@ -14117,14 +17000,82 @@ func (m *EndpointsList) Unmarshal(data []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
+<<<<<<< HEAD
+			return fmt.Errorf("proto: EnvVar: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: EnvVar: illegal tag %d (wire type %d)", fieldNum, wire)
+=======
 			return fmt.Errorf("proto: EndpointsList: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
 			return fmt.Errorf("proto: EndpointsList: illegal tag %d (wire type %d)", fieldNum, wire)
+>>>>>>> tags/v1.3.0
 		}
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
+<<<<<<< HEAD
+				return fmt.Errorf("proto: wrong wireType = %d for field Name", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				stringLen |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Name = string(data[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Value", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				stringLen |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Value = string(data[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ValueFrom", wireType)
+=======
 				return fmt.Errorf("proto: wrong wireType = %d for field ListMeta", wireType)
 			}
 			var msglen int
@@ -14295,6 +17246,7 @@ func (m *EnvVar) Unmarshal(data []byte) error {
 		case 3:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field ValueFrom", wireType)
+>>>>>>> tags/v1.3.0
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -14410,6 +17362,42 @@ func (m *EnvVarSource) Unmarshal(data []byte) error {
 			iNdEx = postIndex
 		case 2:
 			if wireType != 2 {
+<<<<<<< HEAD
+=======
+				return fmt.Errorf("proto: wrong wireType = %d for field ResourceFieldRef", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.ResourceFieldRef == nil {
+				m.ResourceFieldRef = &ResourceFieldSelector{}
+			}
+			if err := m.ResourceFieldRef.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+>>>>>>> tags/v1.3.0
 				return fmt.Errorf("proto: wrong wireType = %d for field ConfigMapKeyRef", wireType)
 			}
 			var msglen int
@@ -14441,7 +17429,11 @@ func (m *EnvVarSource) Unmarshal(data []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+<<<<<<< HEAD
 		case 3:
+=======
+		case 4:
+>>>>>>> tags/v1.3.0
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field SecretKeyRef", wireType)
 			}
@@ -19017,6 +22009,7 @@ func (m *NamespaceSpec) Unmarshal(data []byte) error {
 			}
 			m.Finalizers = append(m.Finalizers, FinalizerName(data[iNdEx:postIndex]))
 			iNdEx = postIndex
+<<<<<<< HEAD
 		case 2:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Network", wireType)
@@ -19046,6 +22039,8 @@ func (m *NamespaceSpec) Unmarshal(data []byte) error {
 			}
 			m.Network = string(data[iNdEx:postIndex])
 			iNdEx = postIndex
+=======
+>>>>>>> tags/v1.3.0
 		default:
 			iNdEx = preIndex
 			skippy, err := skipGenerated(data[iNdEx:])
@@ -19146,7 +22141,11 @@ func (m *NamespaceStatus) Unmarshal(data []byte) error {
 	}
 	return nil
 }
+<<<<<<< HEAD
 func (m *Network) Unmarshal(data []byte) error {
+=======
+func (m *Node) Unmarshal(data []byte) error {
+>>>>>>> tags/v1.3.0
 	l := len(data)
 	iNdEx := 0
 	for iNdEx < l {
@@ -19169,10 +22168,17 @@ func (m *Network) Unmarshal(data []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
+<<<<<<< HEAD
 			return fmt.Errorf("proto: Network: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
 			return fmt.Errorf("proto: Network: illegal tag %d (wire type %d)", fieldNum, wire)
+=======
+			return fmt.Errorf("proto: Node: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: Node: illegal tag %d (wire type %d)", fieldNum, wire)
+>>>>>>> tags/v1.3.0
 		}
 		switch fieldNum {
 		case 1:
@@ -19286,7 +22292,11 @@ func (m *Network) Unmarshal(data []byte) error {
 	}
 	return nil
 }
+<<<<<<< HEAD
 func (m *NetworkList) Unmarshal(data []byte) error {
+=======
+func (m *NodeAddress) Unmarshal(data []byte) error {
+>>>>>>> tags/v1.3.0
 	l := len(data)
 	iNdEx := 0
 	for iNdEx < l {
@@ -19309,17 +22319,30 @@ func (m *NetworkList) Unmarshal(data []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
+<<<<<<< HEAD
 			return fmt.Errorf("proto: NetworkList: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
 			return fmt.Errorf("proto: NetworkList: illegal tag %d (wire type %d)", fieldNum, wire)
+=======
+			return fmt.Errorf("proto: NodeAddress: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: NodeAddress: illegal tag %d (wire type %d)", fieldNum, wire)
+>>>>>>> tags/v1.3.0
 		}
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
+<<<<<<< HEAD
 				return fmt.Errorf("proto: wrong wireType = %d for field ListMeta", wireType)
 			}
 			var msglen int
+=======
+				return fmt.Errorf("proto: wrong wireType = %d for field Type", wireType)
+			}
+			var stringLen uint64
+>>>>>>> tags/v1.3.0
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowGenerated
@@ -19329,11 +22352,16 @@ func (m *NetworkList) Unmarshal(data []byte) error {
 				}
 				b := data[iNdEx]
 				iNdEx++
+<<<<<<< HEAD
 				msglen |= (int(b) & 0x7F) << shift
+=======
+				stringLen |= (uint64(b) & 0x7F) << shift
+>>>>>>> tags/v1.3.0
 				if b < 0x80 {
 					break
 				}
 			}
+<<<<<<< HEAD
 			if msglen < 0 {
 				return ErrInvalidLengthGenerated
 			}
@@ -19350,6 +22378,135 @@ func (m *NetworkList) Unmarshal(data []byte) error {
 				return fmt.Errorf("proto: wrong wireType = %d for field Items", wireType)
 			}
 			var msglen int
+=======
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Type = NodeAddressType(data[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Address", wireType)
+			}
+			var stringLen uint64
+>>>>>>> tags/v1.3.0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+<<<<<<< HEAD
+				msglen |= (int(b) & 0x7F) << shift
+=======
+				stringLen |= (uint64(b) & 0x7F) << shift
+>>>>>>> tags/v1.3.0
+				if b < 0x80 {
+					break
+				}
+			}
+<<<<<<< HEAD
+			if msglen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Items = append(m.Items, Network{})
+			if err := m.Items[len(m.Items)-1].Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+=======
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Address = string(data[iNdEx:postIndex])
+>>>>>>> tags/v1.3.0
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipGenerated(data[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+<<<<<<< HEAD
+func (m *NetworkSpec) Unmarshal(data []byte) error {
+=======
+func (m *NodeAffinity) Unmarshal(data []byte) error {
+>>>>>>> tags/v1.3.0
+	l := len(data)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowGenerated
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := data[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+<<<<<<< HEAD
+			return fmt.Errorf("proto: NetworkSpec: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: NetworkSpec: illegal tag %d (wire type %d)", fieldNum, wire)
+=======
+			return fmt.Errorf("proto: NodeAffinity: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: NodeAffinity: illegal tag %d (wire type %d)", fieldNum, wire)
+>>>>>>> tags/v1.3.0
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+<<<<<<< HEAD
+				return fmt.Errorf("proto: wrong wireType = %d for field Subnets", wireType)
+=======
+				return fmt.Errorf("proto: wrong wireType = %d for field RequiredDuringSchedulingIgnoredDuringExecution", wireType)
+>>>>>>> tags/v1.3.0
+			}
+			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowGenerated
@@ -19371,8 +22528,52 @@ func (m *NetworkList) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Items = append(m.Items, Network{})
-			if err := m.Items[len(m.Items)-1].Unmarshal(data[iNdEx:postIndex]); err != nil {
+<<<<<<< HEAD
+			var keykey uint64
+=======
+			if m.RequiredDuringSchedulingIgnoredDuringExecution == nil {
+				m.RequiredDuringSchedulingIgnoredDuringExecution = &NodeSelector{}
+			}
+			if err := m.RequiredDuringSchedulingIgnoredDuringExecution.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PreferredDuringSchedulingIgnoredDuringExecution", wireType)
+			}
+			var msglen int
+>>>>>>> tags/v1.3.0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+<<<<<<< HEAD
+				keykey |= (uint64(b) & 0x7F) << shift
+=======
+				msglen |= (int(b) & 0x7F) << shift
+>>>>>>> tags/v1.3.0
+				if b < 0x80 {
+					break
+				}
+			}
+<<<<<<< HEAD
+			var stringLenmapkey uint64
+=======
+			if msglen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.PreferredDuringSchedulingIgnoredDuringExecution = append(m.PreferredDuringSchedulingIgnoredDuringExecution, PreferredSchedulingTerm{})
+			if err := m.PreferredDuringSchedulingIgnoredDuringExecution[len(m.PreferredDuringSchedulingIgnoredDuringExecution)-1].Unmarshal(data[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -19397,7 +22598,7 @@ func (m *NetworkList) Unmarshal(data []byte) error {
 	}
 	return nil
 }
-func (m *NetworkSpec) Unmarshal(data []byte) error {
+func (m *NodeCondition) Unmarshal(data []byte) error {
 	l := len(data)
 	iNdEx := 0
 	for iNdEx < l {
@@ -19420,17 +22621,18 @@ func (m *NetworkSpec) Unmarshal(data []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: NetworkSpec: wiretype end group for non-group")
+			return fmt.Errorf("proto: NodeCondition: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: NetworkSpec: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: NodeCondition: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Subnets", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Type", wireType)
 			}
-			var msglen int
+			var stringLen uint64
+>>>>>>> tags/v1.3.0
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowGenerated
@@ -19440,48 +22642,16 @@ func (m *NetworkSpec) Unmarshal(data []byte) error {
 				}
 				b := data[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthGenerated
-			}
-			postIndex := iNdEx + msglen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			var keykey uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowGenerated
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := data[iNdEx]
-				iNdEx++
-				keykey |= (uint64(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			var stringLenmapkey uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowGenerated
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := data[iNdEx]
-				iNdEx++
+<<<<<<< HEAD
 				stringLenmapkey |= (uint64(b) & 0x7F) << shift
+=======
+				stringLen |= (uint64(b) & 0x7F) << shift
+>>>>>>> tags/v1.3.0
 				if b < 0x80 {
 					break
 				}
 			}
+<<<<<<< HEAD
 			intStringLenmapkey := int(stringLenmapkey)
 			if intStringLenmapkey < 0 {
 				return ErrInvalidLengthGenerated
@@ -19493,6 +22663,23 @@ func (m *NetworkSpec) Unmarshal(data []byte) error {
 			mapkey := string(data[iNdEx:postStringIndexmapkey])
 			iNdEx = postStringIndexmapkey
 			var valuekey uint64
+=======
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Type = NodeConditionType(data[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Status", wireType)
+			}
+			var stringLen uint64
+>>>>>>> tags/v1.3.0
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowGenerated
@@ -19502,12 +22689,34 @@ func (m *NetworkSpec) Unmarshal(data []byte) error {
 				}
 				b := data[iNdEx]
 				iNdEx++
+<<<<<<< HEAD
 				valuekey |= (uint64(b) & 0x7F) << shift
+=======
+				stringLen |= (uint64(b) & 0x7F) << shift
+>>>>>>> tags/v1.3.0
 				if b < 0x80 {
 					break
 				}
 			}
+<<<<<<< HEAD
 			var mapmsglen int
+=======
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Status = ConditionStatus(data[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LastHeartbeatTime", wireType)
+			}
+			var msglen int
+>>>>>>> tags/v1.3.0
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowGenerated
@@ -19517,11 +22726,16 @@ func (m *NetworkSpec) Unmarshal(data []byte) error {
 				}
 				b := data[iNdEx]
 				iNdEx++
+<<<<<<< HEAD
 				mapmsglen |= (int(b) & 0x7F) << shift
+=======
+				msglen |= (int(b) & 0x7F) << shift
+>>>>>>> tags/v1.3.0
 				if b < 0x80 {
 					break
 				}
 			}
+<<<<<<< HEAD
 			if mapmsglen < 0 {
 				return ErrInvalidLengthGenerated
 			}
@@ -19545,193 +22759,21 @@ func (m *NetworkSpec) Unmarshal(data []byte) error {
 		case 2:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field ProviderNetworkID", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowGenerated
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := data[iNdEx]
-				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
+=======
+			if msglen < 0 {
 				return ErrInvalidLengthGenerated
 			}
-			postIndex := iNdEx + intStringLen
+			postIndex := iNdEx + msglen
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.ProviderNetworkID = string(data[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 3:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field TenantID", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowGenerated
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := data[iNdEx]
-				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLengthGenerated
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.TenantID = string(data[iNdEx:postIndex])
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipGenerated(data[iNdEx:])
-			if err != nil {
+			if err := m.LastHeartbeatTime.Unmarshal(data[iNdEx:postIndex]); err != nil {
 				return err
 			}
-			if skippy < 0 {
-				return ErrInvalidLengthGenerated
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *NetworkStatus) Unmarshal(data []byte) error {
-	l := len(data)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowGenerated
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := data[iNdEx]
-			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: NetworkStatus: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: NetworkStatus: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Phase", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowGenerated
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := data[iNdEx]
-				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLengthGenerated
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Phase = NetworkPhase(data[iNdEx:postIndex])
 			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipGenerated(data[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				return ErrInvalidLengthGenerated
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *Node) Unmarshal(data []byte) error {
-	l := len(data)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowGenerated
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := data[iNdEx]
-			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: Node: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: Node: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
+		case 4:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ObjectMeta", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field LastTransitionTime", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -19755,12 +22797,296 @@ func (m *Node) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
+			if err := m.LastTransitionTime.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Reason", wireType)
+>>>>>>> tags/v1.3.0
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				stringLen |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+<<<<<<< HEAD
+			m.ProviderNetworkID = string(data[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TenantID", wireType)
+=======
+			m.Reason = string(data[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Message", wireType)
+>>>>>>> tags/v1.3.0
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				stringLen |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+<<<<<<< HEAD
+			m.TenantID = string(data[iNdEx:postIndex])
+=======
+			m.Message = string(data[iNdEx:postIndex])
+>>>>>>> tags/v1.3.0
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipGenerated(data[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+<<<<<<< HEAD
+func (m *NetworkStatus) Unmarshal(data []byte) error {
+=======
+func (m *NodeDaemonEndpoints) Unmarshal(data []byte) error {
+>>>>>>> tags/v1.3.0
+	l := len(data)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowGenerated
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := data[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+<<<<<<< HEAD
+			return fmt.Errorf("proto: NetworkStatus: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: NetworkStatus: illegal tag %d (wire type %d)", fieldNum, wire)
+=======
+			return fmt.Errorf("proto: NodeDaemonEndpoints: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: NodeDaemonEndpoints: illegal tag %d (wire type %d)", fieldNum, wire)
+>>>>>>> tags/v1.3.0
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+<<<<<<< HEAD
+				return fmt.Errorf("proto: wrong wireType = %d for field Phase", wireType)
+			}
+			var stringLen uint64
+=======
+				return fmt.Errorf("proto: wrong wireType = %d for field KubeletEndpoint", wireType)
+			}
+			var msglen int
+>>>>>>> tags/v1.3.0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+<<<<<<< HEAD
+				stringLen |= (uint64(b) & 0x7F) << shift
+=======
+				msglen |= (int(b) & 0x7F) << shift
+>>>>>>> tags/v1.3.0
+				if b < 0x80 {
+					break
+				}
+			}
+<<<<<<< HEAD
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Phase = NetworkPhase(data[iNdEx:postIndex])
+=======
+			if msglen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.KubeletEndpoint.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+>>>>>>> tags/v1.3.0
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipGenerated(data[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+<<<<<<< HEAD
+func (m *Node) Unmarshal(data []byte) error {
+=======
+func (m *NodeList) Unmarshal(data []byte) error {
+>>>>>>> tags/v1.3.0
+	l := len(data)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowGenerated
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := data[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+<<<<<<< HEAD
+			return fmt.Errorf("proto: Node: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: Node: illegal tag %d (wire type %d)", fieldNum, wire)
+=======
+			return fmt.Errorf("proto: NodeList: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: NodeList: illegal tag %d (wire type %d)", fieldNum, wire)
+>>>>>>> tags/v1.3.0
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+<<<<<<< HEAD
+				return fmt.Errorf("proto: wrong wireType = %d for field ObjectMeta", wireType)
+=======
+				return fmt.Errorf("proto: wrong wireType = %d for field ListMeta", wireType)
+>>>>>>> tags/v1.3.0
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+<<<<<<< HEAD
 			if err := m.ObjectMeta.Unmarshal(data[iNdEx:postIndex]); err != nil {
+=======
+			if err := m.ListMeta.Unmarshal(data[iNdEx:postIndex]); err != nil {
+>>>>>>> tags/v1.3.0
 				return err
 			}
 			iNdEx = postIndex
 		case 2:
 			if wireType != 2 {
+<<<<<<< HEAD
 				return fmt.Errorf("proto: wrong wireType = %d for field Spec", wireType)
 			}
 			var msglen int
@@ -19792,6 +23118,9 @@ func (m *Node) Unmarshal(data []byte) error {
 		case 3:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Status", wireType)
+=======
+				return fmt.Errorf("proto: wrong wireType = %d for field Items", wireType)
+>>>>>>> tags/v1.3.0
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -19815,7 +23144,12 @@ func (m *Node) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
+<<<<<<< HEAD
 			if err := m.Status.Unmarshal(data[iNdEx:postIndex]); err != nil {
+=======
+			m.Items = append(m.Items, Node{})
+			if err := m.Items[len(m.Items)-1].Unmarshal(data[iNdEx:postIndex]); err != nil {
+>>>>>>> tags/v1.3.0
 				return err
 			}
 			iNdEx = postIndex
@@ -19840,7 +23174,11 @@ func (m *Node) Unmarshal(data []byte) error {
 	}
 	return nil
 }
+<<<<<<< HEAD
 func (m *NodeAddress) Unmarshal(data []byte) error {
+=======
+func (m *NodeProxyOptions) Unmarshal(data []byte) error {
+>>>>>>> tags/v1.3.0
 	l := len(data)
 	iNdEx := 0
 	for iNdEx < l {
@@ -19863,14 +23201,22 @@ func (m *NodeAddress) Unmarshal(data []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
+<<<<<<< HEAD
 			return fmt.Errorf("proto: NodeAddress: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
 			return fmt.Errorf("proto: NodeAddress: illegal tag %d (wire type %d)", fieldNum, wire)
+=======
+			return fmt.Errorf("proto: NodeProxyOptions: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: NodeProxyOptions: illegal tag %d (wire type %d)", fieldNum, wire)
+>>>>>>> tags/v1.3.0
 		}
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
+<<<<<<< HEAD
 				return fmt.Errorf("proto: wrong wireType = %d for field Type", wireType)
 			}
 			var stringLen uint64
@@ -19901,6 +23247,9 @@ func (m *NodeAddress) Unmarshal(data []byte) error {
 		case 2:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Address", wireType)
+=======
+				return fmt.Errorf("proto: wrong wireType = %d for field Path", wireType)
+>>>>>>> tags/v1.3.0
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
@@ -19925,7 +23274,11 @@ func (m *NodeAddress) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
+<<<<<<< HEAD
 			m.Address = string(data[iNdEx:postIndex])
+=======
+			m.Path = string(data[iNdEx:postIndex])
+>>>>>>> tags/v1.3.0
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -19948,6 +23301,7 @@ func (m *NodeAddress) Unmarshal(data []byte) error {
 	}
 	return nil
 }
+<<<<<<< HEAD
 func (m *NodeAffinity) Unmarshal(data []byte) error {
 	l := len(data)
 	iNdEx := 0
@@ -20559,6 +23913,9 @@ func (m *NodeProxyOptions) Unmarshal(data []byte) error {
 	return nil
 }
 func (m *NodeSelector) Unmarshal(data []byte) error {
+=======
+func (m *NodeSelector) Unmarshal(data []byte) error {
+>>>>>>> tags/v1.3.0
 	l := len(data)
 	iNdEx := 0
 	for iNdEx < l {
@@ -21457,6 +24814,69 @@ func (m *NodeStatus) Unmarshal(data []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+<<<<<<< HEAD
+=======
+		case 9:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field VolumesInUse", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				stringLen |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.VolumesInUse = append(m.VolumesInUse, UniqueVolumeName(data[iNdEx:postIndex]))
+			iNdEx = postIndex
+		case 10:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field VolumesAttached", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.VolumesAttached = append(m.VolumesAttached, AttachedVolume{})
+			if err := m.VolumesAttached[len(m.VolumesAttached)-1].Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+>>>>>>> tags/v1.3.0
 		default:
 			iNdEx = preIndex
 			skippy, err := skipGenerated(data[iNdEx:])
@@ -21739,6 +25159,67 @@ func (m *NodeSystemInfo) Unmarshal(data []byte) error {
 			}
 			m.KubeProxyVersion = string(data[iNdEx:postIndex])
 			iNdEx = postIndex
+<<<<<<< HEAD
+=======
+		case 9:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field OperatingSystem", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				stringLen |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.OperatingSystem = string(data[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 10:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Architecture", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				stringLen |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Architecture = string(data[iNdEx:postIndex])
+			iNdEx = postIndex
+>>>>>>> tags/v1.3.0
 		default:
 			iNdEx = preIndex
 			skippy, err := skipGenerated(data[iNdEx:])
@@ -22395,6 +25876,69 @@ func (m *ObjectMeta) Unmarshal(data []byte) error {
 			}
 			m.Annotations[mapkey] = mapvalue
 			iNdEx = postIndex
+<<<<<<< HEAD
+=======
+		case 13:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field OwnerReferences", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.OwnerReferences = append(m.OwnerReferences, OwnerReference{})
+			if err := m.OwnerReferences[len(m.OwnerReferences)-1].Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 14:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Finalizers", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				stringLen |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Finalizers = append(m.Finalizers, string(data[iNdEx:postIndex]))
+			iNdEx = postIndex
+>>>>>>> tags/v1.3.0
 		default:
 			iNdEx = preIndex
 			skippy, err := skipGenerated(data[iNdEx:])
@@ -22669,6 +26213,196 @@ func (m *ObjectReference) Unmarshal(data []byte) error {
 	}
 	return nil
 }
+<<<<<<< HEAD
+=======
+func (m *OwnerReference) Unmarshal(data []byte) error {
+	l := len(data)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowGenerated
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := data[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: OwnerReference: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: OwnerReference: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Kind", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				stringLen |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Kind = string(data[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Name", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				stringLen |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Name = string(data[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field UID", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				stringLen |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.UID = k8s_io_kubernetes_pkg_types.UID(data[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field APIVersion", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				stringLen |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.APIVersion = string(data[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 6:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Controller", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				v |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			b := bool(v != 0)
+			m.Controller = &b
+		default:
+			iNdEx = preIndex
+			skippy, err := skipGenerated(data[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+>>>>>>> tags/v1.3.0
 func (m *PersistentVolume) Unmarshal(data []byte) error {
 	l := len(data)
 	iNdEx := 0
@@ -23177,6 +26911,42 @@ func (m *PersistentVolumeClaimSpec) Unmarshal(data []byte) error {
 			}
 			m.VolumeName = string(data[iNdEx:postIndex])
 			iNdEx = postIndex
+<<<<<<< HEAD
+=======
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Selector", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Selector == nil {
+				m.Selector = &k8s_io_kubernetes_pkg_api_unversioned.LabelSelector{}
+			}
+			if err := m.Selector.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+>>>>>>> tags/v1.3.0
 		default:
 			iNdEx = preIndex
 			skippy, err := skipGenerated(data[iNdEx:])
@@ -24090,6 +27860,42 @@ func (m *PersistentVolumeSource) Unmarshal(data []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+<<<<<<< HEAD
+=======
+		case 14:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field VsphereVolume", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.VsphereVolume == nil {
+				m.VsphereVolume = &VsphereVirtualDiskVolumeSource{}
+			}
+			if err := m.VsphereVolume.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+>>>>>>> tags/v1.3.0
 		default:
 			iNdEx = preIndex
 			skippy, err := skipGenerated(data[iNdEx:])
@@ -24341,6 +28147,44 @@ func (m *PersistentVolumeSpec) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
+<<<<<<< HEAD
+			if m.ClaimRef == nil {
+				m.ClaimRef = &ObjectReference{}
+			}
+			if err := m.ClaimRef.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PersistentVolumeReclaimPolicy", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				stringLen |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.PersistentVolumeReclaimPolicy = PersistentVolumeReclaimPolicy(data[iNdEx:postIndex])
+			iNdEx = postIndex
+=======
 			if m.ClaimRef == nil {
 				m.ClaimRef = &ObjectReference{}
 			}
@@ -24651,6 +28495,478 @@ func (m *Pod) Unmarshal(data []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			if err := m.Status.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipGenerated(data[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *PodAffinity) Unmarshal(data []byte) error {
+	l := len(data)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowGenerated
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := data[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: PodAffinity: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: PodAffinity: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RequiredDuringSchedulingIgnoredDuringExecution", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.RequiredDuringSchedulingIgnoredDuringExecution = append(m.RequiredDuringSchedulingIgnoredDuringExecution, PodAffinityTerm{})
+			if err := m.RequiredDuringSchedulingIgnoredDuringExecution[len(m.RequiredDuringSchedulingIgnoredDuringExecution)-1].Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PreferredDuringSchedulingIgnoredDuringExecution", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.PreferredDuringSchedulingIgnoredDuringExecution = append(m.PreferredDuringSchedulingIgnoredDuringExecution, WeightedPodAffinityTerm{})
+			if err := m.PreferredDuringSchedulingIgnoredDuringExecution[len(m.PreferredDuringSchedulingIgnoredDuringExecution)-1].Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+>>>>>>> tags/v1.3.0
+		default:
+			iNdEx = preIndex
+			skippy, err := skipGenerated(data[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+<<<<<<< HEAD
+func (m *PersistentVolumeStatus) Unmarshal(data []byte) error {
+=======
+func (m *PodAffinityTerm) Unmarshal(data []byte) error {
+>>>>>>> tags/v1.3.0
+	l := len(data)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowGenerated
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := data[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+<<<<<<< HEAD
+			return fmt.Errorf("proto: PersistentVolumeStatus: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: PersistentVolumeStatus: illegal tag %d (wire type %d)", fieldNum, wire)
+=======
+			return fmt.Errorf("proto: PodAffinityTerm: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: PodAffinityTerm: illegal tag %d (wire type %d)", fieldNum, wire)
+>>>>>>> tags/v1.3.0
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+<<<<<<< HEAD
+				return fmt.Errorf("proto: wrong wireType = %d for field Phase", wireType)
+			}
+			var stringLen uint64
+=======
+				return fmt.Errorf("proto: wrong wireType = %d for field LabelSelector", wireType)
+			}
+			var msglen int
+>>>>>>> tags/v1.3.0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+<<<<<<< HEAD
+				stringLen |= (uint64(b) & 0x7F) << shift
+=======
+				msglen |= (int(b) & 0x7F) << shift
+>>>>>>> tags/v1.3.0
+				if b < 0x80 {
+					break
+				}
+			}
+<<<<<<< HEAD
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Phase = PersistentVolumePhase(data[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Message", wireType)
+=======
+			if msglen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.LabelSelector == nil {
+				m.LabelSelector = &k8s_io_kubernetes_pkg_api_unversioned.LabelSelector{}
+			}
+			if err := m.LabelSelector.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Namespaces", wireType)
+>>>>>>> tags/v1.3.0
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				stringLen |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+<<<<<<< HEAD
+			m.Message = string(data[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Reason", wireType)
+=======
+			m.Namespaces = append(m.Namespaces, string(data[iNdEx:postIndex]))
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TopologyKey", wireType)
+>>>>>>> tags/v1.3.0
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				stringLen |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+<<<<<<< HEAD
+			m.Reason = string(data[iNdEx:postIndex])
+=======
+			m.TopologyKey = string(data[iNdEx:postIndex])
+>>>>>>> tags/v1.3.0
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipGenerated(data[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+<<<<<<< HEAD
+func (m *Pod) Unmarshal(data []byte) error {
+=======
+func (m *PodAntiAffinity) Unmarshal(data []byte) error {
+>>>>>>> tags/v1.3.0
+	l := len(data)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowGenerated
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := data[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+<<<<<<< HEAD
+			return fmt.Errorf("proto: Pod: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: Pod: illegal tag %d (wire type %d)", fieldNum, wire)
+=======
+			return fmt.Errorf("proto: PodAntiAffinity: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: PodAntiAffinity: illegal tag %d (wire type %d)", fieldNum, wire)
+>>>>>>> tags/v1.3.0
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+<<<<<<< HEAD
+				return fmt.Errorf("proto: wrong wireType = %d for field ObjectMeta", wireType)
+=======
+				return fmt.Errorf("proto: wrong wireType = %d for field RequiredDuringSchedulingIgnoredDuringExecution", wireType)
+>>>>>>> tags/v1.3.0
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+<<<<<<< HEAD
+			if err := m.ObjectMeta.Unmarshal(data[iNdEx:postIndex]); err != nil {
+=======
+			m.RequiredDuringSchedulingIgnoredDuringExecution = append(m.RequiredDuringSchedulingIgnoredDuringExecution, PodAffinityTerm{})
+			if err := m.RequiredDuringSchedulingIgnoredDuringExecution[len(m.RequiredDuringSchedulingIgnoredDuringExecution)-1].Unmarshal(data[iNdEx:postIndex]); err != nil {
+>>>>>>> tags/v1.3.0
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+<<<<<<< HEAD
+				return fmt.Errorf("proto: wrong wireType = %d for field Spec", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.Spec.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Status", wireType)
+=======
+				return fmt.Errorf("proto: wrong wireType = %d for field PreferredDuringSchedulingIgnoredDuringExecution", wireType)
+>>>>>>> tags/v1.3.0
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+<<<<<<< HEAD
+			if err := m.Status.Unmarshal(data[iNdEx:postIndex]); err != nil {
+=======
+			m.PreferredDuringSchedulingIgnoredDuringExecution = append(m.PreferredDuringSchedulingIgnoredDuringExecution, WeightedPodAffinityTerm{})
+			if err := m.PreferredDuringSchedulingIgnoredDuringExecution[len(m.PreferredDuringSchedulingIgnoredDuringExecution)-1].Unmarshal(data[iNdEx:postIndex]); err != nil {
+>>>>>>> tags/v1.3.0
 				return err
 			}
 			iNdEx = postIndex
@@ -26345,6 +30661,67 @@ func (m *PodSpec) Unmarshal(data []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+<<<<<<< HEAD
+=======
+		case 16:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Hostname", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				stringLen |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Hostname = string(data[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 17:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Subdomain", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				stringLen |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Subdomain = string(data[iNdEx:postIndex])
+			iNdEx = postIndex
+>>>>>>> tags/v1.3.0
 		default:
 			iNdEx = preIndex
 			skippy, err := skipGenerated(data[iNdEx:])
@@ -26630,6 +31007,10 @@ func (m *PodStatus) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
+<<<<<<< HEAD
+			m.ContainerStatuses = append(m.ContainerStatuses, ContainerStatus{})
+			if err := m.ContainerStatuses[len(m.ContainerStatuses)-1].Unmarshal(data[iNdEx:postIndex]); err != nil {
+=======
 			m.ContainerStatuses = append(m.ContainerStatuses, ContainerStatus{})
 			if err := m.ContainerStatuses[len(m.ContainerStatuses)-1].Unmarshal(data[iNdEx:postIndex]); err != nil {
 				return err
@@ -26742,6 +31123,7 @@ func (m *PodStatusResult) Unmarshal(data []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			if err := m.Status.Unmarshal(data[iNdEx:postIndex]); err != nil {
+>>>>>>> tags/v1.3.0
 				return err
 			}
 			iNdEx = postIndex
@@ -26766,7 +31148,11 @@ func (m *PodStatusResult) Unmarshal(data []byte) error {
 	}
 	return nil
 }
+<<<<<<< HEAD
+func (m *PodStatusResult) Unmarshal(data []byte) error {
+=======
 func (m *PodTemplate) Unmarshal(data []byte) error {
+>>>>>>> tags/v1.3.0
 	l := len(data)
 	iNdEx := 0
 	for iNdEx < l {
@@ -26789,10 +31175,17 @@ func (m *PodTemplate) Unmarshal(data []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
+<<<<<<< HEAD
+			return fmt.Errorf("proto: PodStatusResult: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: PodStatusResult: illegal tag %d (wire type %d)", fieldNum, wire)
+=======
 			return fmt.Errorf("proto: PodTemplate: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
 			return fmt.Errorf("proto: PodTemplate: illegal tag %d (wire type %d)", fieldNum, wire)
+>>>>>>> tags/v1.3.0
 		}
 		switch fieldNum {
 		case 1:
@@ -26827,7 +31220,11 @@ func (m *PodTemplate) Unmarshal(data []byte) error {
 			iNdEx = postIndex
 		case 2:
 			if wireType != 2 {
+<<<<<<< HEAD
+				return fmt.Errorf("proto: wrong wireType = %d for field Status", wireType)
+=======
 				return fmt.Errorf("proto: wrong wireType = %d for field Template", wireType)
+>>>>>>> tags/v1.3.0
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -26851,7 +31248,11 @@ func (m *PodTemplate) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
+<<<<<<< HEAD
+			if err := m.Status.Unmarshal(data[iNdEx:postIndex]); err != nil {
+=======
 			if err := m.Template.Unmarshal(data[iNdEx:postIndex]); err != nil {
+>>>>>>> tags/v1.3.0
 				return err
 			}
 			iNdEx = postIndex
@@ -26876,7 +31277,11 @@ func (m *PodTemplate) Unmarshal(data []byte) error {
 	}
 	return nil
 }
+<<<<<<< HEAD
+func (m *PodTemplate) Unmarshal(data []byte) error {
+=======
 func (m *PodTemplateList) Unmarshal(data []byte) error {
+>>>>>>> tags/v1.3.0
 	l := len(data)
 	iNdEx := 0
 	for iNdEx < l {
@@ -26899,15 +31304,26 @@ func (m *PodTemplateList) Unmarshal(data []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
+<<<<<<< HEAD
+			return fmt.Errorf("proto: PodTemplate: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: PodTemplate: illegal tag %d (wire type %d)", fieldNum, wire)
+=======
 			return fmt.Errorf("proto: PodTemplateList: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
 			return fmt.Errorf("proto: PodTemplateList: illegal tag %d (wire type %d)", fieldNum, wire)
+>>>>>>> tags/v1.3.0
 		}
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
+<<<<<<< HEAD
+				return fmt.Errorf("proto: wrong wireType = %d for field ObjectMeta", wireType)
+=======
 				return fmt.Errorf("proto: wrong wireType = %d for field ListMeta", wireType)
+>>>>>>> tags/v1.3.0
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -26931,13 +31347,21 @@ func (m *PodTemplateList) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
+<<<<<<< HEAD
+			if err := m.ObjectMeta.Unmarshal(data[iNdEx:postIndex]); err != nil {
+=======
 			if err := m.ListMeta.Unmarshal(data[iNdEx:postIndex]); err != nil {
+>>>>>>> tags/v1.3.0
 				return err
 			}
 			iNdEx = postIndex
 		case 2:
 			if wireType != 2 {
+<<<<<<< HEAD
+				return fmt.Errorf("proto: wrong wireType = %d for field Template", wireType)
+=======
 				return fmt.Errorf("proto: wrong wireType = %d for field Items", wireType)
+>>>>>>> tags/v1.3.0
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -26961,8 +31385,12 @@ func (m *PodTemplateList) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
+<<<<<<< HEAD
+			if err := m.Template.Unmarshal(data[iNdEx:postIndex]); err != nil {
+=======
 			m.Items = append(m.Items, PodTemplate{})
 			if err := m.Items[len(m.Items)-1].Unmarshal(data[iNdEx:postIndex]); err != nil {
+>>>>>>> tags/v1.3.0
 				return err
 			}
 			iNdEx = postIndex
@@ -26987,7 +31415,11 @@ func (m *PodTemplateList) Unmarshal(data []byte) error {
 	}
 	return nil
 }
+<<<<<<< HEAD
+func (m *PodTemplateList) Unmarshal(data []byte) error {
+=======
 func (m *PodTemplateSpec) Unmarshal(data []byte) error {
+>>>>>>> tags/v1.3.0
 	l := len(data)
 	iNdEx := 0
 	for iNdEx < l {
@@ -27010,14 +31442,160 @@ func (m *PodTemplateSpec) Unmarshal(data []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
+<<<<<<< HEAD
+			return fmt.Errorf("proto: PodTemplateList: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: PodTemplateList: illegal tag %d (wire type %d)", fieldNum, wire)
+=======
 			return fmt.Errorf("proto: PodTemplateSpec: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
 			return fmt.Errorf("proto: PodTemplateSpec: illegal tag %d (wire type %d)", fieldNum, wire)
+>>>>>>> tags/v1.3.0
 		}
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
+<<<<<<< HEAD
+				return fmt.Errorf("proto: wrong wireType = %d for field ListMeta", wireType)
+=======
+				return fmt.Errorf("proto: wrong wireType = %d for field ObjectMeta", wireType)
+>>>>>>> tags/v1.3.0
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+<<<<<<< HEAD
+			if err := m.ListMeta.Unmarshal(data[iNdEx:postIndex]); err != nil {
+=======
+			if err := m.ObjectMeta.Unmarshal(data[iNdEx:postIndex]); err != nil {
+>>>>>>> tags/v1.3.0
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+<<<<<<< HEAD
+				return fmt.Errorf("proto: wrong wireType = %d for field Items", wireType)
+=======
+				return fmt.Errorf("proto: wrong wireType = %d for field Spec", wireType)
+>>>>>>> tags/v1.3.0
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+<<<<<<< HEAD
+			m.Items = append(m.Items, PodTemplate{})
+			if err := m.Items[len(m.Items)-1].Unmarshal(data[iNdEx:postIndex]); err != nil {
+=======
+			if err := m.Spec.Unmarshal(data[iNdEx:postIndex]); err != nil {
+>>>>>>> tags/v1.3.0
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipGenerated(data[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+<<<<<<< HEAD
+func (m *PodTemplateSpec) Unmarshal(data []byte) error {
+=======
+func (m *Preconditions) Unmarshal(data []byte) error {
+>>>>>>> tags/v1.3.0
+	l := len(data)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowGenerated
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := data[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+<<<<<<< HEAD
+			return fmt.Errorf("proto: PodTemplateSpec: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: PodTemplateSpec: illegal tag %d (wire type %d)", fieldNum, wire)
+=======
+			return fmt.Errorf("proto: Preconditions: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: Preconditions: illegal tag %d (wire type %d)", fieldNum, wire)
+>>>>>>> tags/v1.3.0
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+<<<<<<< HEAD
 				return fmt.Errorf("proto: wrong wireType = %d for field ObjectMeta", wireType)
 			}
 			var msglen int
@@ -27051,6 +31629,11 @@ func (m *PodTemplateSpec) Unmarshal(data []byte) error {
 				return fmt.Errorf("proto: wrong wireType = %d for field Spec", wireType)
 			}
 			var msglen int
+=======
+				return fmt.Errorf("proto: wrong wireType = %d for field UID", wireType)
+			}
+			var stringLen uint64
+>>>>>>> tags/v1.3.0
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowGenerated
@@ -27060,11 +31643,16 @@ func (m *PodTemplateSpec) Unmarshal(data []byte) error {
 				}
 				b := data[iNdEx]
 				iNdEx++
+<<<<<<< HEAD
 				msglen |= (int(b) & 0x7F) << shift
+=======
+				stringLen |= (uint64(b) & 0x7F) << shift
+>>>>>>> tags/v1.3.0
 				if b < 0x80 {
 					break
 				}
 			}
+<<<<<<< HEAD
 			if msglen < 0 {
 				return ErrInvalidLengthGenerated
 			}
@@ -27075,6 +31663,18 @@ func (m *PodTemplateSpec) Unmarshal(data []byte) error {
 			if err := m.Spec.Unmarshal(data[iNdEx:postIndex]); err != nil {
 				return err
 			}
+=======
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			s := k8s_io_kubernetes_pkg_types.UID(data[iNdEx:postIndex])
+			m.UID = &s
+>>>>>>> tags/v1.3.0
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -27140,7 +31740,11 @@ func (m *PreferredSchedulingTerm) Unmarshal(data []byte) error {
 				}
 				b := data[iNdEx]
 				iNdEx++
+<<<<<<< HEAD
 				m.Weight |= (int64(b) & 0x7F) << shift
+=======
+				m.Weight |= (int32(b) & 0x7F) << shift
+>>>>>>> tags/v1.3.0
 				if b < 0x80 {
 					break
 				}
@@ -28303,25 +32907,8 @@ func (m *ReplicationControllerStatus) Unmarshal(data []byte) error {
 			}
 		case 2:
 			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ObservedGeneration", wireType)
-			}
-			m.ObservedGeneration = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowGenerated
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := data[iNdEx]
-				iNdEx++
-				m.ObservedGeneration |= (int64(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 3:
-			if wireType != 0 {
+<<<<<<< HEAD
+=======
 				return fmt.Errorf("proto: wrong wireType = %d for field FullyLabeledReplicas", wireType)
 			}
 			m.FullyLabeledReplicas = 0
@@ -28339,6 +32926,179 @@ func (m *ReplicationControllerStatus) Unmarshal(data []byte) error {
 					break
 				}
 			}
+		case 3:
+			if wireType != 0 {
+>>>>>>> tags/v1.3.0
+				return fmt.Errorf("proto: wrong wireType = %d for field ObservedGeneration", wireType)
+			}
+			m.ObservedGeneration = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				m.ObservedGeneration |= (int64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+<<<<<<< HEAD
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field FullyLabeledReplicas", wireType)
+			}
+			m.FullyLabeledReplicas = 0
+=======
+		default:
+			iNdEx = preIndex
+			skippy, err := skipGenerated(data[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *ResourceFieldSelector) Unmarshal(data []byte) error {
+	l := len(data)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowGenerated
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := data[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ResourceFieldSelector: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ResourceFieldSelector: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ContainerName", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				stringLen |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ContainerName = string(data[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Resource", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				stringLen |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Resource = string(data[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Divisor", wireType)
+			}
+			var msglen int
+>>>>>>> tags/v1.3.0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+<<<<<<< HEAD
+				m.FullyLabeledReplicas |= (int32(b) & 0x7F) << shift
+=======
+				msglen |= (int(b) & 0x7F) << shift
+>>>>>>> tags/v1.3.0
+				if b < 0x80 {
+					break
+				}
+			}
+<<<<<<< HEAD
+=======
+			if msglen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.Divisor.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+>>>>>>> tags/v1.3.0
 		default:
 			iNdEx = preIndex
 			skippy, err := skipGenerated(data[iNdEx:])
@@ -30035,6 +34795,40 @@ func (m *SecretVolumeSource) Unmarshal(data []byte) error {
 			}
 			m.SecretName = string(data[iNdEx:postIndex])
 			iNdEx = postIndex
+<<<<<<< HEAD
+=======
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Items", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Items = append(m.Items, KeyToPath{})
+			if err := m.Items[len(m.Items)-1].Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+>>>>>>> tags/v1.3.0
 		default:
 			iNdEx = preIndex
 			skippy, err := skipGenerated(data[iNdEx:])
@@ -31439,6 +36233,38 @@ func (m *ServiceSpec) Unmarshal(data []byte) error {
 			}
 			m.LoadBalancerIP = string(data[iNdEx:postIndex])
 			iNdEx = postIndex
+<<<<<<< HEAD
+=======
+		case 9:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LoadBalancerSourceRanges", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				stringLen |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.LoadBalancerSourceRanges = append(m.LoadBalancerSourceRanges, string(data[iNdEx:postIndex]))
+			iNdEx = postIndex
+>>>>>>> tags/v1.3.0
 		default:
 			iNdEx = preIndex
 			skippy, err := skipGenerated(data[iNdEx:])
@@ -31540,114 +36366,9 @@ func (m *ServiceStatus) Unmarshal(data []byte) error {
 	}
 	return nil
 }
+<<<<<<< HEAD
 func (m *Subnet) Unmarshal(data []byte) error {
-	l := len(data)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowGenerated
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := data[iNdEx]
-			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: Subnet: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: Subnet: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field CIDR", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowGenerated
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := data[iNdEx]
-				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLengthGenerated
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.CIDR = string(data[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 2:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Gateway", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowGenerated
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := data[iNdEx]
-				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLengthGenerated
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Gateway = string(data[iNdEx:postIndex])
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipGenerated(data[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				return ErrInvalidLengthGenerated
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
+=======
 func (m *TCPSocketAction) Unmarshal(data []byte) error {
 	l := len(data)
 	iNdEx := 0
@@ -31706,6 +36427,367 @@ func (m *TCPSocketAction) Unmarshal(data []byte) error {
 			if err := m.Port.Unmarshal(data[iNdEx:postIndex]); err != nil {
 				return err
 			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipGenerated(data[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *Taint) Unmarshal(data []byte) error {
+>>>>>>> tags/v1.3.0
+	l := len(data)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowGenerated
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := data[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+<<<<<<< HEAD
+			return fmt.Errorf("proto: Subnet: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: Subnet: illegal tag %d (wire type %d)", fieldNum, wire)
+=======
+			return fmt.Errorf("proto: Taint: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: Taint: illegal tag %d (wire type %d)", fieldNum, wire)
+>>>>>>> tags/v1.3.0
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+<<<<<<< HEAD
+				return fmt.Errorf("proto: wrong wireType = %d for field CIDR", wireType)
+=======
+				return fmt.Errorf("proto: wrong wireType = %d for field Key", wireType)
+>>>>>>> tags/v1.3.0
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				stringLen |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+<<<<<<< HEAD
+			m.CIDR = string(data[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Gateway", wireType)
+=======
+			m.Key = string(data[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Value", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				stringLen |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Value = string(data[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Effect", wireType)
+>>>>>>> tags/v1.3.0
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				stringLen |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+<<<<<<< HEAD
+			m.Gateway = string(data[iNdEx:postIndex])
+=======
+			m.Effect = TaintEffect(data[iNdEx:postIndex])
+>>>>>>> tags/v1.3.0
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipGenerated(data[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+<<<<<<< HEAD
+func (m *TCPSocketAction) Unmarshal(data []byte) error {
+=======
+func (m *Toleration) Unmarshal(data []byte) error {
+>>>>>>> tags/v1.3.0
+	l := len(data)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowGenerated
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := data[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+<<<<<<< HEAD
+			return fmt.Errorf("proto: TCPSocketAction: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: TCPSocketAction: illegal tag %d (wire type %d)", fieldNum, wire)
+=======
+			return fmt.Errorf("proto: Toleration: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: Toleration: illegal tag %d (wire type %d)", fieldNum, wire)
+>>>>>>> tags/v1.3.0
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+<<<<<<< HEAD
+				return fmt.Errorf("proto: wrong wireType = %d for field Port", wireType)
+			}
+			var msglen int
+=======
+				return fmt.Errorf("proto: wrong wireType = %d for field Key", wireType)
+			}
+			var stringLen uint64
+>>>>>>> tags/v1.3.0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+<<<<<<< HEAD
+				msglen |= (int(b) & 0x7F) << shift
+=======
+				stringLen |= (uint64(b) & 0x7F) << shift
+>>>>>>> tags/v1.3.0
+				if b < 0x80 {
+					break
+				}
+			}
+<<<<<<< HEAD
+			if msglen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.Port.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+=======
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Key = string(data[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Operator", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				stringLen |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Operator = TolerationOperator(data[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Value", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				stringLen |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Value = string(data[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Effect", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				stringLen |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Effect = TaintEffect(data[iNdEx:postIndex])
+>>>>>>> tags/v1.3.0
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -31944,6 +37026,38 @@ func (m *VolumeMount) Unmarshal(data []byte) error {
 			}
 			m.MountPath = string(data[iNdEx:postIndex])
 			iNdEx = postIndex
+<<<<<<< HEAD
+=======
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SubPath", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				stringLen |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.SubPath = string(data[iNdEx:postIndex])
+			iNdEx = postIndex
+>>>>>>> tags/v1.3.0
 		default:
 			iNdEx = preIndex
 			skippy, err := skipGenerated(data[iNdEx:])
@@ -32053,6 +37167,18 @@ func (m *VolumeSource) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
+<<<<<<< HEAD
+			if m.EmptyDir == nil {
+				m.EmptyDir = &EmptyDirVolumeSource{}
+			}
+			if err := m.EmptyDir.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field GCEPersistentDisk", wireType)
+=======
 			if m.EmptyDir == nil {
 				m.EmptyDir = &EmptyDirVolumeSource{}
 			}
@@ -32228,6 +37354,7 @@ func (m *VolumeSource) Unmarshal(data []byte) error {
 		case 8:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field ISCSI", wireType)
+>>>>>>> tags/v1.3.0
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -32251,6 +37378,18 @@ func (m *VolumeSource) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
+<<<<<<< HEAD
+			if m.GCEPersistentDisk == nil {
+				m.GCEPersistentDisk = &GCEPersistentDiskVolumeSource{}
+			}
+			if err := m.GCEPersistentDisk.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AWSElasticBlockStore", wireType)
+=======
 			if m.ISCSI == nil {
 				m.ISCSI = &ISCSIVolumeSource{}
 			}
@@ -32261,6 +37400,7 @@ func (m *VolumeSource) Unmarshal(data []byte) error {
 		case 9:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Glusterfs", wireType)
+>>>>>>> tags/v1.3.0
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -32284,6 +37424,18 @@ func (m *VolumeSource) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
+<<<<<<< HEAD
+			if m.AWSElasticBlockStore == nil {
+				m.AWSElasticBlockStore = &AWSElasticBlockStoreVolumeSource{}
+			}
+			if err := m.AWSElasticBlockStore.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field GitRepo", wireType)
+=======
 			if m.Glusterfs == nil {
 				m.Glusterfs = &GlusterfsVolumeSource{}
 			}
@@ -32294,6 +37446,7 @@ func (m *VolumeSource) Unmarshal(data []byte) error {
 		case 10:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field PersistentVolumeClaim", wireType)
+>>>>>>> tags/v1.3.0
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -32317,6 +37470,18 @@ func (m *VolumeSource) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
+<<<<<<< HEAD
+			if m.GitRepo == nil {
+				m.GitRepo = &GitRepoVolumeSource{}
+			}
+			if err := m.GitRepo.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Secret", wireType)
+=======
 			if m.PersistentVolumeClaim == nil {
 				m.PersistentVolumeClaim = &PersistentVolumeClaimVolumeSource{}
 			}
@@ -32327,6 +37492,7 @@ func (m *VolumeSource) Unmarshal(data []byte) error {
 		case 11:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field RBD", wireType)
+>>>>>>> tags/v1.3.0
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -32350,6 +37516,18 @@ func (m *VolumeSource) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
+<<<<<<< HEAD
+			if m.Secret == nil {
+				m.Secret = &SecretVolumeSource{}
+			}
+			if err := m.Secret.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field NFS", wireType)
+=======
 			if m.RBD == nil {
 				m.RBD = &RBDVolumeSource{}
 			}
@@ -32360,6 +37538,7 @@ func (m *VolumeSource) Unmarshal(data []byte) error {
 		case 12:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field FlexVolume", wireType)
+>>>>>>> tags/v1.3.0
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -32383,6 +37562,18 @@ func (m *VolumeSource) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
+<<<<<<< HEAD
+			if m.NFS == nil {
+				m.NFS = &NFSVolumeSource{}
+			}
+			if err := m.NFS.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ISCSI", wireType)
+=======
 			if m.FlexVolume == nil {
 				m.FlexVolume = &FlexVolumeSource{}
 			}
@@ -32393,6 +37584,7 @@ func (m *VolumeSource) Unmarshal(data []byte) error {
 		case 13:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Cinder", wireType)
+>>>>>>> tags/v1.3.0
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -32416,6 +37608,18 @@ func (m *VolumeSource) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
+<<<<<<< HEAD
+			if m.ISCSI == nil {
+				m.ISCSI = &ISCSIVolumeSource{}
+			}
+			if err := m.ISCSI.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 9:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Glusterfs", wireType)
+=======
 			if m.Cinder == nil {
 				m.Cinder = &CinderVolumeSource{}
 			}
@@ -32426,6 +37630,7 @@ func (m *VolumeSource) Unmarshal(data []byte) error {
 		case 14:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field CephFS", wireType)
+>>>>>>> tags/v1.3.0
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -32449,6 +37654,18 @@ func (m *VolumeSource) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
+<<<<<<< HEAD
+			if m.Glusterfs == nil {
+				m.Glusterfs = &GlusterfsVolumeSource{}
+			}
+			if err := m.Glusterfs.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 10:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PersistentVolumeClaim", wireType)
+=======
 			if m.CephFS == nil {
 				m.CephFS = &CephFSVolumeSource{}
 			}
@@ -32459,6 +37676,7 @@ func (m *VolumeSource) Unmarshal(data []byte) error {
 		case 15:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Flocker", wireType)
+>>>>>>> tags/v1.3.0
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -32482,6 +37700,237 @@ func (m *VolumeSource) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
+<<<<<<< HEAD
+			if m.PersistentVolumeClaim == nil {
+				m.PersistentVolumeClaim = &PersistentVolumeClaimVolumeSource{}
+			}
+			if err := m.PersistentVolumeClaim.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 11:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RBD", wireType)
+=======
+			if m.Flocker == nil {
+				m.Flocker = &FlockerVolumeSource{}
+			}
+			if err := m.Flocker.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 16:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DownwardAPI", wireType)
+>>>>>>> tags/v1.3.0
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+<<<<<<< HEAD
+			if m.RBD == nil {
+				m.RBD = &RBDVolumeSource{}
+			}
+			if err := m.RBD.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 12:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field FlexVolume", wireType)
+=======
+			if m.DownwardAPI == nil {
+				m.DownwardAPI = &DownwardAPIVolumeSource{}
+			}
+			if err := m.DownwardAPI.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 17:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field FC", wireType)
+>>>>>>> tags/v1.3.0
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+<<<<<<< HEAD
+			if m.FlexVolume == nil {
+				m.FlexVolume = &FlexVolumeSource{}
+			}
+			if err := m.FlexVolume.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 13:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Cinder", wireType)
+=======
+			if m.FC == nil {
+				m.FC = &FCVolumeSource{}
+			}
+			if err := m.FC.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 18:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AzureFile", wireType)
+>>>>>>> tags/v1.3.0
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+<<<<<<< HEAD
+			if m.Cinder == nil {
+				m.Cinder = &CinderVolumeSource{}
+			}
+			if err := m.Cinder.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 14:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CephFS", wireType)
+=======
+			if m.AzureFile == nil {
+				m.AzureFile = &AzureFileVolumeSource{}
+			}
+			if err := m.AzureFile.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 19:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ConfigMap", wireType)
+>>>>>>> tags/v1.3.0
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+<<<<<<< HEAD
+			if m.CephFS == nil {
+				m.CephFS = &CephFSVolumeSource{}
+			}
+			if err := m.CephFS.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 15:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Flocker", wireType)
+=======
+			if m.ConfigMap == nil {
+				m.ConfigMap = &ConfigMapVolumeSource{}
+			}
+			if err := m.ConfigMap.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 20:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field VsphereVolume", wireType)
+>>>>>>> tags/v1.3.0
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+<<<<<<< HEAD
 			if m.Flocker == nil {
 				m.Flocker = &FlockerVolumeSource{}
 			}
@@ -32494,6 +37943,70 @@ func (m *VolumeSource) Unmarshal(data []byte) error {
 				return fmt.Errorf("proto: wrong wireType = %d for field DownwardAPI", wireType)
 			}
 			var msglen int
+=======
+			if m.VsphereVolume == nil {
+				m.VsphereVolume = &VsphereVirtualDiskVolumeSource{}
+			}
+			if err := m.VsphereVolume.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipGenerated(data[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *VsphereVirtualDiskVolumeSource) Unmarshal(data []byte) error {
+	l := len(data)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowGenerated
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := data[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: VsphereVirtualDiskVolumeSource: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: VsphereVirtualDiskVolumeSource: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field VolumePath", wireType)
+			}
+			var stringLen uint64
+>>>>>>> tags/v1.3.0
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowGenerated
@@ -32503,11 +38016,16 @@ func (m *VolumeSource) Unmarshal(data []byte) error {
 				}
 				b := data[iNdEx]
 				iNdEx++
+<<<<<<< HEAD
 				msglen |= (int(b) & 0x7F) << shift
+=======
+				stringLen |= (uint64(b) & 0x7F) << shift
+>>>>>>> tags/v1.3.0
 				if b < 0x80 {
 					break
 				}
 			}
+<<<<<<< HEAD
 			if msglen < 0 {
 				return ErrInvalidLengthGenerated
 			}
@@ -32527,6 +38045,23 @@ func (m *VolumeSource) Unmarshal(data []byte) error {
 				return fmt.Errorf("proto: wrong wireType = %d for field FC", wireType)
 			}
 			var msglen int
+=======
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.VolumePath = string(data[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field FSType", wireType)
+			}
+			var stringLen uint64
+>>>>>>> tags/v1.3.0
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowGenerated
@@ -32536,11 +38071,16 @@ func (m *VolumeSource) Unmarshal(data []byte) error {
 				}
 				b := data[iNdEx]
 				iNdEx++
+<<<<<<< HEAD
 				msglen |= (int(b) & 0x7F) << shift
+=======
+				stringLen |= (uint64(b) & 0x7F) << shift
+>>>>>>> tags/v1.3.0
 				if b < 0x80 {
 					break
 				}
 			}
+<<<<<<< HEAD
 			if msglen < 0 {
 				return ErrInvalidLengthGenerated
 			}
@@ -32560,6 +38100,73 @@ func (m *VolumeSource) Unmarshal(data []byte) error {
 				return fmt.Errorf("proto: wrong wireType = %d for field AzureFile", wireType)
 			}
 			var msglen int
+=======
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.FSType = string(data[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipGenerated(data[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *WeightedPodAffinityTerm) Unmarshal(data []byte) error {
+	l := len(data)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowGenerated
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := data[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: WeightedPodAffinityTerm: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: WeightedPodAffinityTerm: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Weight", wireType)
+			}
+			m.Weight = 0
+>>>>>>> tags/v1.3.0
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowGenerated
@@ -32569,11 +38176,16 @@ func (m *VolumeSource) Unmarshal(data []byte) error {
 				}
 				b := data[iNdEx]
 				iNdEx++
+<<<<<<< HEAD
 				msglen |= (int(b) & 0x7F) << shift
+=======
+				m.Weight |= (int32(b) & 0x7F) << shift
+>>>>>>> tags/v1.3.0
 				if b < 0x80 {
 					break
 				}
 			}
+<<<<<<< HEAD
 			if msglen < 0 {
 				return ErrInvalidLengthGenerated
 			}
@@ -32591,6 +38203,11 @@ func (m *VolumeSource) Unmarshal(data []byte) error {
 		case 19:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field ConfigMap", wireType)
+=======
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PodAffinityTerm", wireType)
+>>>>>>> tags/v1.3.0
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -32614,10 +38231,14 @@ func (m *VolumeSource) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
+<<<<<<< HEAD
 			if m.ConfigMap == nil {
 				m.ConfigMap = &ConfigMapVolumeSource{}
 			}
 			if err := m.ConfigMap.Unmarshal(data[iNdEx:postIndex]); err != nil {
+=======
+			if err := m.PodAffinityTerm.Unmarshal(data[iNdEx:postIndex]); err != nil {
+>>>>>>> tags/v1.3.0
 				return err
 			}
 			iNdEx = postIndex

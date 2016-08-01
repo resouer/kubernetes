@@ -25,6 +25,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/api/v1"
+	"k8s.io/kubernetes/pkg/apis/batch"
 	batchv1 "k8s.io/kubernetes/pkg/apis/batch/v1"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -104,7 +105,7 @@ func (DeploymentV1Beta1) Generate(genericParams map[string]interface{}) (runtime
 			Labels: labels,
 		},
 		Spec: extensions.DeploymentSpec{
-			Replicas: count,
+			Replicas: int32(count),
 			Selector: &unversioned.LabelSelector{MatchLabels: labels},
 			Template: api.PodTemplateSpec{
 				ObjectMeta: api.ObjectMeta{
@@ -280,12 +281,12 @@ func (JobV1Beta1) Generate(genericParams map[string]interface{}) (runtime.Object
 	}
 	podSpec.RestartPolicy = restartPolicy
 
-	job := extensions.Job{
+	job := batch.Job{
 		ObjectMeta: api.ObjectMeta{
 			Name:   name,
 			Labels: labels,
 		},
-		Spec: extensions.JobSpec{
+		Spec: batch.JobSpec{
 			Selector: &unversioned.LabelSelector{
 				MatchLabels: labels,
 			},
@@ -433,7 +434,7 @@ func populateResourceList(spec string) (api.ResourceList, error) {
 		if err != nil {
 			return nil, err
 		}
-		result[resourceName] = *resourceQuantity
+		result[resourceName] = resourceQuantity
 	}
 	return result, nil
 }
@@ -457,7 +458,7 @@ func populateV1ResourceList(spec string) (v1.ResourceList, error) {
 		if err != nil {
 			return nil, err
 		}
-		result[resourceName] = *resourceQuantity
+		result[resourceName] = resourceQuantity
 	}
 	return result, nil
 }
@@ -604,7 +605,7 @@ func (BasicReplicationController) Generate(genericParams map[string]interface{})
 			Labels: labels,
 		},
 		Spec: api.ReplicationControllerSpec{
-			Replicas: count,
+			Replicas: int32(count),
 			Selector: labels,
 			Template: &api.PodTemplateSpec{
 				ObjectMeta: api.ObjectMeta{
@@ -679,11 +680,45 @@ func updatePodPorts(params map[string]string, podSpec *api.PodSpec) (err error) 
 	if port > 0 {
 		podSpec.Containers[0].Ports = []api.ContainerPort{
 			{
-				ContainerPort: port,
+				ContainerPort: int32(port),
 			},
 		}
 		if hostPort > 0 {
-			podSpec.Containers[0].Ports[0].HostPort = hostPort
+			podSpec.Containers[0].Ports[0].HostPort = int32(hostPort)
+		}
+	}
+	return nil
+}
+
+func updateV1PodPorts(params map[string]string, podSpec *v1.PodSpec) (err error) {
+	port := -1
+	hostPort := -1
+	if len(params["port"]) > 0 {
+		port, err = strconv.Atoi(params["port"])
+		if err != nil {
+			return err
+		}
+	}
+
+	if len(params["hostport"]) > 0 {
+		hostPort, err = strconv.Atoi(params["hostport"])
+		if err != nil {
+			return err
+		}
+		if hostPort > 0 && port < 0 {
+			return fmt.Errorf("--hostport requires --port to be specified")
+		}
+	}
+
+	// Don't include the port if it was not specified.
+	if port > 0 {
+		podSpec.Containers[0].Ports = []v1.ContainerPort{
+			{
+				ContainerPort: int32(port),
+			},
+		}
+		if hostPort > 0 {
+			podSpec.Containers[0].Ports[0].HostPort = int32(hostPort)
 		}
 	}
 	return nil
@@ -826,7 +861,7 @@ func (BasicPod) Generate(genericParams map[string]interface{}) (runtime.Object, 
 }
 
 func parseEnvs(envArray []string) ([]api.EnvVar, error) {
-	envs := []api.EnvVar{}
+	envs := make([]api.EnvVar, 0, len(envArray))
 	for _, env := range envArray {
 		pos := strings.Index(env, "=")
 		if pos == -1 {

@@ -2,9 +2,14 @@
 
 
 <!-- END MUNGE: UNVERSIONED_WARNING -->
+<<<<<<< HEAD
 
 This file has moved to: http://kubernetes.github.io/docs/user-guide/known-issues/
 
+=======
+
+This file has moved to: https://github.com/kubernetes/kubernetes/blob/master/CHANGELOG.md
+>>>>>>> tags/v1.3.0
 
 
 

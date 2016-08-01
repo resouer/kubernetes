@@ -3,7 +3,11 @@
 
 <!-- END MUNGE: UNVERSIONED_WARNING -->
 <!-- needed for gh-pages to render html files when imported -->
+<<<<<<< HEAD
 {% include v1.2/extensions-v1beta1-definitions.html %}
+=======
+{% include vv1.3.0-beta.0/extensions-v1beta1-definitions.html %}
+>>>>>>> tags/v1.3.0
 
 
 

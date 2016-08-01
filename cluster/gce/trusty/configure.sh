@@ -20,54 +20,31 @@
 # of needed functions. The script itself is not supposed to be executed in
 # other manners.
 
-config_hostname() {
-  # Set the hostname to the short version.
-  host_name=$(curl --silent "http://metadata.google.internal/computeMetadata/v1/instance/hostname" -H "Metadata-Flavor: Google")
-  short_hostname=$(echo "${host_name}" | cut -d. -f1)
-  hostname "${short_hostname}"
-}
-
-config_ip_firewall() {
-  # We have seen that GCE image may have strict host firewall rules which drop
-  # most inbound/forwarded packets. In such a case, add rules to accept all
-  # TCP/UDP packets.
-  if iptables -L INPUT | grep "Chain INPUT (policy DROP)" > /dev/null; then
-    echo "Add rules to accpet all inbound TCP/UDP packets"
-    iptables -A INPUT -w -p TCP -j ACCEPT
-    iptables -A INPUT -w -p UDP -j ACCEPT
-  fi
-  if iptables -L FORWARD | grep "Chain FORWARD (policy DROP)" > /dev/null; then
-    echo "Add rules to accpet all forwarded TCP/UDP packets"
-    iptables -A FORWARD -w -p TCP -j ACCEPT
-    iptables -A FORWARD -w -p UDP -j ACCEPT
-  fi
-}
-
-create_dirs() {
-  # Create required directories.
-  mkdir -p /var/lib/kubelet
-  mkdir -p /etc/kubernetes/manifests
-  if [ "${KUBERNETES_MASTER:-}" = "false" ]; then
-    mkdir -p /var/lib/kube-proxy
-  fi
+set_broken_motd() {
+  cat > /etc/motd <<EOF
+Broken (or in progress) Kubernetes node setup! If you are using Ubuntu Trusty,
+check log file /var/log/syslog. If you are using GCI image, use
+"journalctl | grep kube" to find more information.
+EOF
 }
 
 download_kube_env() {
   # Fetch kube-env from GCE metadata server.
-  readonly tmp_install_dir="/var/cache/kubernetes-install"
-  mkdir -p "${tmp_install_dir}"
-  curl --fail --silent --show-error \
+  readonly tmp_kube_env="/tmp/kube-env.yaml"
+  curl --fail --retry 5 --retry-delay 3 --silent --show-error \
     -H "X-Google-Metadata-Request: True" \
-    -o "${tmp_install_dir}/kube_env.yaml" \
+    -o "${tmp_kube_env}" \
     http://metadata.google.internal/computeMetadata/v1/instance/attributes/kube-env
   # Convert the yaml format file into a shell-style file.
   eval $(python -c '''
 import pipes,sys,yaml
 for k,v in yaml.load(sys.stdin).iteritems():
   print("readonly {var}={value}".format(var = k, value = pipes.quote(str(v))))
-''' < "${tmp_install_dir}/kube_env.yaml" > /etc/kube-env)
+''' < "${tmp_kube_env}" > /etc/kube-env)
+  rm -f "${tmp_kube_env}"
 }
 
+<<<<<<< HEAD
 create_kubelet_kubeconfig() {
   # Create the kubelet kubeconfig file.
   if [ -z "${KUBELET_CA_CERT:-}" ]; then
@@ -148,92 +125,148 @@ install_additional_packages() {
     make nsenter
     cp nsenter /usr/local/bin
     rm -rf /tmp/nsenter-install
+=======
+validate_hash() {
+  file="$1"
+  expected="$2"
+
+  actual=$(sha1sum ${file} | awk '{ print $1 }') || true
+  if [ "${actual}" != "${expected}" ]; then
+    echo "== ${file} corrupted, sha1 ${actual} doesn't match expected ${expected} =="
+    return 1
+>>>>>>> tags/v1.3.0
   fi
 }
 
-# Retry a download until we get it.
+# Retry a download until we get it. Takes a hash and a set of URLs.
 #
-# $1 is the file to create
-# $2 is the URL to download
+# $1: The sha1 of the URL. Can be "" if the sha1 is unknown, which means
+#     we are downloading a hash file.
+# $2: The temp file containing a list of urls to download.
 download_or_bust() {
-  rm -f $1 > /dev/null
-  until curl --ipv4 -Lo "$1" --connect-timeout 20 --retry 6 --retry-delay 10 "$2"; do
-    echo "Failed to download file ($2). Retrying."
+  file_hash="$1"
+  tmpfile_urls="$2"
+
+  while true; do
+    # Read urls from the file one-by-one.
+    while read -r url; do
+      if [ ! -n "${file_hash}" ]; then
+        url="${url/.tar.gz/.tar.gz.sha1}"
+      fi
+      file="${url##*/}"
+      rm -f "${file}"
+      if ! curl -f --ipv4 -Lo "${file}" --connect-timeout 20 --retry 6 --retry-delay 10 "${url}"; then
+        echo "== Failed to download ${url}. Retrying. =="
+      elif [ -n "${file_hash}" ] && ! validate_hash "${file}" "${file_hash}"; then
+        echo "== Hash validation of ${url} failed. Retrying. =="
+      else
+        if [ -n "${file_hash}" ]; then
+          echo "== Downloaded ${url} (SHA1 = ${file_hash}) =="
+        else
+          echo "== Downloaded ${url} =="
+        fi
+        return
+      fi
+    done < "${tmpfile_urls}"
   done
 }
 
 # Downloads kubernetes binaries and kube-system manifest tarball, unpacks them,
-# and places them into suitable directories.
+# and places them into suitable directories. Files are placed in /home/kubernetes. 
 install_kube_binary_config() {
-  # In anyway we have to download the release tarball as docker_tag files and
-  # kube-proxy image file are there.
-  cd /tmp
-  k8s_sha1="${SERVER_BINARY_TAR_URL##*/}.sha1"
-  echo "Downloading k8s tar sha1 file ${k8s_sha1}"
-  download_or_bust "${k8s_sha1}" "${SERVER_BINARY_TAR_URL}.sha1"
-  k8s_tar="${SERVER_BINARY_TAR_URL##*/}"
-  echo "Downloading k8s tar file ${k8s_tar}"
-  download_or_bust "${k8s_tar}" "${SERVER_BINARY_TAR_URL}"
-  # Validate hash.
-  actual=$(sha1sum "${k8s_tar}" | awk '{ print $1 }') || true
-  if [ "${actual}" != "${SERVER_BINARY_TAR_HASH}" ]; then
-    echo "== ${k8s_tar} corrupted, sha1 ${actual} doesn't match expected ${SERVER_BINARY_TAR_HASH} =="
-  else
-    echo "Validated ${SERVER_BINARY_TAR_URL} SHA1 = ${SERVER_BINARY_TAR_HASH}"
-  fi
-  tar xzf "/tmp/${k8s_tar}" -C /tmp/ --overwrite
-  # Copy docker_tag and image files to /run/kube-docker-files.
-  mkdir -p /run/kube-docker-files
-  cp /tmp/kubernetes/server/bin/*.docker_tag /run/kube-docker-files/
-  if [ "${KUBERNETES_MASTER:-}" = "false" ]; then
-    cp /tmp/kubernetes/server/bin/kube-proxy.tar /run/kube-docker-files/
-  else
-    cp /tmp/kubernetes/server/bin/kube-apiserver.tar /run/kube-docker-files/
-    cp /tmp/kubernetes/server/bin/kube-controller-manager.tar /run/kube-docker-files/
-    cp /tmp/kubernetes/server/bin/kube-scheduler.tar /run/kube-docker-files/
-    cp -r /tmp/kubernetes/addons /run/kube-docker-files/
-  fi
-  # For a testing cluster, we use kubelet, kube-proxy, and kubectl binaries
-  # from the release tarball and place them in /usr/local/bin. For a non-test
-  # cluster, we use the binaries pre-installed in the image, or pull and place
-  # them in /usr/bin if they are not pre-installed.
-  BINARY_PATH="/usr/bin/"
-  if [ "${TEST_CLUSTER:-}" = "true" ]; then
-    BINARY_PATH="/usr/local/bin/"
-  fi
-  if ! which kubelet > /dev/null || ! which kube-proxy > /dev/null || [ "${TEST_CLUSTER:-}" = "true" ]; then
-    cp /tmp/kubernetes/server/bin/kubelet "${BINARY_PATH}"
-    cp /tmp/kubernetes/server/bin/kubectl "${BINARY_PATH}"
-  fi
-  # Clean up.
-  rm -rf "/tmp/kubernetes"
-  rm "/tmp/${k8s_tar}"
-  rm "/tmp/${k8s_sha1}"
+  # Upstart does not support shell array well. Put urls in a temp file with one
+  # url at a line, and we will use 'read' command to get them one-by-one.
+  tmp_binary_urls=$(mktemp /tmp/kube-temp.XXXXXX)
+  echo "${SERVER_BINARY_TAR_URL}" | tr "," "\n" > "${tmp_binary_urls}"
+  tmp_manifests_urls=$(mktemp /tmp/kube-temp.XXXXXX)
+  echo "${KUBE_MANIFESTS_TAR_URL}" | tr "," "\n" > "${tmp_manifests_urls}"
 
-  # Put kube-system pods manifests in /etc/kube-manifests/.
-  mkdir -p /run/kube-manifests
-  cd /run/kube-manifests
-  manifests_sha1="${KUBE_MANIFESTS_TAR_URL##*/}.sha1"
-  echo "Downloading kube-system manifests tar sha1 file ${manifests_sha1}"
-  download_or_bust "${manifests_sha1}" "${KUBE_MANIFESTS_TAR_URL}.sha1"
-  manifests_tar="${KUBE_MANIFESTS_TAR_URL##*/}"
-  echo "Downloading kube-manifest tar file ${manifests_tar}"
-  download_or_bust "${manifests_tar}" "${KUBE_MANIFESTS_TAR_URL}"
-  # Validate hash.
-  actual=$(sha1sum "${manifests_tar}" | awk '{ print $1 }') || true
-  if [ "${actual}" != "${KUBE_MANIFESTS_TAR_HASH}" ]; then
-    echo "== ${manifests_tar} corrupted, sha1 ${actual} doesn't match expected ${KUBE_MANIFESTS_TAR_HASH} =="
+  kube_home="/home/kubernetes"
+  mkdir -p "${kube_home}"
+  cd "${kube_home}"
+  read -r server_binary_tar_url < "${tmp_binary_urls}"
+  readonly server_binary_tar="${server_binary_tar_url##*/}"
+  if [ -n "${SERVER_BINARY_TAR_HASH:-}" ]; then
+    readonly server_binary_tar_hash="${SERVER_BINARY_TAR_HASH}"
   else
-    echo "Validated ${KUBE_MANIFESTS_TAR_URL} SHA1 = ${KUBE_MANIFESTS_TAR_HASH}"
+    echo "Downloading binary release sha1 (not found in env)"
+    download_or_bust "" "${tmp_binary_urls}"
+    readonly server_binary_tar_hash=$(cat "${server_binary_tar}.sha1")
   fi
-  tar xzf "/run/kube-manifests/${manifests_tar}" -C /run/kube-manifests/ --overwrite
+  echo "Downloading binary release tar"
+  download_or_bust "${server_binary_tar_hash}" "${tmp_binary_urls}"
+  tar xzf "${kube_home}/${server_binary_tar}" -C "${kube_home}" --overwrite
+  # Copy docker_tag and image files to /home/kubernetes/kube-docker-files.
+  src_dir="${kube_home}/kubernetes/server/bin"
+  dst_dir="${kube_home}/kube-docker-files"
+  mkdir -p "${dst_dir}"
+  cp "${src_dir}/"*.docker_tag "${dst_dir}"
+  if [ "${KUBERNETES_MASTER:-}" = "false" ]; then
+    cp "${src_dir}/kube-proxy.tar" "${dst_dir}"
+  else
+    cp "${src_dir}/kube-apiserver.tar" "${dst_dir}"
+    cp "${src_dir}/kube-controller-manager.tar" "${dst_dir}"
+    cp "${src_dir}/kube-scheduler.tar" "${dst_dir}"
+    cp -r "${kube_home}/kubernetes/addons" "${dst_dir}"
+  fi
+  # Use the binary from the release tarball if they are not preinstalled, or if this is
+  # a test cluster.
+  readonly BIN_PATH="/usr/bin"
+  if ! which kubelet > /dev/null || ! which kubectl > /dev/null; then
+    # This should be the case of trusty.
+    cp "${src_dir}/kubelet" "${BIN_PATH}"
+    cp "${src_dir}/kubectl" "${BIN_PATH}"
+  else
+    # This should be the case of GCI.
+    readonly kube_bin="${kube_home}/bin"
+    mkdir -p "${kube_bin}"
+    mount --bind "${kube_bin}" "${kube_bin}"
+    mount -o remount,rw,exec "${kube_bin}"
+    cp "${src_dir}/kubelet" "${kube_bin}"
+    cp "${src_dir}/kubectl" "${kube_bin}"
+    chmod 544 "${kube_bin}/kubelet"
+    chmod 544 "${kube_bin}/kubectl"
+    # If the built-in binary version is different from the expected version, we use
+    # the downloaded binary. The simplest implementation is to always use the downloaded
+    # binary without checking the version. But we have another version guardian in GKE.
+    # So, we compare the versions to ensure this run-time binary replacement is only
+    # applied for OSS kubernetes.
+    readonly builtin_version="$(/usr/bin/kubelet --version=true | cut -f2 -d " ")"
+    readonly required_version="$(/home/kubernetes/bin/kubelet --version=true | cut -f2 -d " ")"
+    if [ "${TEST_CLUSTER:-}" = "true" ] || [ "${builtin_version}" != "${required_version}" ]; then
+      mount --bind "${kube_bin}/kubelet" "${BIN_PATH}/kubelet"
+      mount --bind "${kube_bin}/kubectl" "${BIN_PATH}/kubectl"
+    else
+      # Remove downloaded binary just to prevent misuse.
+      rm -f "${kube_bin}/kubelet"
+      rm -f "${kube_bin}/kubectl"
+    fi
+  fi
+  cp "${kube_home}/kubernetes/LICENSES" "${kube_home}"
+
+  # Put kube-system pods manifests in /home/kubernetes/kube-manifests/.
+  dst_dir="${kube_home}/kube-manifests"
+  mkdir -p "${dst_dir}"
+  read -r manifests_tar_url < "${tmp_manifests_urls}"
+  readonly manifests_tar="${manifests_tar_url##*/}"
+  if [ -n "${KUBE_MANIFESTS_TAR_HASH:-}" ]; then
+    readonly manifests_tar_hash="${KUBE_MANIFESTS_TAR_HASH}"
+  else
+    echo "Downloading k8s manifests sha1 (not found in env)"
+    download_or_bust "" "${tmp_manifests_urls}"
+    readonly manifests_tar_hash=$(cat "${manifests_tar}.sha1")
+  fi
+  echo "Downloading k8s manifests tar"
+  download_or_bust "${manifests_tar_hash}" "${tmp_manifests_urls}"
+  tar xzf "${kube_home}/${manifests_tar}" -C "${dst_dir}" --overwrite
   readonly kube_addon_registry="${KUBE_ADDON_REGISTRY:-gcr.io/google_containers}"
   if [ "${kube_addon_registry}" != "gcr.io/google_containers" ]; then
-    find /run/kube-manifests -name \*.yaml -or -name \*.yaml.in | \
+    find "${dst_dir}" -name \*.yaml -or -name \*.yaml.in | \
       xargs sed -ri "s@(image:\s.*)gcr.io/google_containers@\1${kube_addon_registry}@"
-    find /run/kube-manifests -name \*.manifest -or -name \*.json | \
+    find "${dst_dir}" -name \*.manifest -or -name \*.json | \
       xargs sed -ri "s@(image\":\s+\")gcr.io/google_containers@\1${kube_addon_registry}@"
   fi
+<<<<<<< HEAD
   rm "/run/kube-manifests/${manifests_sha1}"
   rm "/run/kube-manifests/${manifests_tar}"
 }
@@ -776,4 +809,16 @@ prepare_kube_addons() {
   # In case that some GCE customized trusty may have a read-only /root.
   mount -t tmpfs tmpfs /root
   mount --bind -o remount,rw,noexec /root
+=======
+  cp "${dst_dir}/kubernetes/gci-trusty/trusty-configure-helper.sh" /etc/kube-configure-helper.sh
+
+  # Clean up.
+  rm -rf "${kube_home}/kubernetes"
+  rm -f "${kube_home}/${server_binary_tar}"
+  rm -f "${kube_home}/${server_binary_tar}.sha1"
+  rm -f "${kube_home}/${manifests_tar}"
+  rm -f "${kube_home}/${manifests_tar}.sha1"
+  rm -f "${tmp_binary_urls}"
+  rm -f "${tmp_manifests_urls}"
+>>>>>>> tags/v1.3.0
 }

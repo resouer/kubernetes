@@ -3,6 +3,7 @@
 
 <!-- END MUNGE: UNVERSIONED_WARNING -->
 
+<<<<<<< HEAD
 ### This document has been subsumed by [deploying-applications.md](deploying-applications.md)
 
 
@@ -10,8 +11,16 @@
 <!-- BEGIN MUNGE: IS_VERSIONED -->
 <!-- TAG IS_VERSIONED -->
 <!-- END MUNGE: IS_VERSIONED -->
-
+=======
 This file has moved to: http://kubernetes.github.io/docs/user-guide/simple-yaml/
+
+
+
+>>>>>>> tags/v1.3.0
+
+<!-- BEGIN MUNGE: IS_VERSIONED -->
+<!-- TAG IS_VERSIONED -->
+<!-- END MUNGE: IS_VERSIONED -->
 
 
 <!-- BEGIN MUNGE: GENERATED_ANALYTICS -->

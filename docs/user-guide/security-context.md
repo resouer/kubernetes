@@ -2,6 +2,7 @@
 
 
 <!-- END MUNGE: UNVERSIONED_WARNING -->
+<<<<<<< HEAD
 
 # Security Contexts
 
@@ -14,6 +15,14 @@ This file has moved to: http://kubernetes.github.io/docs/user-guide/security-con
 
 
 
+=======
+
+This file has moved to: http://kubernetes.github.io/docs/user-guide/security-context/
+
+
+
+
+>>>>>>> tags/v1.3.0
 <!-- BEGIN MUNGE: IS_VERSIONED -->
 <!-- TAG IS_VERSIONED -->
 <!-- END MUNGE: IS_VERSIONED -->

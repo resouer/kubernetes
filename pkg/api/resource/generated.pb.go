@@ -1,5 +1,8 @@
+<<<<<<< HEAD
 // +build proto
 
+=======
+>>>>>>> tags/v1.3.0
 /*
 Copyright 2016 The Kubernetes Authors All rights reserved.
 
@@ -28,17 +31,23 @@ limitations under the License.
 
 	It has these top-level messages:
 		Quantity
+<<<<<<< HEAD
 		QuantityProto
+=======
+>>>>>>> tags/v1.3.0
 */
 package resource
 
 import proto "github.com/gogo/protobuf/proto"
 import fmt "fmt"
 import math "math"
+<<<<<<< HEAD
 import _ "github.com/gogo/protobuf/gogoproto"
 import _ "k8s.io/kubernetes/pkg/util/intstr"
 
 import io "io"
+=======
+>>>>>>> tags/v1.3.0
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
@@ -48,6 +57,7 @@ var _ = math.Inf
 func (m *Quantity) Reset()      { *m = Quantity{} }
 func (*Quantity) ProtoMessage() {}
 
+<<<<<<< HEAD
 func (m *QuantityProto) Reset()         { *m = QuantityProto{} }
 func (m *QuantityProto) String() string { return proto.CompactTextString(m) }
 func (*QuantityProto) ProtoMessage()    {}
@@ -373,3 +383,8 @@ var (
 	ErrInvalidLengthGenerated = fmt.Errorf("proto: negative length found during unmarshaling")
 	ErrIntOverflowGenerated   = fmt.Errorf("proto: integer overflow")
 )
+=======
+func init() {
+	proto.RegisterType((*Quantity)(nil), "k8s.io.kubernetes.pkg.api.resource.Quantity")
+}
+>>>>>>> tags/v1.3.0

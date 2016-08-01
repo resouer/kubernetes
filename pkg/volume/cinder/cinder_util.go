@@ -18,10 +18,7 @@ package cinder
 
 import (
 	"errors"
-	"io/ioutil"
 	"os"
-	"path"
-	"strings"
 	"time"
 
 	"github.com/golang/glog"
@@ -67,8 +64,7 @@ func (util *CinderDiskUtil) AttachDisk(b *cinderVolumeBuilder, globalPDPath stri
 	}
 }
 
-// Attaches a disk specified by a volume.CinderPersistenDisk to the current kubelet.
-// Mounts the disk to it's global path.
+// Called by AttachDisk
 func (util *CinderDiskUtil) AttachDiskCloudProvider(b *cinderVolumeBuilder, globalPDPath string) error {
 	options := []string{}
 	if b.readOnly {
@@ -78,7 +74,11 @@ func (util *CinderDiskUtil) AttachDiskCloudProvider(b *cinderVolumeBuilder, glob
 	if err != nil {
 		return err
 	}
-	diskid, err := cloud.AttachDisk(b.pdName)
+	instanceid, err := cloud.InstanceID()
+	if err != nil {
+		return err
+	}
+	diskid, err := cloud.AttachDisk(instanceid, b.pdName)
 	if err != nil {
 		return err
 	}
@@ -86,8 +86,7 @@ func (util *CinderDiskUtil) AttachDiskCloudProvider(b *cinderVolumeBuilder, glob
 	var devicePath string
 	numTries := 0
 	for {
-		devicePath = makeDevicePath(diskid)
-		// probe the attached vol so that symlink in /dev/disk/by-id is created
+		devicePath = cloud.GetDevicePath(diskid)
 		probeAttachedVolume()
 
 		_, err := os.Stat(devicePath)
@@ -125,21 +124,6 @@ func (util *CinderDiskUtil) AttachDiskCloudProvider(b *cinderVolumeBuilder, glob
 	return nil
 }
 
-func makeDevicePath(diskid string) string {
-	files, _ := ioutil.ReadDir("/dev/disk/by-id/")
-	for _, f := range files {
-		if strings.Contains(f.Name(), "virtio-") {
-			devid_prefix := f.Name()[len("virtio-"):len(f.Name())]
-			if strings.Contains(diskid, devid_prefix) {
-				glog.V(4).Infof("Found disk attached as %q; full devicepath: %s\n", f.Name(), path.Join("/dev/disk/by-id/", f.Name()))
-				return path.Join("/dev/disk/by-id/", f.Name())
-			}
-		}
-	}
-	glog.Warningf("Failed to find device for the diskid: %q\n", diskid)
-	return ""
-}
-
 // Unmounts the device and detaches the disk from the kubelet's host machine.
 func (util *CinderDiskUtil) DetachDisk(cd *cinderVolumeCleaner) error {
 	if cd.withOpenStackCP {
@@ -152,8 +136,9 @@ func (util *CinderDiskUtil) DetachDisk(cd *cinderVolumeCleaner) error {
 	return nil
 }
 
-// Unmounts the device and detaches the disk from the kubelet's host machine.
+// Called by DetachDisk
 func (util *CinderDiskUtil) DetachDiskCloudProvider(cd *cinderVolumeCleaner) error {
+
 	globalPDPath := makeGlobalPDName(cd.plugin.host, cd.pdName)
 	if err := cd.mounter.Unmount(globalPDPath); err != nil {
 		return err
@@ -167,8 +152,11 @@ func (util *CinderDiskUtil) DetachDiskCloudProvider(cd *cinderVolumeCleaner) err
 	if err != nil {
 		return err
 	}
-
-	if err = cloud.DetachDisk(cd.pdName); err != nil {
+	instanceid, err := cloud.InstanceID()
+	if err != nil {
+		return err
+	}
+	if err = cloud.DetachDisk(instanceid, cd.pdName); err != nil {
 		return err
 	}
 	glog.V(2).Infof("Successfully detached cinder volume %s", cd.pdName)
