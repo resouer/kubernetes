@@ -302,7 +302,6 @@ func DeepCopy_v1_CinderVolumeSource(in CinderVolumeSource, out *CinderVolumeSour
 	out.VolumeID = in.VolumeID
 	out.FSType = in.FSType
 	out.ReadOnly = in.ReadOnly
-	out.WithOpenStackCP = in.WithOpenStackCP
 	return nil
 }
 
@@ -1334,7 +1333,6 @@ func DeepCopy_v1_NamespaceSpec(in NamespaceSpec, out *NamespaceSpec, c *conversi
 	} else {
 		out.Finalizers = nil
 	}
-	out.Network = in.Network
 	return nil
 }
 

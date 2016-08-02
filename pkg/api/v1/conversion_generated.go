@@ -614,7 +614,6 @@ func autoConvert_api_CinderVolumeSource_To_v1_CinderVolumeSource(in *api.CinderV
 	out.VolumeID = in.VolumeID
 	out.FSType = in.FSType
 	out.ReadOnly = in.ReadOnly
-	out.WithOpenStackCP = in.WithOpenStackCP
 	return nil
 }
 
@@ -2966,7 +2965,6 @@ func autoConvert_api_NamespaceSpec_To_v1_NamespaceSpec(in *api.NamespaceSpec, ou
 	} else {
 		out.Finalizers = nil
 	}
-	out.Network = in.Network
 	return nil
 }
 

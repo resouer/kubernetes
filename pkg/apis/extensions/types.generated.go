@@ -12975,7 +12975,7 @@ func (x *FSGroupStrategyOptions) CodecEncodeSelf(e *codec1978.Encoder) {
 			var yyq2 [2]bool
 			_, _, _ = yysep2, yyq2, yy2arr2
 			const yyr2 bool = false
-    yyq2[0] = x.Rule != ""
+			yyq2[0] = x.Rule != ""
 			yyq2[1] = len(x.Ranges) != 0
 			var yynn2 int
 			if yyr2 || yy2arr2 {
@@ -13039,7 +13039,7 @@ func (x *FSGroupStrategyOptions) CodecEncodeSelf(e *codec1978.Encoder) {
 				}
 			}
 			if yyr2 || yy2arr2 {
-    z.EncSendContainerState(codecSelfer_containerArrayEnd1234)
+				z.EncSendContainerState(codecSelfer_containerArrayEnd1234)
 			} else {
 				z.EncSendContainerState(codecSelfer_containerMapEnd1234)
 			}
@@ -13114,7 +13114,7 @@ func (x *FSGroupStrategyOptions) codecDecodeSelfFromMap(l int, d *codec1978.Deco
 				_ = yym6
 				if false {
 				} else {
-    h.decSliceIDRange((*[]IDRange)(yyv5), d)
+					h.decSliceIDRange((*[]IDRange)(yyv5), d)
 				}
 			}
 		default:
@@ -13166,7 +13166,7 @@ func (x *FSGroupStrategyOptions) codecDecodeSelfFromArray(l int, d *codec1978.De
 		_ = yym10
 		if false {
 		} else {
-    h.decSliceIDRange((*[]IDRange)(yyv9), d)
+			h.decSliceIDRange((*[]IDRange)(yyv9), d)
 		}
 	}
 	for {
@@ -13225,14 +13225,14 @@ func (x *SupplementalGroupsStrategyOptions) CodecEncodeSelf(e *codec1978.Encoder
 		} else {
 			yysep2 := !z.EncBinary()
 			yy2arr2 := z.EncBasicHandle().StructToArray
-			var yyq2 [3]bool
+			var yyq2 [2]bool
 			_, _, _ = yysep2, yyq2, yy2arr2
 			const yyr2 bool = false
-    yyq2[0] = x.Rule != ""
+			yyq2[0] = x.Rule != ""
 			yyq2[1] = len(x.Ranges) != 0
 			var yynn2 int
 			if yyr2 || yy2arr2 {
-				r.EncodeArrayStart(3)
+				r.EncodeArrayStart(2)
 			} else {
 				yynn2 = 0
 				for _, b := range yyq2 {
@@ -13264,7 +13264,7 @@ func (x *SupplementalGroupsStrategyOptions) CodecEncodeSelf(e *codec1978.Encoder
 					if x.Ranges == nil {
 						r.EncodeNil()
 					} else {
-    yym7 := z.EncBinary()
+						yym7 := z.EncBinary()
 						_ = yym7
 						if false {
 						} else {
@@ -13277,12 +13277,12 @@ func (x *SupplementalGroupsStrategyOptions) CodecEncodeSelf(e *codec1978.Encoder
 			} else {
 				if yyq2[1] {
 					z.EncSendContainerState(codecSelfer_containerMapKey1234)
-    r.EncodeString(codecSelferC_UTF81234, string("ranges"))
+					r.EncodeString(codecSelferC_UTF81234, string("ranges"))
 					z.EncSendContainerState(codecSelfer_containerMapValue1234)
 					if x.Ranges == nil {
 						r.EncodeNil()
 					} else {
-    yym8 := z.EncBinary()
+						yym8 := z.EncBinary()
 						_ = yym8
 						if false {
 						} else {
@@ -13358,7 +13358,7 @@ func (x *SupplementalGroupsStrategyOptions) codecDecodeSelfFromMap(l int, d *cod
 			} else {
 				x.Rule = SupplementalGroupsStrategyType(r.DecodeString())
 			}
-    case "ranges":
+		case "ranges":
 			if r.TryDecodeAsNil() {
 				x.Ranges = nil
 			} else {
@@ -13407,7 +13407,7 @@ func (x *SupplementalGroupsStrategyOptions) codecDecodeSelfFromArray(l int, d *c
 		yyb7 = r.CheckBreak()
 	}
 	if yyb7 {
-    z.DecSendContainerState(codecSelfer_containerArrayEnd1234)
+		z.DecSendContainerState(codecSelfer_containerArrayEnd1234)
 		return
 	}
 	z.DecSendContainerState(codecSelfer_containerArrayElem1234)
@@ -17315,7 +17315,7 @@ func (x codecSelfer1234) decSliceIDRange(v *[]IDRange, d *codec1978.Decoder) {
 
 			yyrg1 := len(yyv1) > 0
 			yyv21 := yyv1
-    yyrl1, yyrt1 = z.DecInferLen(yyl1, z.DecBasicHandle().MaxInitLen, 16)
+			yyrl1, yyrt1 = z.DecInferLen(yyl1, z.DecBasicHandle().MaxInitLen, 16)
 			if yyrt1 {
 				if yyrl1 <= cap(yyv1) {
 					yyv1 = yyv1[:yyrl1]
