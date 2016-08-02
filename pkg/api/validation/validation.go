@@ -217,7 +217,7 @@ var ValidateServiceName = NameIsDNS952Label
 var ValidateNodeName = NameIsDNSSubdomain
 
 // ValidateNetworkName can be used to check whether the given network name is valid.
-func ValidateNetworkName(name string, prefix bool) (bool, string) {
+func ValidateNetworkName(name string, prefix bool) []string {
 	return NameIsDNSLabel(name, prefix)
 }
 
