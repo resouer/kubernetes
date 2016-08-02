@@ -30,6 +30,7 @@ type CoreInterface interface {
 	EventsGetter
 	LimitRangesGetter
 	NamespacesGetter
+	NetworksGetter
 	NodesGetter
 	PersistentVolumesGetter
 	PersistentVolumeClaimsGetter
@@ -69,6 +70,10 @@ func (c *CoreClient) LimitRanges(namespace string) LimitRangeInterface {
 
 func (c *CoreClient) Namespaces() NamespaceInterface {
 	return newNamespaces(c)
+}
+
+func (c *CoreClient) Networks() NetworkInterface {
+	return newNetworks(c)
 }
 
 func (c *CoreClient) Nodes() NodeInterface {

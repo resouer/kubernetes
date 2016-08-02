@@ -90,9 +90,6 @@ func addConversionFuncs(scheme *runtime.Scheme) {
 }
 
 func Convert_extensions_ScaleStatus_To_v1beta1_ScaleStatus(in *extensions.ScaleStatus, out *ScaleStatus, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*extensions.ScaleStatus))(in)
-	}
 	out.Replicas = int32(in.Replicas)
 
 	out.Selector = nil
@@ -112,10 +109,7 @@ func Convert_extensions_ScaleStatus_To_v1beta1_ScaleStatus(in *extensions.ScaleS
 }
 
 func Convert_v1beta1_ScaleStatus_To_extensions_ScaleStatus(in *ScaleStatus, out *extensions.ScaleStatus, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*ScaleStatus))(in)
-	}
-	out.Replicas = int(in.Replicas)
+	out.Replicas = int32(in.Replicas)
 
 	// Normally when 2 fields map to the same internal value we favor the old field, since
 	// old clients can't be expected to know about new fields but clients that know about the

@@ -101,6 +101,10 @@ func init() {
 		DeepCopy_api_NamespaceList,
 		DeepCopy_api_NamespaceSpec,
 		DeepCopy_api_NamespaceStatus,
+		DeepCopy_api_Network,
+		DeepCopy_api_NetworkList,
+		DeepCopy_api_NetworkSpec,
+		DeepCopy_api_NetworkStatus,
 		DeepCopy_api_Node,
 		DeepCopy_api_NodeAddress,
 		DeepCopy_api_NodeAffinity,
@@ -176,6 +180,7 @@ func init() {
 		DeepCopy_api_ServiceProxyOptions,
 		DeepCopy_api_ServiceSpec,
 		DeepCopy_api_ServiceStatus,
+		DeepCopy_api_Subnet,
 		DeepCopy_api_TCPSocketAction,
 		DeepCopy_api_Taint,
 		DeepCopy_api_Toleration,
@@ -305,6 +310,7 @@ func DeepCopy_api_CinderVolumeSource(in CinderVolumeSource, out *CinderVolumeSou
 	out.VolumeID = in.VolumeID
 	out.FSType = in.FSType
 	out.ReadOnly = in.ReadOnly
+	out.WithOpenStackCP = in.WithOpenStackCP
 	return nil
 }
 
@@ -1369,10 +1375,72 @@ func DeepCopy_api_NamespaceSpec(in NamespaceSpec, out *NamespaceSpec, c *convers
 	} else {
 		out.Finalizers = nil
 	}
+	out.Network = in.Network
 	return nil
 }
 
 func DeepCopy_api_NamespaceStatus(in NamespaceStatus, out *NamespaceStatus, c *conversion.Cloner) error {
+	out.Phase = in.Phase
+	return nil
+}
+
+func DeepCopy_api_Network(in Network, out *Network, c *conversion.Cloner) error {
+	if err := unversioned.DeepCopy_unversioned_TypeMeta(in.TypeMeta, &out.TypeMeta, c); err != nil {
+		return err
+	}
+	if err := DeepCopy_api_ObjectMeta(in.ObjectMeta, &out.ObjectMeta, c); err != nil {
+		return err
+	}
+	if err := DeepCopy_api_NetworkSpec(in.Spec, &out.Spec, c); err != nil {
+		return err
+	}
+	if err := DeepCopy_api_NetworkStatus(in.Status, &out.Status, c); err != nil {
+		return err
+	}
+	return nil
+}
+
+func DeepCopy_api_NetworkList(in NetworkList, out *NetworkList, c *conversion.Cloner) error {
+	if err := unversioned.DeepCopy_unversioned_TypeMeta(in.TypeMeta, &out.TypeMeta, c); err != nil {
+		return err
+	}
+	if err := unversioned.DeepCopy_unversioned_ListMeta(in.ListMeta, &out.ListMeta, c); err != nil {
+		return err
+	}
+	if in.Items != nil {
+		in, out := in.Items, &out.Items
+		*out = make([]Network, len(in))
+		for i := range in {
+			if err := DeepCopy_api_Network(in[i], &(*out)[i], c); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
+	return nil
+}
+
+func DeepCopy_api_NetworkSpec(in NetworkSpec, out *NetworkSpec, c *conversion.Cloner) error {
+	if in.Subnets != nil {
+		in, out := in.Subnets, &out.Subnets
+		*out = make(map[string]Subnet)
+		for key, val := range in {
+			newVal := new(Subnet)
+			if err := DeepCopy_api_Subnet(val, newVal, c); err != nil {
+				return err
+			}
+			(*out)[key] = *newVal
+		}
+	} else {
+		out.Subnets = nil
+	}
+	out.ProviderNetworkID = in.ProviderNetworkID
+	out.TenantID = in.TenantID
+	return nil
+}
+
+func DeepCopy_api_NetworkStatus(in NetworkStatus, out *NetworkStatus, c *conversion.Cloner) error {
 	out.Phase = in.Phase
 	return nil
 }
@@ -3060,6 +3128,12 @@ func DeepCopy_api_ServiceStatus(in ServiceStatus, out *ServiceStatus, c *convers
 	if err := DeepCopy_api_LoadBalancerStatus(in.LoadBalancer, &out.LoadBalancer, c); err != nil {
 		return err
 	}
+	return nil
+}
+
+func DeepCopy_api_Subnet(in Subnet, out *Subnet, c *conversion.Cloner) error {
+	out.CIDR = in.CIDR
+	out.Gateway = in.Gateway
 	return nil
 }
 

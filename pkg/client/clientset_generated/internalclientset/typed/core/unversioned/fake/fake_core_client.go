@@ -50,6 +50,10 @@ func (c *FakeCore) Namespaces() unversioned.NamespaceInterface {
 	return &FakeNamespaces{c}
 }
 
+func (c *FakeCore) Networks() unversioned.NetworkInterface {
+	return &FakeNetworks{c}
+}
+
 func (c *FakeCore) Nodes() unversioned.NodeInterface {
 	return &FakeNodes{c}
 }

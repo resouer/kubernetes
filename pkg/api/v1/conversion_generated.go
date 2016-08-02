@@ -163,6 +163,14 @@ func init() {
 		Convert_api_NamespaceSpec_To_v1_NamespaceSpec,
 		Convert_v1_NamespaceStatus_To_api_NamespaceStatus,
 		Convert_api_NamespaceStatus_To_v1_NamespaceStatus,
+		Convert_v1_Network_To_api_Network,
+		Convert_api_Network_To_v1_Network,
+		Convert_v1_NetworkList_To_api_NetworkList,
+		Convert_api_NetworkList_To_v1_NetworkList,
+		Convert_v1_NetworkSpec_To_api_NetworkSpec,
+		Convert_api_NetworkSpec_To_v1_NetworkSpec,
+		Convert_v1_NetworkStatus_To_api_NetworkStatus,
+		Convert_api_NetworkStatus_To_v1_NetworkStatus,
 		Convert_v1_Node_To_api_Node,
 		Convert_api_Node_To_v1_Node,
 		Convert_v1_NodeAddress_To_api_NodeAddress,
@@ -311,6 +319,8 @@ func init() {
 		Convert_api_ServiceSpec_To_v1_ServiceSpec,
 		Convert_v1_ServiceStatus_To_api_ServiceStatus,
 		Convert_api_ServiceStatus_To_v1_ServiceStatus,
+		Convert_v1_Subnet_To_api_Subnet,
+		Convert_api_Subnet_To_v1_Subnet,
 		Convert_v1_TCPSocketAction_To_api_TCPSocketAction,
 		Convert_api_TCPSocketAction_To_v1_TCPSocketAction,
 		Convert_v1_Taint_To_api_Taint,
@@ -603,6 +613,7 @@ func autoConvert_v1_CinderVolumeSource_To_api_CinderVolumeSource(in *CinderVolum
 	out.VolumeID = in.VolumeID
 	out.FSType = in.FSType
 	out.ReadOnly = in.ReadOnly
+	out.WithOpenStackCP = in.WithOpenStackCP
 	return nil
 }
 
@@ -614,6 +625,7 @@ func autoConvert_api_CinderVolumeSource_To_v1_CinderVolumeSource(in *api.CinderV
 	out.VolumeID = in.VolumeID
 	out.FSType = in.FSType
 	out.ReadOnly = in.ReadOnly
+	out.WithOpenStackCP = in.WithOpenStackCP
 	return nil
 }
 
@@ -2948,6 +2960,7 @@ func autoConvert_v1_NamespaceSpec_To_api_NamespaceSpec(in *NamespaceSpec, out *a
 	} else {
 		out.Finalizers = nil
 	}
+	out.Network = in.Network
 	return nil
 }
 
@@ -2965,6 +2978,7 @@ func autoConvert_api_NamespaceSpec_To_v1_NamespaceSpec(in *api.NamespaceSpec, ou
 	} else {
 		out.Finalizers = nil
 	}
+	out.Network = in.Network
 	return nil
 }
 
@@ -2989,6 +3003,161 @@ func autoConvert_api_NamespaceStatus_To_v1_NamespaceStatus(in *api.NamespaceStat
 
 func Convert_api_NamespaceStatus_To_v1_NamespaceStatus(in *api.NamespaceStatus, out *NamespaceStatus, s conversion.Scope) error {
 	return autoConvert_api_NamespaceStatus_To_v1_NamespaceStatus(in, out, s)
+}
+
+func autoConvert_v1_Network_To_api_Network(in *Network, out *api.Network, s conversion.Scope) error {
+	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
+		return err
+	}
+	if err := Convert_v1_ObjectMeta_To_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
+		return err
+	}
+	if err := Convert_v1_NetworkSpec_To_api_NetworkSpec(&in.Spec, &out.Spec, s); err != nil {
+		return err
+	}
+	if err := Convert_v1_NetworkStatus_To_api_NetworkStatus(&in.Status, &out.Status, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+func Convert_v1_Network_To_api_Network(in *Network, out *api.Network, s conversion.Scope) error {
+	return autoConvert_v1_Network_To_api_Network(in, out, s)
+}
+
+func autoConvert_api_Network_To_v1_Network(in *api.Network, out *Network, s conversion.Scope) error {
+	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
+		return err
+	}
+	if err := Convert_api_ObjectMeta_To_v1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
+		return err
+	}
+	if err := Convert_api_NetworkSpec_To_v1_NetworkSpec(&in.Spec, &out.Spec, s); err != nil {
+		return err
+	}
+	if err := Convert_api_NetworkStatus_To_v1_NetworkStatus(&in.Status, &out.Status, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+func Convert_api_Network_To_v1_Network(in *api.Network, out *Network, s conversion.Scope) error {
+	return autoConvert_api_Network_To_v1_Network(in, out, s)
+}
+
+func autoConvert_v1_NetworkList_To_api_NetworkList(in *NetworkList, out *api.NetworkList, s conversion.Scope) error {
+	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
+		return err
+	}
+	if err := api.Convert_unversioned_ListMeta_To_unversioned_ListMeta(&in.ListMeta, &out.ListMeta, s); err != nil {
+		return err
+	}
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]api.Network, len(*in))
+		for i := range *in {
+			if err := Convert_v1_Network_To_api_Network(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
+	return nil
+}
+
+func Convert_v1_NetworkList_To_api_NetworkList(in *NetworkList, out *api.NetworkList, s conversion.Scope) error {
+	return autoConvert_v1_NetworkList_To_api_NetworkList(in, out, s)
+}
+
+func autoConvert_api_NetworkList_To_v1_NetworkList(in *api.NetworkList, out *NetworkList, s conversion.Scope) error {
+	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
+		return err
+	}
+	if err := api.Convert_unversioned_ListMeta_To_unversioned_ListMeta(&in.ListMeta, &out.ListMeta, s); err != nil {
+		return err
+	}
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]Network, len(*in))
+		for i := range *in {
+			if err := Convert_api_Network_To_v1_Network(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
+	return nil
+}
+
+func Convert_api_NetworkList_To_v1_NetworkList(in *api.NetworkList, out *NetworkList, s conversion.Scope) error {
+	return autoConvert_api_NetworkList_To_v1_NetworkList(in, out, s)
+}
+
+func autoConvert_v1_NetworkSpec_To_api_NetworkSpec(in *NetworkSpec, out *api.NetworkSpec, s conversion.Scope) error {
+	if in.Subnets != nil {
+		in, out := &in.Subnets, &out.Subnets
+		*out = make(map[string]api.Subnet, len(*in))
+		for key, val := range *in {
+			newVal := new(api.Subnet)
+			if err := Convert_v1_Subnet_To_api_Subnet(&val, newVal, s); err != nil {
+				return err
+			}
+			(*out)[key] = *newVal
+		}
+	} else {
+		out.Subnets = nil
+	}
+	out.ProviderNetworkID = in.ProviderNetworkID
+	out.TenantID = in.TenantID
+	return nil
+}
+
+func Convert_v1_NetworkSpec_To_api_NetworkSpec(in *NetworkSpec, out *api.NetworkSpec, s conversion.Scope) error {
+	return autoConvert_v1_NetworkSpec_To_api_NetworkSpec(in, out, s)
+}
+
+func autoConvert_api_NetworkSpec_To_v1_NetworkSpec(in *api.NetworkSpec, out *NetworkSpec, s conversion.Scope) error {
+	if in.Subnets != nil {
+		in, out := &in.Subnets, &out.Subnets
+		*out = make(map[string]Subnet, len(*in))
+		for key, val := range *in {
+			newVal := new(Subnet)
+			if err := Convert_api_Subnet_To_v1_Subnet(&val, newVal, s); err != nil {
+				return err
+			}
+			(*out)[key] = *newVal
+		}
+	} else {
+		out.Subnets = nil
+	}
+	out.ProviderNetworkID = in.ProviderNetworkID
+	out.TenantID = in.TenantID
+	return nil
+}
+
+func Convert_api_NetworkSpec_To_v1_NetworkSpec(in *api.NetworkSpec, out *NetworkSpec, s conversion.Scope) error {
+	return autoConvert_api_NetworkSpec_To_v1_NetworkSpec(in, out, s)
+}
+
+func autoConvert_v1_NetworkStatus_To_api_NetworkStatus(in *NetworkStatus, out *api.NetworkStatus, s conversion.Scope) error {
+	SetDefaults_NetworkStatus(in)
+	out.Phase = api.NetworkPhase(in.Phase)
+	return nil
+}
+
+func Convert_v1_NetworkStatus_To_api_NetworkStatus(in *NetworkStatus, out *api.NetworkStatus, s conversion.Scope) error {
+	return autoConvert_v1_NetworkStatus_To_api_NetworkStatus(in, out, s)
+}
+
+func autoConvert_api_NetworkStatus_To_v1_NetworkStatus(in *api.NetworkStatus, out *NetworkStatus, s conversion.Scope) error {
+	out.Phase = NetworkPhase(in.Phase)
+	return nil
+}
+
+func Convert_api_NetworkStatus_To_v1_NetworkStatus(in *api.NetworkStatus, out *NetworkStatus, s conversion.Scope) error {
+	return autoConvert_api_NetworkStatus_To_v1_NetworkStatus(in, out, s)
 }
 
 func autoConvert_v1_Node_To_api_Node(in *Node, out *api.Node, s conversion.Scope) error {
@@ -6199,6 +6368,26 @@ func autoConvert_api_ServiceStatus_To_v1_ServiceStatus(in *api.ServiceStatus, ou
 
 func Convert_api_ServiceStatus_To_v1_ServiceStatus(in *api.ServiceStatus, out *ServiceStatus, s conversion.Scope) error {
 	return autoConvert_api_ServiceStatus_To_v1_ServiceStatus(in, out, s)
+}
+
+func autoConvert_v1_Subnet_To_api_Subnet(in *Subnet, out *api.Subnet, s conversion.Scope) error {
+	out.CIDR = in.CIDR
+	out.Gateway = in.Gateway
+	return nil
+}
+
+func Convert_v1_Subnet_To_api_Subnet(in *Subnet, out *api.Subnet, s conversion.Scope) error {
+	return autoConvert_v1_Subnet_To_api_Subnet(in, out, s)
+}
+
+func autoConvert_api_Subnet_To_v1_Subnet(in *api.Subnet, out *Subnet, s conversion.Scope) error {
+	out.CIDR = in.CIDR
+	out.Gateway = in.Gateway
+	return nil
+}
+
+func Convert_api_Subnet_To_v1_Subnet(in *api.Subnet, out *Subnet, s conversion.Scope) error {
+	return autoConvert_api_Subnet_To_v1_Subnet(in, out, s)
 }
 
 func autoConvert_v1_TCPSocketAction_To_api_TCPSocketAction(in *TCPSocketAction, out *api.TCPSocketAction, s conversion.Scope) error {

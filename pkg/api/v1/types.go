@@ -2604,7 +2604,7 @@ type NamespaceList struct {
 // NetworkStatus is information about the current status of a Network.
 type NetworkStatus struct {
 	// Phase is the current lifecycle phase of the network.
-	Phase NetworkPhase `json:"phase,omitempty"`
+	Phase NetworkPhase `json:"phase,omitempty" protobuf:"bytes,1,opt,name=phase,casttype=NetworkPhase"`
 }
 
 type NetworkPhase string
@@ -2627,23 +2627,23 @@ const (
 // Subnet is a description of a subnet
 type Subnet struct {
 	// CIDR of this subnet
-	CIDR string `json:"cidr"`
+	CIDR string `json:"cidr" protobuf:"bytes,1,opt,name=cidr"`
 	// Gateway of this subnet
-	Gateway string `json:"gateway"`
+	Gateway string `json:"gateway" protobuf:"bytes,2,opt,name=gateway"`
 }
 
 // NetworkSpec is a description of a network
 type NetworkSpec struct {
 	// There must be at least one subnet in a network
 	// Subnets and ProviderNetworkID must not be provided together
-	Subnets map[string]Subnet `json:"subnets,omitempty"`
+	Subnets map[string]Subnet `json:"subnets,omitempty" protobuf:"bytes,1,rep,name=subnets"`
 
 	// Network's ID of provider network
 	// ProviderNetworkID and Subnets must not be provided together
-	ProviderNetworkID string `json:"providerNetworkID,omitempty"`
+	ProviderNetworkID string `json:"providerNetworkID,omitempty" protobuf:"bytes,2,opt,name=providerNetworkID"`
 
 	// TenantID is the tenant ID of network provider
-	TenantID string `json:"tenantID"`
+	TenantID string `json:"tenantID" protobuf:"bytes,3,opt,name=tenantID"`
 }
 
 // +genclient=true,nonNamespaced=true
@@ -2653,13 +2653,13 @@ type Network struct {
 	unversioned.TypeMeta `json:",inline"`
 	// Standard object's metadata.
 	// More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#metadata
-	ObjectMeta `json:"metadata,omitempty"`
+	ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// Spec defines the behavior of the Network.
-	Spec NetworkSpec `json:"spec,omitempty"`
+	Spec NetworkSpec `json:"spec,omitempty" protobuf:"bytes,2,opt,name=spec"`
 
 	// Status describes the current status of a Network
-	Status NetworkStatus `json:"status,omitempty"`
+	Status NetworkStatus `json:"status,omitempty" protobuf:"bytes,3,opt,name=status"`
 }
 
 // NetworkList is a list of Networks
@@ -2667,10 +2667,10 @@ type NetworkList struct {
 	unversioned.TypeMeta `json:",inline"`
 	// Standard list metadata.
 	// More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds
-	unversioned.ListMeta `json:"metadata,omitempty"`
+	unversioned.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// Items is the list of Network objects in the list
-	Items []Network `json:"items"`
+	Items []Network `json:"items" protobuf:"bytes,2,rep,name=items"`
 }
 
 // Binding ties one object to another.

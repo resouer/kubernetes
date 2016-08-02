@@ -203,6 +203,8 @@ func DeepCopy_componentconfig_KubeSchedulerConfiguration(in KubeSchedulerConfigu
 
 func DeepCopy_componentconfig_KubeletConfiguration(in KubeletConfiguration, out *KubeletConfiguration, c *conversion.Cloner) error {
 	out.Config = in.Config
+	out.CinderConfig = in.CinderConfig
+	out.DisableHyperInternalService = in.DisableHyperInternalService
 	if err := unversioned.DeepCopy_unversioned_Duration(in.SyncFrequency, &out.SyncFrequency, c); err != nil {
 		return err
 	}
@@ -265,6 +267,7 @@ func DeepCopy_componentconfig_KubeletConfiguration(in KubeletConfiguration, out 
 	}
 	out.NetworkPluginName = in.NetworkPluginName
 	out.NetworkPluginDir = in.NetworkPluginDir
+	out.NetworkProvider = in.NetworkProvider
 	out.VolumePluginDir = in.VolumePluginDir
 	out.CloudProvider = in.CloudProvider
 	out.CloudConfigFile = in.CloudConfigFile
