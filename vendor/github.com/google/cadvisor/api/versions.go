@@ -33,6 +33,7 @@ const (
 	machineApi       = "machine"
 	machineStatsApi  = "machinestats"
 	dockerApi        = "docker"
+	hyperApi         = "hyper"
 	summaryApi       = "summary"
 	statsApi         = "stats"
 	specApi          = "spec"
@@ -261,13 +262,54 @@ func (self *version1_3) Version() string {
 }
 
 func (self *version1_3) SupportedRequestTypes() []string {
-	return append(self.baseVersion.SupportedRequestTypes(), eventsApi)
+	return append(self.baseVersion.SupportedRequestTypes(), eventsApi, hyperApi)
 }
 
 func (self *version1_3) HandleRequest(requestType string, request []string, m manager.Manager, w http.ResponseWriter, r *http.Request) error {
 	switch requestType {
 	case eventsApi:
 		return handleEventRequest(request, m, w, r)
+	case hyperApi:
+		glog.V(4).Infof("Api - Hyper(%v)", request)
+
+		// Get the query request.
+		query, err := getContainerInfoRequest(r.Body)
+		if err != nil {
+			return err
+		}
+
+		var containers map[string]info.ContainerInfo
+		// map requests for "hyper/" to "hyper"
+		if len(request) == 1 && len(request[0]) == 0 {
+			request = request[:0]
+		}
+		switch len(request) {
+		case 0:
+			// Get all Hyper pods.
+			containers, err = m.AllHyperContainers(query)
+			if err != nil {
+				return fmt.Errorf("failed to get all Hyper pods with error: %v", err)
+			}
+		case 1:
+			// Get one Hyper pod.
+			var cont info.ContainerInfo
+			cont, err = m.HyperContainer(request[0], query)
+			if err != nil {
+				return fmt.Errorf("failed to get Docker container %q with error: %v", request[0], err)
+			}
+			containers = map[string]info.ContainerInfo{
+				cont.Name: cont,
+			}
+		default:
+			return fmt.Errorf("unknown request for Docker container %v", request)
+		}
+
+		// Only output the containers as JSON.
+		err = writeResult(containers, w)
+		if err != nil {
+			return err
+		}
+		return nil
 	default:
 		return self.baseVersion.HandleRequest(requestType, request, m, w, r)
 	}

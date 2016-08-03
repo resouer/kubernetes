@@ -171,7 +171,6 @@ func ListDirectories(dirpath string, parent string, recursive bool, output map[s
 		if entry.IsDir() {
 			name := path.Join(parent, entry.Name())
 			output[name] = struct{}{}
-
 			// List subcontainers if asked to.
 			if recursive {
 				err := ListDirectories(path.Join(dirpath, entry.Name()), name, true, output)
@@ -205,6 +204,7 @@ func CgroupExists(cgroupPaths map[string]string) bool {
 
 func ListContainers(name string, cgroupPaths map[string]string, listType container.ListType) ([]info.ContainerReference, error) {
 	containers := make(map[string]struct{})
+
 	for _, cgroupPath := range cgroupPaths {
 		err := ListDirectories(cgroupPath, name, listType == container.ListRecursive, containers)
 		if err != nil {

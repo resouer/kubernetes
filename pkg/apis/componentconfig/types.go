@@ -28,6 +28,8 @@ type KubeProxyConfiguration struct {
 	// bridge traffic coming from outside of the cluster. If not provided,
 	// no off-cluster bridging will be performed.
 	ClusterCIDR string `json:"clusterCIDR"`
+	// disableHyperInternalService disables haproxy proxy in Hyper Pod
+	DisableHyperInternalService bool `json:"DisableHyperInternalService"`
 	// healthzBindAddress is the IP address for the health check server to serve on,
 	// defaulting to 127.0.0.1 (set to 0.0.0.0 for all interfaces)
 	HealthzBindAddress string `json:"healthzBindAddress"`
@@ -505,6 +507,8 @@ type KubeControllerManagerConfiguration struct {
 	// minResyncPeriod is the resync period in reflectors; will be random between
 	// minResyncPeriod and 2*minResyncPeriod.
 	MinResyncPeriod unversioned.Duration `json:"minResyncPeriod"`
+	// networkProvider is the endpoint of network provider
+	NetworkProvider string `json:"NetworkProvider"`
 	// terminatedPodGCThreshold is the number of terminated pods that can exist
 	// before the terminated pod garbage collector starts deleting terminated pods.
 	// If <= 0, the terminated pod garbage collector is disabled.

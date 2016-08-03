@@ -111,15 +111,35 @@ func dockerHandler(containerManager manager.Manager) auth.AuthenticatedHandlerFu
 	}
 }
 
+func hyperHandlerNoAuth(containerManager manager.Manager) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		err := serveHyperPage(containerManager, w, r.URL)
+		if err != nil {
+			fmt.Fprintf(w, "%s", err)
+		}
+	}
+}
+
+func hyperHandler(containerManager manager.Manager) auth.AuthenticatedHandlerFunc {
+	return func(w http.ResponseWriter, r *auth.AuthenticatedRequest) {
+		err := serveHyperPage(containerManager, w, r.URL)
+		if err != nil {
+			fmt.Fprintf(w, "%s", err)
+		}
+	}
+}
+
 // Register http handlers
 func RegisterHandlersDigest(mux httpmux.Mux, containerManager manager.Manager, authenticator *auth.DigestAuth) error {
 	// Register the handler for the containers page.
 	if authenticator != nil {
 		mux.HandleFunc(ContainersPage, authenticator.Wrap(containerHandler(containerManager)))
 		mux.HandleFunc(DockerPage, authenticator.Wrap(dockerHandler(containerManager)))
+		mux.HandleFunc(HyperPage, authenticator.Wrap(hyperHandler(containerManager)))
 	} else {
 		mux.HandleFunc(ContainersPage, containerHandlerNoAuth(containerManager))
 		mux.HandleFunc(DockerPage, dockerHandlerNoAuth(containerManager))
+		mux.HandleFunc(HyperPage, hyperHandlerNoAuth(containerManager))
 	}
 	return nil
 }
@@ -129,9 +149,11 @@ func RegisterHandlersBasic(mux httpmux.Mux, containerManager manager.Manager, au
 	if authenticator != nil {
 		mux.HandleFunc(ContainersPage, authenticator.Wrap(containerHandler(containerManager)))
 		mux.HandleFunc(DockerPage, authenticator.Wrap(dockerHandler(containerManager)))
+		mux.HandleFunc(HyperPage, authenticator.Wrap(hyperHandler(containerManager)))
 	} else {
 		mux.HandleFunc(ContainersPage, containerHandlerNoAuth(containerManager))
 		mux.HandleFunc(DockerPage, dockerHandlerNoAuth(containerManager))
+		mux.HandleFunc(HyperPage, hyperHandlerNoAuth(containerManager))
 	}
 	return nil
 }

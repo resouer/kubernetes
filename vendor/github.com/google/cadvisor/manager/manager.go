@@ -29,6 +29,7 @@ import (
 	"github.com/google/cadvisor/collector"
 	"github.com/google/cadvisor/container"
 	"github.com/google/cadvisor/container/docker"
+	"github.com/google/cadvisor/container/hyper"
 	"github.com/google/cadvisor/container/raw"
 	"github.com/google/cadvisor/container/rkt"
 	"github.com/google/cadvisor/container/systemd"
@@ -38,6 +39,7 @@ import (
 	"github.com/google/cadvisor/info/v2"
 	"github.com/google/cadvisor/machine"
 	"github.com/google/cadvisor/manager/watcher"
+	hyperwatcher "github.com/google/cadvisor/manager/watcher/hyper"
 	rawwatcher "github.com/google/cadvisor/manager/watcher/raw"
 	rktwatcher "github.com/google/cadvisor/manager/watcher/rkt"
 	"github.com/google/cadvisor/utils/oomparser"
@@ -81,6 +83,12 @@ type Manager interface {
 	// Gets information about a specific Docker container. The specified name is within the Docker namespace.
 	DockerContainer(dockerName string, query *info.ContainerInfoRequest) (info.ContainerInfo, error)
 
+	// Gets all the Hyper containers. Return is a map from full container name to ContainerInfo.
+	AllHyperContainers(query *info.ContainerInfoRequest) (map[string]info.ContainerInfo, error)
+
+	// Gets information about a specific Hyper container. The specified name is within the Hyper namespace.
+	HyperContainer(dockerName string, query *info.ContainerInfoRequest) (info.ContainerInfo, error)
+
 	// Gets spec for all containers based on request options.
 	GetContainerSpec(containerName string, options v2.RequestOptions) (map[string]v2.ContainerSpec, error)
 
@@ -119,6 +127,12 @@ type Manager interface {
 
 	// Get details about interesting docker images.
 	DockerImages() ([]info.DockerImage, error)
+
+	// Get status information about hyper.
+	HyperInfo() (info.DockerStatus, error)
+
+	// Get details about interesting hyper images.
+	HyperImages() ([]info.DockerImage, error)
 
 	// Returns debugging information. Map of lines per category.
 	DebugInfo() map[string][]string
@@ -233,6 +247,18 @@ func (self *manager) Start() error {
 	err := docker.Register(self, self.fsInfo, self.ignoreMetrics)
 	if err != nil {
 		glog.Errorf("Docker container factory registration failed: %v.", err)
+	}
+
+	// Register the hyper driver.
+	err = hyper.Register(self, self.fsInfo, self.ignoreMetrics)
+	if err != nil {
+		glog.Errorf("Registration of the hyper container factory failed: %v", err)
+	} else {
+		watcher, err := hyperwatcher.NewHyperContainerWatcher()
+		if err != nil {
+			return err
+		}
+		self.containerWatchers = append(self.containerWatchers, watcher)
 	}
 
 	err = rkt.Register(self, self.fsInfo, self.ignoreMetrics)
@@ -520,6 +546,62 @@ func (self *manager) SubcontainersInfo(containerName string, query *info.Contain
 		containers = append(containers, cont)
 	}
 	return self.containerDataSliceToContainerInfoSlice(containers, query)
+}
+
+func (self *manager) getAllHyperContainers() map[string]*containerData {
+	self.containersLock.RLock()
+	defer self.containersLock.RUnlock()
+	containers := make(map[string]*containerData, len(self.containers))
+
+	// Get containers in the Docker namespace.
+	for name, cont := range self.containers {
+		if name.Namespace == hyper.HyperNamespace {
+			containers[cont.info.Name] = cont
+		}
+	}
+	return containers
+}
+
+func (self *manager) AllHyperContainers(query *info.ContainerInfoRequest) (map[string]info.ContainerInfo, error) {
+	containers := self.getAllHyperContainers()
+
+	output := make(map[string]info.ContainerInfo, len(containers))
+	for name, cont := range containers {
+		inf, err := self.containerDataToContainerInfo(cont, query)
+		if err != nil {
+			return nil, err
+		}
+		output[name] = *inf
+	}
+	return output, nil
+}
+
+func (self *manager) HyperContainer(containerName string, query *info.ContainerInfoRequest) (info.ContainerInfo, error) {
+	container, err := self.getHyperContainer(containerName)
+	if err != nil {
+		return info.ContainerInfo{}, err
+	}
+
+	inf, err := self.containerDataToContainerInfo(container, query)
+	if err != nil {
+		return info.ContainerInfo{}, err
+	}
+	return *inf, nil
+}
+
+func (self *manager) getHyperContainer(containerName string) (*containerData, error) {
+	self.containersLock.RLock()
+	defer self.containersLock.RUnlock()
+
+	// Check for the container in the Docker container namespace.
+	cont, ok := self.containers[namespacedContainerName{
+		Namespace: hyper.HyperNamespace,
+		Name:      containerName,
+	}]
+	if !ok {
+		return nil, fmt.Errorf("unable to find Hyper container %q", containerName)
+	}
+	return cont, nil
 }
 
 func (self *manager) getAllDockerContainers() map[string]*containerData {
@@ -1035,6 +1117,15 @@ func (self *manager) watchForNewContainers(quit chan error) error {
 					// the Rkt and Raw watchers can race, and if Raw wins, we want Rkt to override and create a new handler for Rkt containers
 					case watcher.Rkt:
 						err = self.overrideContainer(event.Name, event.WatchSource)
+					case watcher.Hyper:
+						// Hyper watcher sends VmName to channel , we need to convert it to cgroup name.
+						cgroupName, err := self.hyperPodToCgroup(event.Name)
+						if err != nil {
+							glog.Errorf("Got error: %v when convert vmName to cgroup name, skipping ...", err)
+							continue
+						}
+						// the Hyper and Raw watchers can also race.
+						err = self.overrideContainer(cgroupName, event.WatchSource)
 					default:
 						err = self.createContainer(event.Name, event.WatchSource)
 					}
@@ -1066,6 +1157,18 @@ func (self *manager) watchForNewContainers(quit chan error) error {
 		}
 	}()
 	return nil
+}
+
+// Convert VmName of Pod to cgroup name is like: /machine.slice/machine-qemu\\x2d10\\x2dvm\\x2dEnwLdYJQRM.scope
+func (self *manager) hyperPodToCgroup(vmName string) (string, error) {
+	// convert vm-EnwLdYJQRM to vm\\x2dEnwLdYJQRM
+	vmName = strings.Replace(vmName, "-", "\\x2d", -1)
+	for namespacedContainerName, _ := range self.containers {
+		if strings.Contains(namespacedContainerName.Name, vmName) {
+			return namespacedContainerName.Name, nil
+		}
+	}
+	return "", fmt.Errorf("Can't find vmName %s in manager.containers ", vmName)
 }
 
 func (self *manager) watchForNewOoms() error {
@@ -1247,4 +1350,73 @@ func (f partialFailure) OrNil() error {
 		return nil
 	}
 	return f
+}
+
+func (m *manager) HyperInfo() (info.DockerStatus, error) {
+	hyperClient := hyper.NewHyperClient()
+	hyperInfo, err := hyperClient.Info()
+	if err != nil {
+		return info.DockerStatus{}, err
+	}
+
+	hyperVersion, err := hyperClient.Version()
+	if err != nil {
+		return info.DockerStatus{}, err
+	}
+
+	out := info.DockerStatus{
+		Version:      hyperVersion,
+		DriverStatus: make(map[string]string),
+	}
+	if val, ok := hyperInfo["KernelVersion"]; ok {
+		out.KernelVersion = val.(string)
+	}
+	if val, ok := hyperInfo["OperatingSystem"]; ok {
+		out.OS = val.(string)
+	}
+	if val, ok := hyperInfo["Name"]; ok {
+		out.Hostname = val.(string)
+	}
+	if val, ok := hyperInfo["DockerRootDir"]; ok {
+		out.RootDir = val.(string)
+	}
+	if val, ok := hyperInfo["Driver"]; ok {
+		out.Driver = val.(string)
+	}
+	if val, ok := hyperInfo["ExecutionDriver"]; ok {
+		out.ExecDriver = val.(string)
+	}
+	if val, ok := hyperInfo["Images"]; ok {
+		out.NumImages = int(val.(float64))
+	}
+	if val, ok := hyperInfo["Containers"]; ok {
+		out.NumContainers = int(val.(float64))
+	}
+	if val, ok := hyperInfo["DriverStatus"]; ok {
+		for _, value := range val.([]interface{}) {
+			v := value.([]interface{})
+			out.DriverStatus[v[0].(string)] = v[1].(string)
+		}
+	}
+	return out, nil
+}
+
+func (m *manager) HyperImages() ([]info.DockerImage, error) {
+	hyperClient := hyper.NewHyperClient()
+	images, err := hyperClient.ListImages()
+	if err != nil {
+		return nil, err
+	}
+
+	out := []info.DockerImage{}
+	for _, image := range images {
+		di := info.DockerImage{
+			ID:          image.ImageID,
+			RepoTags:    []string{fmt.Sprintf("%v:%v", image.Repository, image.Tag)},
+			Created:     image.CreatedAt,
+			VirtualSize: image.VirtualSize,
+		}
+		out = append(out, di)
+	}
+	return out, nil
 }

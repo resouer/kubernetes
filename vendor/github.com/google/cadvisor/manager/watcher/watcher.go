@@ -29,6 +29,7 @@ type ContainerWatchSource int
 const (
 	Raw ContainerWatchSource = iota
 	Rkt
+	Hyper
 )
 
 // ContainerEvent represents a

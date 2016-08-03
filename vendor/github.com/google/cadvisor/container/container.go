@@ -33,6 +33,7 @@ const (
 	ContainerTypeRaw ContainerType = iota
 	ContainerTypeDocker
 	ContainerTypeRkt
+	ContainerTypeHyper
 	ContainerTypeSystemd
 )
 
