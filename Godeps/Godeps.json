@@ -1,4 +1,4 @@
-{ 
+{
 	"ImportPath": "k8s.io/kubernetes",
 	"GoVersion": "go1.6",
 	"GodepVersion": "v74",
@@ -636,11 +636,6 @@
 			"Rev": "0f5c9d301b9b1cca66b3ea0f9dec3b5317d3686d"
 		},
 		{
-			"ImportPath": "github.com/docker/docker/pkg/tlsconfig",
-			"Comment": "v1.4.1-4045-g2b27fe1",
-			"Rev": "2b27fe17a1b3fb8472fde96d768fa70996adf201"
-		},
-		{
 			"ImportPath": "github.com/docker/docker/pkg/units",
 			"Comment": "v1.4.1-4831-g0f5c9d3",
 			"Rev": "0f5c9d301b9b1cca66b3ea0f9dec3b5317d3686d"
@@ -932,7 +927,7 @@
 		},
 		{
 			"ImportPath": "github.com/google/cadvisor/api",
-            "Comment": "v0.23.6",
+			"Comment": "v0.23.6",
 			"Rev": "4dbefc9b671b81257973a33211fb12370c1a526e"
 		},
 		{
@@ -2082,7 +2077,7 @@
 		},
 		{
 			"ImportPath": "google.golang.org/grpc",
-			"Rev": "5aeebcd810669f5d8e682b352ad8128b253d21f8"
+			"Rev": "933601d8cd6418a8a891bd9075a7161b0a67badb"
 		},
 		{
 			"ImportPath": "google.golang.org/grpc/codes",
