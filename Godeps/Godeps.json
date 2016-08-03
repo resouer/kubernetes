@@ -3,8 +3,6 @@
 	"GoVersion": "go1.6",
 	"GodepVersion": "v74",
 	"Packages": [
-		"github.com/ugorji/go/codec/codecgen",
-		"github.com/onsi/ginkgo/ginkgo",
 		"./..."
 	],
 	"Deps": [
@@ -607,6 +605,11 @@
 		},
 		{
 			"ImportPath": "github.com/docker/docker/pkg/mount",
+			"Comment": "v1.4.1-4831-g0f5c9d3",
+			"Rev": "0f5c9d301b9b1cca66b3ea0f9dec3b5317d3686d"
+		},
+		{
+			"ImportPath": "github.com/docker/docker/pkg/parsers",
 			"Comment": "v1.4.1-4831-g0f5c9d3",
 			"Rev": "0f5c9d301b9b1cca66b3ea0f9dec3b5317d3686d"
 		},
@@ -1634,6 +1637,16 @@
 			"Rev": "934dbf81977c67c521c75492dc1f55ca74dc5b04"
 		},
 		{
+			"ImportPath": "github.com/rackspace/gophercloud/openstack/blockstorage/v2/extensions/volumeactions",
+			"Comment": "v1.0.0-920-g934dbf8",
+			"Rev": "934dbf81977c67c521c75492dc1f55ca74dc5b04"
+		},
+		{
+			"ImportPath": "github.com/rackspace/gophercloud/openstack/blockstorage/v2/volumes",
+			"Comment": "v1.0.0-920-g934dbf8",
+			"Rev": "934dbf81977c67c521c75492dc1f55ca74dc5b04"
+		},
+		{
 			"ImportPath": "github.com/rackspace/gophercloud/openstack/compute/v2/extensions/bootfromvolume",
 			"Comment": "v1.0.0-920-g934dbf8",
 			"Rev": "934dbf81977c67c521c75492dc1f55ca74dc5b04"
@@ -1786,6 +1799,22 @@
 		{
 			"ImportPath": "github.com/samuel/go-zookeeper/zk",
 			"Rev": "177002e16a0061912f02377e2dd8951a8b3551bc"
+		},
+		{
+			"ImportPath": "github.com/scalingdata/gcfg",
+			"Rev": "37aabad69cfd3d20b8390d902a8b10e245c615ff"
+		},
+		{
+			"ImportPath": "github.com/scalingdata/gcfg/scanner",
+			"Rev": "37aabad69cfd3d20b8390d902a8b10e245c615ff"
+		},
+		{
+			"ImportPath": "github.com/scalingdata/gcfg/token",
+			"Rev": "37aabad69cfd3d20b8390d902a8b10e245c615ff"
+		},
+		{
+			"ImportPath": "github.com/scalingdata/gcfg/types",
+			"Rev": "37aabad69cfd3d20b8390d902a8b10e245c615ff"
 		},
 		{
 			"ImportPath": "github.com/seccomp/libseccomp-golang",
