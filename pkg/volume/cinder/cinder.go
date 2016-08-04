@@ -269,7 +269,7 @@ type cinderVolume struct {
 }
 
 func detachDiskLogError(cd *cinderVolume, isNoMountSupported bool) {
-	err := cd.manager.DetachDisk(&cinderVolumeCleaner{cd, true, isNoMountSupported})
+	err := cd.manager.DetachDisk(&cinderVolumeUnmounter{cd, true, isNoMountSupported})
 	if err != nil {
 		glog.Warningf("Failed to detach disk: %v (%v)", cd, err)
 	}

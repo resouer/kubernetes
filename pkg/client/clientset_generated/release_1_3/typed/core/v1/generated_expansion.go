@@ -22,6 +22,8 @@ type EndpointsExpansion interface{}
 
 type LimitRangeExpansion interface{}
 
+type NetworkExpansion interface{}
+
 type NodeExpansion interface{}
 
 type PersistentVolumeExpansion interface{}

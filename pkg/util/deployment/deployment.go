@@ -34,6 +34,7 @@ import (
 	intstrutil "k8s.io/kubernetes/pkg/util/intstr"
 	labelsutil "k8s.io/kubernetes/pkg/util/labels"
 	podutil "k8s.io/kubernetes/pkg/util/pod"
+	rsutil "k8s.io/kubernetes/pkg/util/replicaset"
 	"k8s.io/kubernetes/pkg/util/wait"
 )
 
@@ -101,10 +102,6 @@ func listReplicaSets(deployment *extensions.Deployment, c clientset.Interface) (
 			rsList, err := c.Extensions().ReplicaSets(namespace).List(options)
 			return rsList.Items, err
 		})
-	if err != nil {
-		return nil, fmt.Errorf("error listing ReplicaSets: %v", err)
-	}
-	return FindNewReplicaSet(deployment, rsList)
 }
 
 // listReplicaSets lists all Pods the given deployment targets with the given client interface.

@@ -72,9 +72,9 @@ func (cb *CinderBaremetalUtil) AttachDiskBaremetal(b *cinderVolumeBuilder, globa
 		return nil
 	}
 
-	mountMode := "rw"
+	mountMode := volumeactions.ReadWrite
 	if b.readOnly {
-		mountMode = "ro"
+		mountMode = volumeactions.ReadOnly
 	}
 
 	// attach volume

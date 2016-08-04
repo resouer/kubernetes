@@ -125,7 +125,7 @@ func (util *CinderDiskUtil) AttachDiskCloudProvider(b *cinderVolumeBuilder, glob
 }
 
 // Unmounts the device and detaches the disk from the kubelet's host machine.
-func (util *CinderDiskUtil) DetachDisk(cd *cinderVolumeCleaner) error {
+func (util *CinderDiskUtil) DetachDisk(cd *cinderVolumeUnmounter) error {
 	if cd.withOpenStackCP {
 		return util.DetachDiskCloudProvider(cd)
 	} else {
@@ -137,7 +137,7 @@ func (util *CinderDiskUtil) DetachDisk(cd *cinderVolumeCleaner) error {
 }
 
 // Called by DetachDisk
-func (util *CinderDiskUtil) DetachDiskCloudProvider(cd *cinderVolumeCleaner) error {
+func (util *CinderDiskUtil) DetachDiskCloudProvider(cd *cinderVolumeUnmounter) error {
 
 	globalPDPath := makeGlobalPDName(cd.plugin.host, cd.pdName)
 	if err := cd.mounter.Unmount(globalPDPath); err != nil {

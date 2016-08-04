@@ -80,3 +80,7 @@ func (ctrl *PersistentVolumeController) GetHostIP() (net.IP, error) {
 func (ctrl *PersistentVolumeController) GetRootContext() string {
 	return ""
 }
+
+func (ctrl *PersistentVolumeController) GetCinderConfig() string {
+	return ""
+}

@@ -68,13 +68,13 @@ type NetworkPlugin interface {
 	// SetUpPod is the method called after the infra container of
 	// the pod has been created but before the other containers of the
 	// pod are launched.
-    SetUpPod(namespace string, name string, podInfraContainerID kubecontainer.ContainerID) error
+	SetUpPod(namespace string, name string, podInfraContainerID kubecontainer.ContainerID, containerRuntime string) error
 
 	// TearDownPod is the method called before a pod's infra container will be deleted
-	TearDownPod(namespace string, name string, podInfraContainerID kubecontainer.ContainerID) error
+	TearDownPod(namespace string, name string, podInfraContainerID kubecontainer.ContainerID, containerRuntime string) error
 
 	// Status is the method called to obtain the ipv4 or ipv6 addresses of the container
-	GetPodNetworkStatus(namespace string, name string, podInfraContainerID kubecontainer.ContainerID) (*PodNetworkStatus, error)
+	GetPodNetworkStatus(namespace string, name string, podInfraContainerID kubecontainer.ContainerID, containerRuntime string) (*PodNetworkStatus, error)
 
 	// NetworkStatus returns error if the network plugin is in error state
 	Status() error
@@ -184,15 +184,15 @@ func (plugin *NoopNetworkPlugin) Capabilities() utilsets.Int {
 	return utilsets.NewInt()
 }
 
-func (plugin *NoopNetworkPlugin) SetUpPod(namespace string, name string, id kubecontainer.ContainerID,containerRuntime string) error {
+func (plugin *NoopNetworkPlugin) SetUpPod(namespace string, name string, id kubecontainer.ContainerID, containerRuntime string) error {
 	return nil
 }
 
-func (plugin *NoopNetworkPlugin) TearDownPod(namespace string, name string, id kubecontainer.ContainerID,containerRuntime string) error {
+func (plugin *NoopNetworkPlugin) TearDownPod(namespace string, name string, id kubecontainer.ContainerID, containerRuntime string) error {
 	return nil
 }
 
-func (plugin *NoopNetworkPlugin) GetPodNetworkStatus(namespace string, name string, id kubecontainer.ContainerID,containerRuntime string) (*PodNetworkStatus, error) {
+func (plugin *NoopNetworkPlugin) GetPodNetworkStatus(namespace string, name string, id kubecontainer.ContainerID, containerRuntime string) (*PodNetworkStatus, error) {
 	return nil, nil
 }
 

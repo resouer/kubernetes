@@ -608,19 +608,6 @@ func (rm *ReplicationManager) syncReplicationController(key string) error {
 		}
 	}
 
-	// Count the number of pods that have labels matching the labels of the pod
-	// template of the replication controller, the matching pods may have more
-	// labels than are in the template. Because the label of podTemplateSpec is
-	// a superset of the selector of the replication controller, so the possible
-	// matching pods must be part of the filteredPods.
-	fullyLabeledReplicasCount := 0
-	templateLabel := labels.Set(rc.Spec.Template.Labels).AsSelector()
-	for _, pod := range filteredPods {
-		if templateLabel.Matches(labels.Set(pod.Labels)) {
-			fullyLabeledReplicasCount++
-		}
-	}
-
 	// Always updates status as pods come up or die.
 	if err := updateReplicaCount(rm.kubeClient.Core().ReplicationControllers(rc.Namespace), rc, len(filteredPods), fullyLabeledReplicasCount); err != nil {
 		// Multiple things could lead to this update failing. Requeuing the controller ensures
