@@ -141,7 +141,7 @@ func (b flockerMounter) SetUp(fsGroup *int64) error {
 	return b.SetUpAt(b.flocker.datasetName, fsGroup)
 }
 
-func (b flockerBuilder) GetMetaData() map[string]interface{} {
+func (b flockerMounter) GetMetaData() map[string]interface{} {
 	return nil
 }
 

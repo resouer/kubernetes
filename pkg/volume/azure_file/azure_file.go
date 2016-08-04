@@ -155,6 +155,10 @@ func (b *azureFileMounter) GetAttributes() volume.Attributes {
 	}
 }
 
+func (b *azureFileMounter) GetMetaData() map[string]interface{} {
+	return nil
+}
+
 // SetUp attaches the disk and bind mounts to the volume path.
 func (b *azureFileMounter) SetUp(fsGroup *int64) error {
 	return b.SetUpAt(b.GetPath(), fsGroup)
@@ -213,6 +217,10 @@ var _ volume.Unmounter = &azureFileUnmounter{}
 
 type azureFileUnmounter struct {
 	*azureFile
+}
+
+func (b *azureFileUnmounter) GetMetaData() map[string]interface{} {
+	return nil
 }
 
 func (c *azureFileUnmounter) TearDown() error {

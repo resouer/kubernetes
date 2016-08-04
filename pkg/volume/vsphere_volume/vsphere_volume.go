@@ -188,6 +188,18 @@ func (b *vsphereVolumeMounter) GetAttributes() volume.Attributes {
 	}
 }
 
+func (b *vsphereVolumeMounter) GetMetaData() map[string]interface{} {
+	return nil
+}
+
+func (b *vsphereVolumeUnmounter) GetMetaData() map[string]interface{} {
+	return nil
+}
+
+func (b *vsphereVolumeDeleter) GetMetaData() map[string]interface{} {
+	return nil
+}
+
 // SetUp attaches the disk and bind mounts to the volume path.
 func (b *vsphereVolumeMounter) SetUp(fsGroup *int64) error {
 	return b.SetUpAt(b.GetPath(), fsGroup)

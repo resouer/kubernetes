@@ -1281,7 +1281,7 @@ func printNetwork(item *api.Network, w io.Writer, options PrintOptions) error {
 	if _, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s", item.Name, strings.Join(subnets, ";"), item.Spec.ProviderNetworkID, item.Status.Phase); err != nil {
 		return err
 	}
-	_, err := fmt.Fprint(w, appendAllLabels(options.ShowLabels, item.Labels))
+	_, err := fmt.Fprint(w, AppendAllLabels(options.ShowLabels, item.Labels))
 	return err
 }
 

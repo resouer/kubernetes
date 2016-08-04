@@ -17,6 +17,8 @@ limitations under the License.
 package kubelet
 
 import (
+	"fmt"
+
 	cadvisorapi "github.com/google/cadvisor/info/v1"
 	cadvisorapiv2 "github.com/google/cadvisor/info/v2"
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"

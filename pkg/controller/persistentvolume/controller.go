@@ -155,6 +155,14 @@ func (ctrl *PersistentVolumeController) syncClaim(claim *api.PersistentVolumeCla
 	}
 }
 
+func (c *PersistentVolumeController) GetCinderConfig() string {
+	return ""
+}
+
+func (c *PersistentVolumeController) IsNoMountSupported() bool {
+	return false
+}
+
 // syncUnboundClaim is the main controller method to decide what to do with an
 // unbound claim.
 func (ctrl *PersistentVolumeController) syncUnboundClaim(claim *api.PersistentVolumeClaim) error {

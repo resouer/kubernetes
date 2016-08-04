@@ -46,6 +46,7 @@ type fakeVolumeHost struct {
 	kubeClient  clientset.Interface
 	pluginMgr   VolumePluginMgr
 	cloud       cloudprovider.Interface
+	cinderConf  string
 	mounter     mount.Interface
 	writer      io.Writer
 	rootContext string
@@ -453,8 +454,16 @@ func (fr *fakeRecycler) Recycle() error {
 	return nil
 }
 
+func (fr *fakeRecycler) GetMetaData() map[string]interface{} {
+	return nil
+}
+
 func (fr *fakeRecycler) GetPath() string {
 	return fr.path
+}
+
+func (fr *fakeRecycler) IsNoMountSupported() bool {
+	return false
 }
 
 func NewFakeRecycler(pvName string, spec *Spec, host VolumeHost, config VolumeConfig) (Recycler, error) {

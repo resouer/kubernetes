@@ -178,6 +178,10 @@ type rbd struct {
 	volume.MetricsNil
 }
 
+func (rbd *rbd) GetMetaData() map[string]interface{} {
+	return nil
+}
+
 func (rbd *rbd) GetPath() string {
 	name := rbdPluginName
 	// safe to use PodVolumeDir now: volume teardown occurs before pod is cleaned up

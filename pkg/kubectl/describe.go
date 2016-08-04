@@ -161,7 +161,7 @@ type NetworkDescriber struct {
 	client.Interface
 }
 
-func (d *NetworkDescriber) Describe(network, name string) (string, error) {
+func (d *NetworkDescriber) Describe(network, name string, describerSettings DescriberSettings) (string, error) {
 	ns, err := d.Networks().Get(name)
 	if err != nil {
 		return "", err

@@ -724,40 +724,6 @@ func updateV1PodPorts(params map[string]string, podSpec *v1.PodSpec) (err error)
 	return nil
 }
 
-func updateV1PodPorts(params map[string]string, podSpec *v1.PodSpec) (err error) {
-	port := -1
-	hostPort := -1
-	if len(params["port"]) > 0 {
-		port, err = strconv.Atoi(params["port"])
-		if err != nil {
-			return err
-		}
-	}
-
-	if len(params["hostport"]) > 0 {
-		hostPort, err = strconv.Atoi(params["hostport"])
-		if err != nil {
-			return err
-		}
-		if hostPort > 0 && port < 0 {
-			return fmt.Errorf("--hostport requires --port to be specified")
-		}
-	}
-
-	// Don't include the port if it was not specified.
-	if port > 0 {
-		podSpec.Containers[0].Ports = []v1.ContainerPort{
-			{
-				ContainerPort: int32(port),
-			},
-		}
-		if hostPort > 0 {
-			podSpec.Containers[0].Ports[0].HostPort = int32(hostPort)
-		}
-	}
-	return nil
-}
-
 type BasicPod struct{}
 
 func (BasicPod) ParamNames() []GeneratorParam {

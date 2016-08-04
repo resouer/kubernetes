@@ -41,9 +41,9 @@ import (
 type serviceInfo struct {
 	clusterIP           net.IP
 	namespace           string
-	port                int
+	port                int32
 	protocol            api.Protocol
-	nodePort            int
+	nodePort            int32
 	loadBalancerStatus  api.LoadBalancerStatus
 	sessionAffinityType api.ServiceAffinity
 	endpoints           []string
@@ -319,7 +319,7 @@ func (proxier *Proxier) OnEndpointsUpdate(allEndpoints []api.Endpoints) {
 // used in OnEndpointsUpdate
 type hostPortPair struct {
 	host string
-	port int
+	port int32
 }
 
 func isValidEndpoint(hpp *hostPortPair) bool {
@@ -343,7 +343,7 @@ func flattenValidEndpoints(endpoints []hostPortPair) []string {
 	for i := range endpoints {
 		hpp := &endpoints[i]
 		if isValidEndpoint(hpp) {
-			result = append(result, net.JoinHostPort(hpp.host, strconv.Itoa(hpp.port)))
+			result = append(result, net.JoinHostPort(hpp.host, strconv.Itoa(int(hpp.port))))
 		} else {
 			glog.Warningf("got invalid endpoint: %+v", *hpp)
 		}
@@ -400,7 +400,7 @@ func (proxier *Proxier) syncProxyRules() {
 				port, _ := strconv.ParseInt(hostport[1], 10, 0)
 				hosts = append(hosts, hyper.HyperServiceBackend{
 					HostIP:   hostport[0],
-					HostPort: int(port),
+					HostPort: int32(port),
 				})
 			}
 			svc.Hosts = hosts

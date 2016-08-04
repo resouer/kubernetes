@@ -246,6 +246,10 @@ func (adc *attachDetachController) nodeUpdate(oldObj, newObj interface{}) {
 	adc.nodeAdd(newObj)
 }
 
+func (adc *attachDetachController) GetCinderConfig() string {
+	return ""
+}
+
 func (adc *attachDetachController) nodeDelete(obj interface{}) {
 	node, ok := obj.(*api.Node)
 	if node == nil || !ok {
@@ -581,4 +585,8 @@ func (adc *attachDetachController) GetHostIP() (net.IP, error) {
 
 func (adc *attachDetachController) GetRootContext() string {
 	return ""
+}
+
+func (adc *attachDetachController) IsNoMountSupported() bool {
+	return false
 }

@@ -204,6 +204,10 @@ func (glusterfsVolume *glusterfs) GetPath() string {
 	return glusterfsVolume.plugin.host.GetPodVolumeDir(glusterfsVolume.pod.UID, strings.EscapeQualifiedNameForDisk(name), glusterfsVolume.volName)
 }
 
+func (glusterfsVolume *glusterfs) GetMetaData() map[string]interface{} {
+	return nil
+}
+
 type glusterfsUnmounter struct {
 	*glusterfs
 }

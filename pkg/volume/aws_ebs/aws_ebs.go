@@ -430,3 +430,7 @@ func (c *awsElasticBlockStoreProvisioner) Provision() (*api.PersistentVolume, er
 
 	return pv, nil
 }
+
+func (ebs *awsElasticBlockStore) GetMetaData() map[string]interface{} {
+	return nil
+}

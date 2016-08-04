@@ -98,6 +98,14 @@ func (sv *configMapVolume) GetMetaData() map[string]interface{} {
 	return nil
 }
 
+func (b *configMapVolumeMounter) GetMetaData() map[string]interface{} {
+	return nil
+}
+
+func (b *configMapVolumeUnmounter) GetMetaData() map[string]interface{} {
+	return nil
+}
+
 func (sv *configMapVolume) GetPath() string {
 	return sv.plugin.host.GetPodVolumeDir(sv.podUID, strings.EscapeQualifiedNameForDisk(configMapPluginName), sv.volName)
 }

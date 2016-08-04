@@ -33,6 +33,9 @@ type Volume interface {
 	// pod.
 	GetPath() string
 
+	// GetMetadata returns the metadata of the volume
+	GetMetaData() map[string]interface{}
+
 	// MetricsProvider embeds methods for exposing metrics (e.g.
 	// used, available space).
 	MetricsProvider

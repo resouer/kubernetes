@@ -297,6 +297,10 @@ type gcePersistentDiskUnmounter struct {
 	*gcePersistentDisk
 }
 
+func (pd *gcePersistentDisk) GetMetaData() map[string]interface{} {
+	return nil
+}
+
 var _ volume.Unmounter = &gcePersistentDiskUnmounter{}
 
 func (c *gcePersistentDiskUnmounter) GetPath() string {

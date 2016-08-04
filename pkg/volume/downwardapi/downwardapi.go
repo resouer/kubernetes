@@ -244,6 +244,10 @@ func (b *downwardAPIVolumeMounter) getMetaDir() string {
 	return path.Join(b.plugin.host.GetPodPluginDir(b.podUID, utilstrings.EscapeQualifiedNameForDisk(downwardAPIPluginName)), b.volName)
 }
 
+func (d *downwardAPIVolume) GetMetaData() map[string]interface{} {
+	return nil
+}
+
 func getVolumeSource(spec *volume.Spec) (*api.DownwardAPIVolumeSource, bool) {
 	var readOnly bool
 	var volumeSource *api.DownwardAPIVolumeSource

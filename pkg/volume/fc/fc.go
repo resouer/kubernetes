@@ -207,6 +207,10 @@ func (c *fcDiskUnmounter) TearDownAt(dir string) error {
 	return diskTearDown(c.manager, *c, dir, c.mounter)
 }
 
+func (fc *fcDisk) GetMetaData() map[string]interface{} {
+	return nil
+}
+
 func getVolumeSource(spec *volume.Spec) (*api.FCVolumeSource, bool, error) {
 	if spec.Volume != nil && spec.Volume.FC != nil {
 		return spec.Volume.FC, spec.Volume.FC.ReadOnly, nil

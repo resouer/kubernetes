@@ -159,6 +159,10 @@ type iscsiDisk struct {
 	volume.MetricsNil
 }
 
+func (iscsi *iscsiDisk) GetMetaData() map[string]interface{} {
+	return nil
+}
+
 func (iscsi *iscsiDisk) GetPath() string {
 	name := iscsiPluginName
 	// safe to use PodVolumeDir now: volume teardown occurs before pod is cleaned up

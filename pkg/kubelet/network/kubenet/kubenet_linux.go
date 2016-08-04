@@ -430,7 +430,7 @@ func (plugin *kubenetNetworkPlugin) teardown(namespace string, name string, id k
 	return utilerrors.NewAggregate(errList)
 }
 
-func (plugin *kubenetNetworkPlugin) TearDownPod(namespace string, name string, id kubecontainer.ContainerID) error {
+func (plugin *kubenetNetworkPlugin) TearDownPod(namespace string, name string, id kubecontainer.ContainerID, runtime string) error {
 	plugin.mu.Lock()
 	defer plugin.mu.Unlock()
 

@@ -152,6 +152,10 @@ func (nfsVolume *nfs) GetPath() string {
 	return nfsVolume.plugin.host.GetPodVolumeDir(nfsVolume.pod.UID, strings.EscapeQualifiedNameForDisk(name), nfsVolume.volName)
 }
 
+func (nfsVolume *nfs) GetMetaData() map[string]interface{} {
+	return nil
+}
+
 type nfsMounter struct {
 	*nfs
 	server     string

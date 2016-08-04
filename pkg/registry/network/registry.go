@@ -75,7 +75,7 @@ func (s *storage) CreateNetwork(ctx api.Context, Network *api.Network) error {
 }
 
 func (s *storage) UpdateNetwork(ctx api.Context, Network *api.Network) error {
-	_, _, err := s.Update(ctx, Network)
+	_, _, err := s.Update(ctx, Network.Name, rest.DefaultUpdatedObjectInfo(Network, api.Scheme))
 	return err
 }
 

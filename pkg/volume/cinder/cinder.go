@@ -386,6 +386,11 @@ func (cd *cinderVolume) GetPath() string {
 	return cd.plugin.host.GetPodVolumeDir(cd.podUID, strings.EscapeQualifiedNameForDisk(name), cd.volName)
 }
 
+// GetMetadata returns the metadata of the volume
+func (cd *cinderVolume) GetMetaData() map[string]interface{} {
+	return cd.metadata
+}
+
 type cinderVolumeUnmounter struct {
 	*cinderVolume
 	withOpenStackCP    bool

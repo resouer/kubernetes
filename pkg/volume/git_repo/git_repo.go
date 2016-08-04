@@ -121,6 +121,10 @@ func (gr *gitRepoVolume) GetPath() string {
 	return gr.plugin.host.GetPodVolumeDir(gr.podUID, utilstrings.EscapeQualifiedNameForDisk(name), gr.volName)
 }
 
+func (gr *gitRepoVolume) GetMetaData() map[string]interface{} {
+	return nil
+}
+
 // gitRepoVolumeMounter builds git repo volumes.
 type gitRepoVolumeMounter struct {
 	*gitRepoVolume

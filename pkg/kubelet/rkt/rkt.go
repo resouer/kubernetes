@@ -1022,7 +1022,7 @@ func (r *Runtime) cleanupPodNetwork(pod *api.Pod) error {
 
 	var teardownErr error
 	containerID := kubecontainer.ContainerID{ID: string(pod.UID)}
-	if err := r.networkPlugin.TearDownPod(pod.Namespace, pod.Name, containerID); err != nil {
+	if err := r.networkPlugin.TearDownPod(pod.Namespace, pod.Name, containerID, RktType); err != nil {
 		teardownErr = fmt.Errorf("rkt: failed to tear down network for pod %s: %v", format.Pod(pod), err)
 		glog.Errorf("%v", teardownErr)
 	}
@@ -1250,11 +1250,11 @@ func (r *Runtime) setupPodNetwork(pod *api.Pod) (string, string, error) {
 	// Set up networking with the network plugin
 	glog.V(3).Infof("Calling network plugin %s to setup pod for %s", r.networkPlugin.Name(), format.Pod(pod))
 	containerID := kubecontainer.ContainerID{ID: string(pod.UID)}
-	err = r.networkPlugin.SetUpPod(pod.Namespace, pod.Name, containerID)
+	err = r.networkPlugin.SetUpPod(pod.Namespace, pod.Name, containerID, RktType)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to set up pod network: %v", err)
 	}
-	status, err := r.networkPlugin.GetPodNetworkStatus(pod.Namespace, pod.Name, containerID)
+	status, err := r.networkPlugin.GetPodNetworkStatus(pod.Namespace, pod.Name, containerID, RktType)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to get status of pod network: %v", err)
 	}
@@ -2287,7 +2287,7 @@ func (r *Runtime) GetPodStatus(uid kubetypes.UID, name, namespace string) (*kube
 		}
 	} else {
 		containerID := kubecontainer.ContainerID{ID: string(uid)}
-		status, err := r.networkPlugin.GetPodNetworkStatus(namespace, name, containerID)
+		status, err := r.networkPlugin.GetPodNetworkStatus(namespace, name, containerID, RktType)
 		if err != nil {
 			glog.Warningf("rkt: Failed to get pod network status for pod (UID %q, name %q, namespace %q): %v", uid, name, namespace, err)
 		} else if status != nil {

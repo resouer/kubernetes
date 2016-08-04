@@ -54,7 +54,7 @@ func newCinderDiskUtil(cinderConfigFile string, isNoMountSupported bool) *Cinder
 
 // Attaches a disk specified by a volume.CinderPersistenDisk to the current kubelet.
 // Mounts the disk to it's global path.
-func (util *CinderDiskUtil) AttachDisk(b *cinderVolumeBuilder, globalPDPath string) error {
+func (util *CinderDiskUtil) AttachDisk(b *cinderVolumeMounter, globalPDPath string) error {
 	if b.withOpenStackCP {
 		glog.V(4).Infof("Attaching cinder volume %s with cloudprovider", b.volName)
 		return util.AttachDiskCloudProvider(b, globalPDPath)
@@ -65,7 +65,7 @@ func (util *CinderDiskUtil) AttachDisk(b *cinderVolumeBuilder, globalPDPath stri
 }
 
 // Called by AttachDisk
-func (util *CinderDiskUtil) AttachDiskCloudProvider(b *cinderVolumeBuilder, globalPDPath string) error {
+func (util *CinderDiskUtil) AttachDiskCloudProvider(b *cinderVolumeMounter, globalPDPath string) error {
 	options := []string{}
 	if b.readOnly {
 		options = append(options, "ro")
