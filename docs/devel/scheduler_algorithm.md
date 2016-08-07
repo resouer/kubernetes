@@ -22,7 +22,7 @@ The purpose of filtering the nodes is to filter out the nodes that do not meet c
 - `CheckNodeMemoryPressure`: Check if a pod can be scheduled on a node reporting memory pressure condition. Currently, no ``BestEffort`` should be placed on a node under memory pressure as it gets automatically evicted by kubelet.
 
     The details of the above predicates can be found in [plugin/pkg/scheduler/algorithm/predicates/predicates.go](http://releases.k8s.io/release-1.3/plugin/pkg/scheduler/algorithm/predicates/predicates.go). All predicates mentioned above can be used in combination to perform a sophisticated filtering policy. Kubernetes uses some, but not all, of these predicates by default. You can see which ones are used by default in [plugin/pkg/scheduler/algorithmprovider/defaults/defaults.go](http://releases.k8s.io/release-1.3/plugin/pkg/scheduler/algorithmprovider/defaults/defaults.go).
-    
+
 ## Ranking the nodes
 
 The filtered nodes are considered suitable to host the Pod, and it is often that there are more than one nodes remaining. Kubernetes prioritizes the remaining nodes to find the "best" one for the Pod. The prioritization is performed by a set of priority functions. For each remaining node, a priority function gives a score which scales from 0-10 with 10 representing for "most preferred" and 0 for "least preferred". Each priority function is weighted by a positive number and the final score of each node is calculated by adding up all the weighted scores. For example, suppose there are two priority functions, `priorityFunc1` and `priorityFunc2` with weighting factors `weight1` and `weight2` respectively, the final score of some NodeA is:
@@ -41,7 +41,7 @@ Currently, Kubernetes scheduler provides some practical priority functions, incl
 - `NodeAffinityPriority`: (Kubernetes v1.2) Implements `preferredDuringSchedulingIgnoredDuringExecution` node affinity; see [here](../user-guide/node-selection/) for more details.
 
     The details of the above priority functions can be found in [plugin/pkg/scheduler/algorithm/priorities](http://releases.k8s.io/release-1.3/plugin/pkg/scheduler/algorithm/priorities/). Kubernetes uses some, but not all, of these priority functions by default. You can see which ones are used by default in [plugin/pkg/scheduler/algorithmprovider/defaults/defaults.go](http://releases.k8s.io/release-1.3/plugin/pkg/scheduler/algorithmprovider/defaults/defaults.go). Similar as predicates, you can combine the above priority functions and assign weight factors (positive number) to them as you want (check [scheduler.md](scheduler.md) for how to customize).
-    
+
 
 
 

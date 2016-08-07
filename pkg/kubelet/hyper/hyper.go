@@ -44,11 +44,13 @@ import (
 	"k8s.io/kubernetes/pkg/kubelet/network"
 	proberesults "k8s.io/kubernetes/pkg/kubelet/prober/results"
 	kubetypes "k8s.io/kubernetes/pkg/kubelet/types"
+	kubeletvolume "k8s.io/kubernetes/pkg/kubelet/volume"
 	"k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/util"
 	utilexec "k8s.io/kubernetes/pkg/util/exec"
 	"k8s.io/kubernetes/pkg/util/flowcontrol"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
+	"k8s.io/kubernetes/pkg/volume/util/volumehelper"
 )
 
 const (
@@ -72,7 +74,7 @@ type runtime struct {
 	recorder            record.EventRecorder
 	livenessManager     proberesults.Manager
 	networkPlugin       network.NetworkPlugin
-	volumeGetter        volumeGetter
+	volumeManager       kubeletvolume.VolumeManager
 	hyperClient         *HyperClient
 	kubeClient          clientset.Interface
 	imagePuller         kubecontainer.ImagePuller
@@ -88,17 +90,13 @@ type runtime struct {
 
 var _ kubecontainer.Runtime = &runtime{}
 
-type volumeGetter interface {
-	GetVolumes(podUID types.UID) (kubecontainer.VolumeMap, bool)
-}
-
 // New creates the hyper container runtime which implements the container runtime interface.
 func New(runtimeHelper kubecontainer.RuntimeHelper,
 	recorder record.EventRecorder,
 	networkPlugin network.NetworkPlugin,
 	containerRefManager *kubecontainer.RefManager,
 	livenessManager proberesults.Manager,
-	volumeGetter volumeGetter,
+	volumeManager kubeletvolume.VolumeManager,
 	kubeClient clientset.Interface,
 	imageBackOff *flowcontrol.Backoff,
 	serializeImagePulls bool,
@@ -116,7 +114,7 @@ func New(runtimeHelper kubecontainer.RuntimeHelper,
 		os:                          os,
 		recorder:                    recorder,
 		networkPlugin:               networkPlugin,
-		volumeGetter:                volumeGetter,
+		volumeManager:               volumeManager,
 		hyperClient:                 NewHyperClient(),
 		kubeClient:                  kubeClient,
 		disableHyperInternalService: disableHyperInternalService,
@@ -433,11 +431,9 @@ func (r *runtime) buildHyperPod(pod *api.Pod, restartCount int, pullSecrets []ap
 	// build hyper volume spec
 	specMap := make(map[string]interface{})
 	// TODO(harryz) in kubelet#GenerateRunContainerOptions, vm will GetMountedVolumesForPod
-	// maybe we should use vm to replace volumeGetter?
-	volumeMap, ok := r.volumeGetter.GetVolumes(pod.UID)
-	if !ok {
-		return nil, fmt.Errorf("cannot get the volumes for pod %q", kubecontainer.GetPodFullName(pod))
-	}
+	// maybe we should use vm to replace volumeManager?
+	podName := volumehelper.GetUniquePodName(pod)
+	volumeMap := r.volumeManager.GetMountedVolumesForPod(podName)
 
 	volumes := make([]map[string]interface{}, 0, 1)
 	for name, volume := range volumeMap {

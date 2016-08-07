@@ -16,7 +16,7 @@ proceeding to the pages linked below, which are specific to each rotation.
 Please also read our [notes on OSS collaboration](collab.md), particularly the
 bits about hours. Specifically, each rotation is expected to be active primarily
 during work hours, less so off hours.
-    
+
 During regular workday work hours of your shift, your primary responsibility is
 to monitor the traffic sources specific to your rotation. You can check traffic
 in the evenings if you feel so inclined, but it is not expected to be as highly

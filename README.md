@@ -13,14 +13,14 @@
 
   * Interested in learning more about using Kubernetes?  Please see our user-facing documentation on [kubernetes.io](http://kubernetes.io)
   * Interested in hacking on the core Kubernetes code base?  Keep reading!
-    
+
 Hypernetes is a secure, multi-tenant [Kubernetes](http://kubernetes.io) distro. Simply put,
 
 Hypernetes = Bare-metal + [Hyper](https://hyper.sh) + Kubernetes + [KeyStone](https://github.com/openstack/keystone) + [Cinder](https://github.com/openstack/cinder) + [Neutron](https://github.com/openstack/neutron).
 
 ## What Hypernetes does?
 
-Hypernetes envisions a future of ***"Container-as-a-Service without IaaS"***. The idea is to combine the orchestration power in Kubernetes and [the runtime isolation in Hyper](https://hyper.sh/why-hyper.html) to build the truly secure multi-tenant CaaS platform. 
+Hypernetes envisions a future of ***"Container-as-a-Service without IaaS"***. The idea is to combine the orchestration power in Kubernetes and [the runtime isolation in Hyper](https://hyper.sh/why-hyper.html) to build the truly secure multi-tenant CaaS platform.
 
 ![](https://trello-attachments.s3.amazonaws.com/55545e127c7cbe0ec5b82f2b/1660x705/895000bf0d7e25aee600d3cfaf0fd3f2/upload_10_19_2015_at_3_02_11_PM.png)
 
@@ -33,7 +33,7 @@ With the [1.0.1 release](https://github.com/kubernetes/kubernetes/releases/tag/v
 ### Kubernetes can run anywhere!
 
 You can run Kubernetes on your local workstation under Vagrant, cloud providers (e.g. GCE, AWS, Azure), and physical hardware. Essentially, anywhere Linux runs you can run Kubernetes. Checkout the [Getting Started Guides](http://kubernetes.io/docs/getting-started-guides/) for details.
-    
+
 ## Find out more
 
 * [Documentation](https://github.com/hyperhq/hypernetes-book)
@@ -148,6 +148,6 @@ You can find more projects, tools and articles related to Kubernetes on the  [aw
 
 Instructive & educational resources for the Kubernetes community. By the community.
 
-    
+
 [![Analytics](https://kubernetes-site.appspot.com/UA-36037335-10/GitHub/README.md?pixel)]()
 

@@ -10,7 +10,7 @@
   * Test your admin access by e.g. adding a label to an issue.
 
 ### Traffic sources and responsibilities
-    
+
 * GitHub Kubernetes [issues](https://github.com/kubernetes/kubernetes/issues)
 and [pulls](https://github.com/kubernetes/kubernetes/pulls): Your job is to be
 the first responder to all new issues and PRs. If you are not equipped to do

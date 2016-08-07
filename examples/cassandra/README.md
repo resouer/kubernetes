@@ -6,7 +6,7 @@
 # Cloud Native Deployments of Cassandra using Kubernetes
 
 ## Table of Contents
-    
+
   - [Prerequisites](#prerequisites)
   - [Cassandra Docker](#cassandra-docker)
   - [tl;dr Quickstart](#tldr-quickstart)

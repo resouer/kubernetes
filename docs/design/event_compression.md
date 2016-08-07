@@ -121,7 +121,7 @@ new/unique and a new event entry is created in etcd:
 etcd.
      * An entry for the event is also added to the previously generated events
 cache.
-    
+
 ## Issues/Risks
 
  * Compression is not guaranteed, because each component keeps track of event

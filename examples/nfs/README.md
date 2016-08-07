@@ -14,7 +14,7 @@ Demonstrated Kubernetes Concepts:
   locate one another.
 
 ![alt text][nfs pv example]
-    
+
 As illustrated above, two persistent volumes are used in this example:
 
 - Web frontend Pod uses a persistent volume based on NFS server, and

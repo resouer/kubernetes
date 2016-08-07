@@ -14,7 +14,7 @@
 - [Automation](#automation)
 
 <!-- END MUNGE: GENERATED_TOC -->
-    
+
 # Pull Request Process
 
 An overview of how pull requests are managed for kubernetes. This document

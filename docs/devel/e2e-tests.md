@@ -435,7 +435,7 @@ that corresponds to that version. Thus `v1.2` conformance tests would be run
 from the head of the `release-1.2` branch. eg:
 
      - A v1.3 development cluster should pass v1.1, v1.2 conformance tests
-    
+
  - A v1.2 cluster should pass v1.1, v1.2 conformance tests
 
  - A v1.1 cluster should pass v1.0, v1.1 conformance tests, and fail v1.2

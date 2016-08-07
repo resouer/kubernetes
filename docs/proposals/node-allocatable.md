@@ -58,7 +58,7 @@ reservation grows), or running multiple Kubelets on a single node.
 
 Add `Allocatable` (4) to
     [`NodeStatus`](https://htmlpreview.github.io/?https://github.com/kubernetes/kubernetes/blob/v1.3.0-beta.0/docs/api-reference/v1/definitions.html#_v1_nodestatus):
-    
+
 ```
 type NodeStatus struct {
   ...

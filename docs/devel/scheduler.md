@@ -26,7 +26,7 @@ Finally, the node with the highest priority is chosen
 (or, if there are multiple such nodes, then one of them is chosen at random). The code
 for this main scheduling loop is in the function `Schedule()` in
     [plugin/pkg/scheduler/generic_scheduler.go](http://releases.k8s.io/release-1.3/plugin/pkg/scheduler/generic_scheduler.go)
-    
+
 ## Scheduler extensibility
 
 The scheduler is extensible: the cluster administrator can choose which of the pre-defined
@@ -49,7 +49,7 @@ and either register the policy in `defaultPredicates()` or `defaultPriorities()`
 
 If you want to get a global picture of how the scheduler works, you can start in
     [plugin/cmd/kube-scheduler/app/server.go](http://releases.k8s.io/release-1.3/plugin/cmd/kube-scheduler/app/server.go)
-    
+
 
 
 

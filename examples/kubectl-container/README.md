@@ -7,7 +7,7 @@ This example contains a [Dockerfile](Dockerfile) and [Makefile](Makefile) for pa
 a container and pushing the resulting container image on the Google Container Registry. You can modify the Makefile to push to a different registry if needed.
 
 Assuming that you have checked out the Kubernetes source code and setup your environment to be able to build it. The typical build step of this kubectl container will be:
-    
+
     $ cd examples/kubectl-container
     $ make kubectl
     $ make tag

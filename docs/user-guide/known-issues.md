@@ -3,7 +3,7 @@
 
 <!-- END MUNGE: UNVERSIONED_WARNING -->
     This file has moved to: https://github.com/kubernetes/kubernetes/blob/master/CHANGELOG.md
-    
+
 
 
 <!-- BEGIN MUNGE: IS_VERSIONED -->

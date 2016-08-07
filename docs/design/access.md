@@ -216,7 +216,7 @@ getpwnam() does for these uids.
 Engine `project`.  It provides a namespace for objects created by a group of
 people co-operating together, preventing name collisions with non-cooperating
 groups. It also serves as a reference point for authorization policies.
-    
+
 Namespaces are described in [namespaces.md](namespaces.md).
 
 In the Enterprise Profile:

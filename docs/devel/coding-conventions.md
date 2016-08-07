@@ -18,7 +18,7 @@ Updated: 5/3/2016
 <!-- END MUNGE: GENERATED_TOC -->
 
 ## Code conventions
-    
+
   - Bash
 
     - https://google-styleguide.googlecode.com/svn/trunk/shell.xml

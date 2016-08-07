@@ -16,7 +16,7 @@ collection (e.g. the pods of a ReplicationController) to meet some objective(s),
 for example a target per-pod CPU utilization.
 
     This design supersedes [autoscaling.md](http://releases.k8s.io/release-1.3/docs/proposals/autoscaling.md).
-    
+
 ## Overview
 
 The resource usage of a serving application usually varies over time: sometimes
