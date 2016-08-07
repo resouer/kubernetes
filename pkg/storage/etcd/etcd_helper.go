@@ -40,7 +40,7 @@ import (
 	"golang.org/x/net/context"
 )
 
-    // Creates a new storage interface from the client
+// Creates a new storage interface from the client
 // TODO: deprecate in favor of storage.Config abstraction over time
 func NewEtcdStorage(client etcd.Client, codec runtime.Codec, prefix string, quorum bool, cacheSize int) storage.Interface {
 	return &etcdHelper{
@@ -51,7 +51,7 @@ func NewEtcdStorage(client etcd.Client, codec runtime.Codec, prefix string, quor
 		copier:         api.Scheme,
 		pathPrefix:     path.Join("/", prefix),
 		quorum:         quorum,
-    cache:          utilcache.NewCache(cacheSize),
+		cache:          utilcache.NewCache(cacheSize),
 	}
 }
 
@@ -136,7 +136,7 @@ func (h *etcdHelper) Create(ctx context.Context, key string, obj, out runtime.Ob
 		PrevExist: etcd.PrevNoExist,
 	}
 	response, err := h.etcdKeysAPI.Set(ctx, key, string(data), &opts)
-    trace.Step("Object created")
+	trace.Step("Object created")
 	metrics.RecordEtcdRequestLatency("create", getTypeName(obj), startTime)
 	if err != nil {
 		return toStorageErr(err, key, 0)
@@ -158,7 +158,7 @@ func checkPreconditions(preconditions *storage.Preconditions, out runtime.Object
 	if err != nil {
 		return storage.NewInternalErrorf("can't enforce preconditions %v on un-introspectable object %v, got error: %v", *preconditions, out, err)
 	}
-    if preconditions.UID != nil && *preconditions.UID != objMeta.UID {
+	if preconditions.UID != nil && *preconditions.UID != objMeta.UID {
 		return etcd.Error{Code: etcd.ErrorCodeTestFailed, Message: fmt.Sprintf("the UID in the precondition (%s) does not match the UID in record (%s). The object might have been deleted and then recreated", *preconditions.UID, objMeta.UID)}
 	}
 	return nil
@@ -175,7 +175,7 @@ func (h *etcdHelper) Delete(ctx context.Context, key string, out runtime.Object,
 		panic("unable to convert output object to pointer")
 	}
 
-    if preconditions == nil {
+	if preconditions == nil {
 		startTime := time.Now()
 		response, err := h.etcdKeysAPI.Delete(ctx, key, nil)
 		metrics.RecordEtcdRequestLatency("delete", getTypeName(out), startTime)
@@ -335,7 +335,7 @@ func (h *etcdHelper) GetToList(ctx context.Context, key string, filter storage.F
 		Quorum: h.quorum,
 	}
 	response, err := h.etcdKeysAPI.Get(ctx, key, opts)
-    trace.Step("Etcd node read")
+	trace.Step("Etcd node read")
 	metrics.RecordEtcdRequestLatency("get", getTypeName(listPtr), startTime)
 	if err != nil {
 		if etcdutil.IsEtcdNotFound(err) {

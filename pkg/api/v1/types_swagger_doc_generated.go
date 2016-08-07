@@ -106,10 +106,11 @@ func (CephFSVolumeSource) SwaggerDoc() map[string]string {
 }
 
 var map_CinderVolumeSource = map[string]string{
-	"":         "Represents a cinder volume resource in Openstack. A Cinder volume must exist before mounting to a container. The volume must also be in the same region as the kubelet. Cinder volumes support ownership management and SELinux relabeling.",
-	"volumeID": "volume id used to identify the volume in cinder More info: http://releases.k8s.io/release-1.3/examples/mysql-cinder-pd/README.md",
-	"fsType":   "Filesystem type to mount. Must be a filesystem type supported by the host operating system. Examples: \"ext4\", \"xfs\", \"ntfs\". Implicitly inferred to be \"ext4\" if unspecified. More info: http://releases.k8s.io/release-1.3/examples/mysql-cinder-pd/README.md",
-	"readOnly": "Optional: Defaults to false (read/write). ReadOnly here will force the ReadOnly setting in VolumeMounts. More info: http://releases.k8s.io/release-1.3/examples/mysql-cinder-pd/README.md",
+	"":                "Represents a cinder volume resource in Openstack. A Cinder volume must exist before mounting to a container. The volume must also be in the same region as the kubelet. Cinder volumes support ownership management and SELinux relabeling.",
+	"volumeID":        "volume id used to identify the volume in cinder More info: http://releases.k8s.io/release-1.3/examples/mysql-cinder-pd/README.md",
+	"fsType":          "Filesystem type to mount. Must be a filesystem type supported by the host operating system. Examples: \"ext4\", \"xfs\", \"ntfs\". Implicitly inferred to be \"ext4\" if unspecified. More info: http://releases.k8s.io/release-1.3/examples/mysql-cinder-pd/README.md",
+	"readOnly":        "Optional: Defaults to false (read/write). ReadOnly here will force the ReadOnly setting in VolumeMounts. More info: http://releases.k8s.io/release-1.3/examples/mysql-cinder-pd/README.md",
+	"withOpenStackCP": "Optional: Specify if using cinder volume together with OpenStack CloudProvider",
 }
 
 func (CinderVolumeSource) SwaggerDoc() map[string]string {
@@ -751,6 +752,7 @@ func (NamespaceList) SwaggerDoc() map[string]string {
 var map_NamespaceSpec = map[string]string{
 	"":           "NamespaceSpec describes the attributes on a Namespace.",
 	"finalizers": "Finalizers is an opaque list of values that must be empty to permanently remove object from storage. More info: http://releases.k8s.io/release-1.3/docs/design/namespaces.md#finalizers",
+	"network":    "Network descibes a network segment",
 }
 
 func (NamespaceSpec) SwaggerDoc() map[string]string {
@@ -764,6 +766,47 @@ var map_NamespaceStatus = map[string]string{
 
 func (NamespaceStatus) SwaggerDoc() map[string]string {
 	return map_NamespaceStatus
+}
+
+var map_Network = map[string]string{
+	"":         "Network describes a network",
+	"metadata": "Standard object's metadata. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#metadata",
+	"spec":     "Spec defines the behavior of the Network.",
+	"status":   "Status describes the current status of a Network",
+}
+
+func (Network) SwaggerDoc() map[string]string {
+	return map_Network
+}
+
+var map_NetworkList = map[string]string{
+	"":         "NetworkList is a list of Networks",
+	"metadata": "Standard list metadata. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds",
+	"items":    "Items is the list of Network objects in the list",
+}
+
+func (NetworkList) SwaggerDoc() map[string]string {
+	return map_NetworkList
+}
+
+var map_NetworkSpec = map[string]string{
+	"":                  "NetworkSpec is a description of a network",
+	"subnets":           "There must be at least one subnet in a network Subnets and ProviderNetworkID must not be provided together",
+	"providerNetworkID": "Network's ID of provider network ProviderNetworkID and Subnets must not be provided together",
+	"tenantID":          "TenantID is the tenant ID of network provider",
+}
+
+func (NetworkSpec) SwaggerDoc() map[string]string {
+	return map_NetworkSpec
+}
+
+var map_NetworkStatus = map[string]string{
+	"":      "NetworkStatus is information about the current status of a Network.",
+	"phase": "Phase is the current lifecycle phase of the network.",
+}
+
+func (NetworkStatus) SwaggerDoc() map[string]string {
+	return map_NetworkStatus
 }
 
 var map_Node = map[string]string{
@@ -1635,6 +1678,16 @@ var map_ServiceStatus = map[string]string{
 
 func (ServiceStatus) SwaggerDoc() map[string]string {
 	return map_ServiceStatus
+}
+
+var map_Subnet = map[string]string{
+	"":        "Subnet is a description of a subnet",
+	"cidr":    "CIDR of this subnet",
+	"gateway": "Gateway of this subnet",
+}
+
+func (Subnet) SwaggerDoc() map[string]string {
+	return map_Subnet
 }
 
 var map_TCPSocketAction = map[string]string{

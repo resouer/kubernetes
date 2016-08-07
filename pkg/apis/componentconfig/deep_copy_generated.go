@@ -91,6 +91,7 @@ func DeepCopy_componentconfig_KubeControllerManagerConfiguration(in KubeControll
 	if err := unversioned.DeepCopy_unversioned_Duration(in.MinResyncPeriod, &out.MinResyncPeriod, c); err != nil {
 		return err
 	}
+	out.NetworkProvider = in.NetworkProvider
 	out.TerminatedPodGCThreshold = in.TerminatedPodGCThreshold
 	if err := unversioned.DeepCopy_unversioned_Duration(in.HorizontalPodAutoscalerSyncPeriod, &out.HorizontalPodAutoscalerSyncPeriod, c); err != nil {
 		return err
@@ -144,6 +145,7 @@ func DeepCopy_componentconfig_KubeProxyConfiguration(in KubeProxyConfiguration, 
 	}
 	out.BindAddress = in.BindAddress
 	out.ClusterCIDR = in.ClusterCIDR
+	out.DisableHyperInternalService = in.DisableHyperInternalService
 	out.HealthzBindAddress = in.HealthzBindAddress
 	out.HealthzPort = in.HealthzPort
 	out.HostnameOverride = in.HostnameOverride

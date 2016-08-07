@@ -29,7 +29,6 @@ import (
 func init() {
 	if err := api.Scheme.AddGeneratedConversionFuncs(
 		Convert_v1alpha1_KubeProxyConfiguration_To_componentconfig_KubeProxyConfiguration,
-		Convert_componentconfig_KubeProxyConfiguration_To_v1alpha1_KubeProxyConfiguration,
 		Convert_v1alpha1_KubeSchedulerConfiguration_To_componentconfig_KubeSchedulerConfiguration,
 		Convert_componentconfig_KubeSchedulerConfiguration_To_v1alpha1_KubeSchedulerConfiguration,
 		Convert_v1alpha1_LeaderElectionConfiguration_To_componentconfig_LeaderElectionConfiguration,
@@ -67,34 +66,6 @@ func autoConvert_v1alpha1_KubeProxyConfiguration_To_componentconfig_KubeProxyCon
 
 func Convert_v1alpha1_KubeProxyConfiguration_To_componentconfig_KubeProxyConfiguration(in *KubeProxyConfiguration, out *componentconfig.KubeProxyConfiguration, s conversion.Scope) error {
 	return autoConvert_v1alpha1_KubeProxyConfiguration_To_componentconfig_KubeProxyConfiguration(in, out, s)
-}
-
-func autoConvert_componentconfig_KubeProxyConfiguration_To_v1alpha1_KubeProxyConfiguration(in *componentconfig.KubeProxyConfiguration, out *KubeProxyConfiguration, s conversion.Scope) error {
-	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
-	out.BindAddress = in.BindAddress
-	out.ClusterCIDR = in.ClusterCIDR
-	out.HealthzBindAddress = in.HealthzBindAddress
-	out.HealthzPort = in.HealthzPort
-	out.HostnameOverride = in.HostnameOverride
-	out.IPTablesMasqueradeBit = in.IPTablesMasqueradeBit
-	out.IPTablesSyncPeriod = in.IPTablesSyncPeriod
-	out.KubeconfigPath = in.KubeconfigPath
-	out.MasqueradeAll = in.MasqueradeAll
-	out.Master = in.Master
-	out.OOMScoreAdj = in.OOMScoreAdj
-	out.Mode = ProxyMode(in.Mode)
-	out.PortRange = in.PortRange
-	out.ResourceContainer = in.ResourceContainer
-	out.UDPIdleTimeout = in.UDPIdleTimeout
-	out.ConntrackMax = in.ConntrackMax
-	out.ConntrackTCPEstablishedTimeout = in.ConntrackTCPEstablishedTimeout
-	return nil
-}
-
-func Convert_componentconfig_KubeProxyConfiguration_To_v1alpha1_KubeProxyConfiguration(in *componentconfig.KubeProxyConfiguration, out *KubeProxyConfiguration, s conversion.Scope) error {
-	return autoConvert_componentconfig_KubeProxyConfiguration_To_v1alpha1_KubeProxyConfiguration(in, out, s)
 }
 
 func autoConvert_v1alpha1_KubeSchedulerConfiguration_To_componentconfig_KubeSchedulerConfiguration(in *KubeSchedulerConfiguration, out *componentconfig.KubeSchedulerConfiguration, s conversion.Scope) error {
