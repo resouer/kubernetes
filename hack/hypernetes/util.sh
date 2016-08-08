@@ -38,7 +38,7 @@ function kube::util::setup_ssh() {
 	echo "Start $FUNCNAME"
 	ssh-keygen -f /root/.ssh/id_rsa -t rsa -N ''
 	cat /root/.ssh/id_rsa.pub >> /root/.ssh/authorized_keys
-	ssh-keyscan k8s >> ~/.ssh/known_hosts
+	ssh-keyscan $HOSTNAME >> ~/.ssh/known_hosts
 }
 
 function kube::util::setup_hostname() {
