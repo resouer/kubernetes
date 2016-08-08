@@ -1,5 +1,3 @@
-// +build proto
-
 /*
 Copyright 2016 The Kubernetes Authors All rights reserved.
 
@@ -36,9 +34,6 @@ package runtime
 import proto "github.com/gogo/protobuf/proto"
 import fmt "fmt"
 import math "math"
-import _ "github.com/gogo/protobuf/gogoproto"
-import _ "k8s.io/kubernetes/pkg/api/resource"
-import _ "k8s.io/kubernetes/pkg/util/intstr"
 
 import io "io"
 
@@ -79,11 +74,11 @@ func (m *RawExtension) MarshalTo(data []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
-	if m.RawJSON != nil {
+	if m.Raw != nil {
 		data[i] = 0xa
 		i++
-		i = encodeVarintGenerated(data, i, uint64(len(m.RawJSON)))
-		i += copy(data[i:], m.RawJSON)
+		i = encodeVarintGenerated(data, i, uint64(len(m.Raw)))
+		i += copy(data[i:], m.Raw)
 	}
 	return i, nil
 }
@@ -137,12 +132,20 @@ func (m *Unknown) MarshalTo(data []byte) (int, error) {
 		return 0, err
 	}
 	i += n1
-	if m.RawJSON != nil {
+	if m.Raw != nil {
 		data[i] = 0x12
 		i++
-		i = encodeVarintGenerated(data, i, uint64(len(m.RawJSON)))
-		i += copy(data[i:], m.RawJSON)
+		i = encodeVarintGenerated(data, i, uint64(len(m.Raw)))
+		i += copy(data[i:], m.Raw)
 	}
+	data[i] = 0x1a
+	i++
+	i = encodeVarintGenerated(data, i, uint64(len(m.ContentEncoding)))
+	i += copy(data[i:], m.ContentEncoding)
+	data[i] = 0x22
+	i++
+	i = encodeVarintGenerated(data, i, uint64(len(m.ContentType)))
+	i += copy(data[i:], m.ContentType)
 	return i, nil
 }
 
@@ -176,8 +179,8 @@ func encodeVarintGenerated(data []byte, offset int, v uint64) int {
 func (m *RawExtension) Size() (n int) {
 	var l int
 	_ = l
-	if m.RawJSON != nil {
-		l = len(m.RawJSON)
+	if m.Raw != nil {
+		l = len(m.Raw)
 		n += 1 + l + sovGenerated(uint64(l))
 	}
 	return n
@@ -198,10 +201,14 @@ func (m *Unknown) Size() (n int) {
 	_ = l
 	l = m.TypeMeta.Size()
 	n += 1 + l + sovGenerated(uint64(l))
-	if m.RawJSON != nil {
-		l = len(m.RawJSON)
+	if m.Raw != nil {
+		l = len(m.Raw)
 		n += 1 + l + sovGenerated(uint64(l))
 	}
+	l = len(m.ContentEncoding)
+	n += 1 + l + sovGenerated(uint64(l))
+	l = len(m.ContentType)
+	n += 1 + l + sovGenerated(uint64(l))
 	return n
 }
 
@@ -249,7 +256,7 @@ func (m *RawExtension) Unmarshal(data []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field RawJSON", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Raw", wireType)
 			}
 			var byteLen int
 			for shift := uint(0); ; shift += 7 {
@@ -273,9 +280,9 @@ func (m *RawExtension) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.RawJSON = append(m.RawJSON[:0], data[iNdEx:postIndex]...)
-			if m.RawJSON == nil {
-				m.RawJSON = []byte{}
+			m.Raw = append(m.Raw[:0], data[iNdEx:postIndex]...)
+			if m.Raw == nil {
+				m.Raw = []byte{}
 			}
 			iNdEx = postIndex
 		default:
@@ -468,7 +475,7 @@ func (m *Unknown) Unmarshal(data []byte) error {
 			iNdEx = postIndex
 		case 2:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field RawJSON", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Raw", wireType)
 			}
 			var byteLen int
 			for shift := uint(0); ; shift += 7 {
@@ -492,10 +499,68 @@ func (m *Unknown) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.RawJSON = append(m.RawJSON[:0], data[iNdEx:postIndex]...)
-			if m.RawJSON == nil {
-				m.RawJSON = []byte{}
+			m.Raw = append(m.Raw[:0], data[iNdEx:postIndex]...)
+			if m.Raw == nil {
+				m.Raw = []byte{}
 			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ContentEncoding", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				stringLen |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ContentEncoding = string(data[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ContentType", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				stringLen |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ContentType = string(data[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

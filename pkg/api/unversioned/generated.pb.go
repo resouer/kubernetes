@@ -1,5 +1,3 @@
-// +build proto
-
 /*
 Copyright 2016 The Kubernetes Authors All rights reserved.
 
@@ -43,7 +41,6 @@ limitations under the License.
 		LabelSelector
 		LabelSelectorRequirement
 		ListMeta
-		ProtoTime
 		RootPaths
 		ServerAddressByClientCIDR
 		Status
@@ -58,8 +55,6 @@ package unversioned
 import proto "github.com/gogo/protobuf/proto"
 import fmt "fmt"
 import math "math"
-import _ "github.com/gogo/protobuf/gogoproto"
-import _ "k8s.io/kubernetes/pkg/util/intstr"
 
 import time "time"
 
@@ -128,10 +123,6 @@ func (m *ListMeta) Reset()         { *m = ListMeta{} }
 func (m *ListMeta) String() string { return proto.CompactTextString(m) }
 func (*ListMeta) ProtoMessage()    {}
 
-func (m *ProtoTime) Reset()         { *m = ProtoTime{} }
-func (m *ProtoTime) String() string { return proto.CompactTextString(m) }
-func (*ProtoTime) ProtoMessage()    {}
-
 func (m *RootPaths) Reset()         { *m = RootPaths{} }
 func (m *RootPaths) String() string { return proto.CompactTextString(m) }
 func (*RootPaths) ProtoMessage()    {}
@@ -181,7 +172,6 @@ func init() {
 	proto.RegisterType((*LabelSelector)(nil), "k8s.io.kubernetes.pkg.api.unversioned.LabelSelector")
 	proto.RegisterType((*LabelSelectorRequirement)(nil), "k8s.io.kubernetes.pkg.api.unversioned.LabelSelectorRequirement")
 	proto.RegisterType((*ListMeta)(nil), "k8s.io.kubernetes.pkg.api.unversioned.ListMeta")
-	proto.RegisterType((*ProtoTime)(nil), "k8s.io.kubernetes.pkg.api.unversioned.ProtoTime")
 	proto.RegisterType((*RootPaths)(nil), "k8s.io.kubernetes.pkg.api.unversioned.RootPaths")
 	proto.RegisterType((*ServerAddressByClientCIDR)(nil), "k8s.io.kubernetes.pkg.api.unversioned.ServerAddressByClientCIDR")
 	proto.RegisterType((*Status)(nil), "k8s.io.kubernetes.pkg.api.unversioned.Status")
@@ -721,32 +711,6 @@ func (m *ListMeta) MarshalTo(data []byte) (int, error) {
 	return i, nil
 }
 
-func (m *ProtoTime) Marshal() (data []byte, err error) {
-	size := m.Size()
-	data = make([]byte, size)
-	n, err := m.MarshalTo(data)
-	if err != nil {
-		return nil, err
-	}
-	return data[:n], nil
-}
-
-func (m *ProtoTime) MarshalTo(data []byte) (int, error) {
-	var i int
-	_ = i
-	var l int
-	_ = l
-	data[i] = 0xa
-	i++
-	i = encodeVarintGenerated(data, i, uint64(m.Timestamp.Size()))
-	n2, err := m.Timestamp.MarshalTo(data[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n2
-	return i, nil
-}
-
 func (m *RootPaths) Marshal() (data []byte, err error) {
 	size := m.Size()
 	data = make([]byte, size)
@@ -824,11 +788,11 @@ func (m *Status) MarshalTo(data []byte) (int, error) {
 	data[i] = 0xa
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.ListMeta.Size()))
-	n3, err := m.ListMeta.MarshalTo(data[i:])
+	n2, err := m.ListMeta.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
-	i += n3
+	i += n2
 	data[i] = 0x12
 	i++
 	i = encodeVarintGenerated(data, i, uint64(len(m.Status)))
@@ -845,11 +809,11 @@ func (m *Status) MarshalTo(data []byte) (int, error) {
 		data[i] = 0x2a
 		i++
 		i = encodeVarintGenerated(data, i, uint64(m.Details.Size()))
-		n4, err := m.Details.MarshalTo(data[i:])
+		n3, err := m.Details.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n4
+		i += n3
 	}
 	data[i] = 0x30
 	i++
@@ -1207,14 +1171,6 @@ func (m *ListMeta) Size() (n int) {
 	l = len(m.SelfLink)
 	n += 1 + l + sovGenerated(uint64(l))
 	l = len(m.ResourceVersion)
-	n += 1 + l + sovGenerated(uint64(l))
-	return n
-}
-
-func (m *ProtoTime) Size() (n int) {
-	var l int
-	_ = l
-	l = m.Timestamp.Size()
 	n += 1 + l + sovGenerated(uint64(l))
 	return n
 }
@@ -3202,86 +3158,6 @@ func (m *ListMeta) Unmarshal(data []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.ResourceVersion = string(data[iNdEx:postIndex])
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipGenerated(data[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				return ErrInvalidLengthGenerated
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *ProtoTime) Unmarshal(data []byte) error {
-	l := len(data)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowGenerated
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := data[iNdEx]
-			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: ProtoTime: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: ProtoTime: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Timestamp", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowGenerated
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := data[iNdEx]
-				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthGenerated
-			}
-			postIndex := iNdEx + msglen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.Timestamp.Unmarshal(data[iNdEx:postIndex]); err != nil {
-				return err
-			}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
