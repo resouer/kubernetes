@@ -78,6 +78,17 @@ docs/getting-started-guides/coreos/azure/lib/deployment_logic/kubernetes.js:var 
 examples/cassandra/image/run.sh:	cluster_name \
 examples/cluster-dns/images/frontend/client.py:  service_address = socket.gethostbyname(hostname)
 examples/vitess/env.sh:    node_ip=$(get_node_ip)
+hack/hypernetes/hypernetes.sh:KUBELET_API_SERVER="--api_servers=http://${IF_IP}:8080"
+hack/hypernetes/hypernetes.sh:KUBELET_HOSTNAME="--hostname_override=${HOSTNAME}"
+hack/hypernetes/hypernetes.sh:KUBELET_PORT="--kubelet_port=10250"
+hack/hypernetes/hypernetes.sh:KUBE_ADMISSION_CONTROL="--admission_control=NamespaceLifecycle,NamespaceExists,LimitRanger,SecurityContextDeny,ServiceAccount,ResourceQuota"
+hack/hypernetes/hypernetes.sh:KUBE_ALLOW_PRIV="--allow_privileged=false"
+hack/hypernetes/hypernetes.sh:KUBE_ETCD_SERVERS="--etcd_servers=http://${IF_IP}:2379"
+hack/jenkins/job-builder-image/Dockerfile:# JJB configuration lives in /etc/jenkins_jobs/jenkins_jobs.ini
+hack/jenkins/update-jobs.sh:    docker cp jenkins_jobs.ini job-builder:/etc/jenkins_jobs
+hack/jenkins/update-jobs.sh:    echo "jenkins_jobs.ini not found in workspace" >&2
+hack/jenkins/update-jobs.sh:  # jenkins_jobs.ini contains administrative credentials for Jenkins.
+hack/jenkins/update-jobs.sh:  if [[ -e jenkins_jobs.ini ]]; then
 hack/jenkins/e2e-runner.sh:    local -r image_project="$1"
 hack/local-up-cluster.sh:      runtime_config="--runtime-config=${RUNTIME_CONFIG}"
 hack/local-up-cluster.sh:    runtime_config=""
