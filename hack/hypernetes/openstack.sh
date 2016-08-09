@@ -50,4 +50,6 @@ function kube::util::setup_openstack() {
 	neutron net-create --router:external br-ex
 	neutron subnet-create br-ex 58.215.33.0/24
 	sed -i 's/#dns_domain = openstacklocal/dns_domain = hypernetes/g' /etc/neutron/neutron.conf
+	sed -i 's/#extension_drivers.*/extension_drivers = port_security,dns/g' /etc/neutron/plugins/ml2/ml2_conf.ini
+	systemctl restart neutron-server
 }
