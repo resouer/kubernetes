@@ -21,9 +21,9 @@ set -o pipefail
 function kube::util::download_hypernetes() {
 	echo "Start $FUNCNAME"
 	yum -y install kubernetes etcd
-	curl -p -SL https://github.com/hyperhq/hypernetes/releases/download/v1.2.0/kubernetes-server-linux-amd64.tar.gz -o /tmp/kubernetes-server-linux-amd64.tar.gz
-	tar zxvf /tmp/kubernetes-server-linux-amd64.tar.gz -C /usr/bin/
-	rm -f /tmp/kubernetes-server-linux-amd64.tar.gz
+	# curl -p -SL https://github.com/hyperhq/hypernetes/releases/download/v1.2.0/kubernetes-server-linux-amd64.tar.gz -o /tmp/kubernetes-server-linux-amd64.tar.gz
+	# tar zxvf /tmp/kubernetes-server-linux-amd64.tar.gz -C /usr/bin/
+	# rm -f /tmp/kubernetes-server-linux-amd64.tar.gz
 }
 
 function kube::util::build_hypernetes() {
