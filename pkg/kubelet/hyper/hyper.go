@@ -44,13 +44,11 @@ import (
 	"k8s.io/kubernetes/pkg/kubelet/network"
 	proberesults "k8s.io/kubernetes/pkg/kubelet/prober/results"
 	kubetypes "k8s.io/kubernetes/pkg/kubelet/types"
-	kubeletvolume "k8s.io/kubernetes/pkg/kubelet/volume"
 	"k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/util"
 	utilexec "k8s.io/kubernetes/pkg/util/exec"
 	"k8s.io/kubernetes/pkg/util/flowcontrol"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
-	"k8s.io/kubernetes/pkg/volume/util/volumehelper"
 )
 
 const (
@@ -74,7 +72,6 @@ type runtime struct {
 	recorder            record.EventRecorder
 	livenessManager     proberesults.Manager
 	networkPlugin       network.NetworkPlugin
-	volumeManager       kubeletvolume.VolumeManager
 	hyperClient         *HyperClient
 	kubeClient          clientset.Interface
 	imagePuller         kubecontainer.ImagePuller
@@ -96,7 +93,6 @@ func New(runtimeHelper kubecontainer.RuntimeHelper,
 	networkPlugin network.NetworkPlugin,
 	containerRefManager *kubecontainer.RefManager,
 	livenessManager proberesults.Manager,
-	volumeManager kubeletvolume.VolumeManager,
 	kubeClient clientset.Interface,
 	imageBackOff *flowcontrol.Backoff,
 	serializeImagePulls bool,
@@ -114,7 +110,6 @@ func New(runtimeHelper kubecontainer.RuntimeHelper,
 		os:                          os,
 		recorder:                    recorder,
 		networkPlugin:               networkPlugin,
-		volumeManager:               volumeManager,
 		hyperClient:                 NewHyperClient(),
 		kubeClient:                  kubeClient,
 		disableHyperInternalService: disableHyperInternalService,
@@ -430,19 +425,20 @@ func (r *runtime) buildHyperPod(pod *api.Pod, restartCount int, pullSecrets []ap
 
 	// build hyper volume spec
 	specMap := make(map[string]interface{})
-	// TODO(harryz) in kubelet#GenerateRunContainerOptions, vm will GetMountedVolumesForPod
-	// maybe we should use vm to replace volumeManager?
-	podName := volumehelper.GetUniquePodName(pod)
-	volumeMap := r.volumeManager.GetMountedVolumesForPod(podName)
 
+	// process rbd volume globally
+	volumeMap, ok := r.runtimeHelper.ListVolumesForPod(pod.UID)
+	if !ok {
+		return nil, fmt.Errorf("cannot get the volumes for pod %q", kubecontainer.GetPodFullName(pod))
+	}
 	volumes := make([]map[string]interface{}, 0, 1)
-	for name, volume := range volumeMap {
-		glog.V(4).Infof("Hyper: volume %s, path %s, meta %s", name, volume.Mounter.GetPath(), volume.Mounter.GetMetaData())
+	for name, mounter := range volumeMap {
+		glog.V(4).Infof("Hyper: volume %s, path %s, meta %s", name, mounter.GetPath(), mounter.GetMetaData())
 		v := make(map[string]interface{})
 		v[KEY_NAME] = name
 
 		// Process rbd volume
-		metadata := volume.Mounter.GetMetaData()
+		metadata := mounter.GetMetaData()
 		if metadata != nil && metadata["volume_type"].(string) == "rbd" {
 			v[KEY_VOLUME_DRIVE] = metadata["volume_type"]
 			v["source"] = "rbd:" + metadata["name"].(string)
@@ -458,10 +454,10 @@ func (r *runtime) buildHyperPod(pod *api.Pod, restartCount int, pullSecrets []ap
 				"monitors": monitors,
 			}
 		} else {
-			glog.V(4).Infof("Hyper: volume %s %s", name, volume.Mounter.GetPath())
+			glog.V(4).Infof("Hyper: volume %s %s", name, mounter.GetPath())
 
 			v[KEY_VOLUME_DRIVE] = VOLUME_TYPE_VFS
-			v[KEY_VOLUME_SOURCE] = volume.Mounter.GetPath()
+			v[KEY_VOLUME_SOURCE] = mounter.GetPath()
 		}
 
 		volumes = append(volumes, v)

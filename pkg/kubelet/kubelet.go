@@ -472,7 +472,6 @@ func NewMainKubelet(
 			klet.networkPlugin,
 			containerRefManager,
 			klet.livenessManager,
-			klet.volumeManager,
 			klet.kubeClient,
 			imageBackOff,
 			serializeImagePulls,

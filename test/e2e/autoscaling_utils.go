@@ -356,12 +356,6 @@ func runServiceAndWorkloadForResourceConsumer(c *client.Client, ns, name, kind s
 		}
 		framework.ExpectNoError(framework.RunReplicaSet(rsConfig))
 		break
-	case kindReplicaSet:
-		rsConfig := ReplicaSetConfig{
-			rcConfig,
-		}
-		expectNoError(RunReplicaSet(rsConfig))
-		break
 	default:
 		framework.Failf(invalidKind)
 	}

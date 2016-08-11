@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 sudo: required
 
 services:
@@ -47,9 +46,3 @@ script:
 notifications:
   slack:
     secure: fUsnnU0AlBqHxea4h1asZerpYVwLGpqTlZ4APD2Q8EqG3WChN/O74CR/lyTDceSvnjmEoOcxLc/ETXvZ3FrjEAc9ZUxdPcfl7InKYSU9dWzsRCwZLwCnmaphlXFCi6VaPkUvS0J3JPyUS3mF/rNa3l63CTEzp9ni0WFETztZXr16kbTbZJ9FqZ4XYdtSh883ZPc0DPgfSH/iO4nsHGBDFyemW60rccTtNLS0Kac7UyGf16nOo63KWnvtvrsgN+hIYuu5R1xUu+aMRyO3FJ/4jzfhcplKuN1+SJxvvVYpmywuML3FulDhHIuqjOXMYgqCJtug33XNvgXNoInMfAQT4Be3WOtjVg50sx7RCTxwe3uleWd35SAzZcAFl12JGQmnA0IkDoWu6ti8Gc0f1RpqB02Nj4nscaNHYpZOPM32JAji4iMviy00hXhIZkLeTjnQny2FVLPCrTPDGhxJhFIRVF2PtbtcmjrkiUdO2p7K5Cpgl6Ix66557A+8UpSrdv8LollNTG5+/mhy8hLuHf+PrJcsKf09qLAYFhiD2VF+gZxUX94wC2QJQw4iLmMMdHy94GhJprIrCLo5z2u4M8IjIpvjhSsXtJcmmQXsmAEQAtawIVID57A7Z5VCQV3QtxIpdr6dGiuNfXtSxXQ16AQHYpvLn092MiokAag1aktSZTw=
-
-language: bash
-
-script:
-    - echo "Travis is disabled on master. See issue 23611."
-    - echo "https://github.com/kubernetes/kubernetes/issues/23611"
