@@ -20,11 +20,6 @@
 			"Rev": "1c0a791b33bdc01d062b376612aa04e27eed7eb3"
 		},
 		{
-			"ImportPath": "github.com/Microsoft/go-winio",
-			"Comment": "v0.1.0",
-			"Rev": "8f9387ea7efabb228a981b9c381142be7667967f"
-		},
-		{
 			"ImportPath": "github.com/SeanDolphin/bqschema",
 			"Rev": "f92a08f515e1bf718e995076a37c2f534b1deb08"
 		},
