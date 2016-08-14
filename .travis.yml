@@ -31,9 +31,8 @@ install:
   - ./hack/verify-boilerplate.sh
   - ./hack/verify-description.sh
   - ./hack/verify-flags-underscore.py
-  - ./hack/travis/install-std-race.sh
-  - ./hack/verify-generated-conversions.sh
-  - ./hack/verify-generated-deep-copies.sh
+  - ./hack/verify-codecgen.sh
+  - ./hack/verify-codegen.sh 
   - ./hack/verify-generated-docs.sh
   - ./hack/verify-generated-swagger-docs.sh
   - ./hack/verify-swagger-spec.sh

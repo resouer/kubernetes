@@ -38,23 +38,34 @@ cluster/photon-controller/util.sh:  local cert_dir="/srv/kubernetes"
 cluster/photon-controller/util.sh:  node_name=${1}
 cluster/rackspace/util.sh:    local node_ip=$(nova show --minimal ${NODE_NAMES[$i]} \
 cluster/saltbase/salt/cluster-autoscaler/cluster-autoscaler.manifest:{% set params = pillar['autoscaler_mig_config'] + " " + cloud_config -%}
+cluster/saltbase/salt/docker/docker-defaults:{% if pillar.get('network_provider', '').lower() == 'cni' %}
+cluster/saltbase/salt/docker/docker-defaults:{% if pillar.get('network_provider', '').lower() == 'kubenet' %}
 cluster/saltbase/salt/kube-admission-controls/init.sls:{% if 'LimitRanger' in pillar.get('admission_control', '') %}
 cluster/saltbase/salt/kube-apiserver/kube-apiserver.manifest:{% set params = address + " " + etcd_servers + " " + etcd_servers_overrides + " " + cloud_provider + " " + cloud_config + " " + runtime_config + " " + admission_control + " " + service_cluster_ip_range + " " + client_ca_file + basic_auth_file + " " + min_request_timeout -%}
+cluster/saltbase/salt/kube-controller-manager/kube-controller-manager.manifest:{% elif pillar.get('network_provider', '').lower() == 'kubenet' %}
+cluster/saltbase/salt/kube-controller-manager/kube-controller-manager.manifest:{% if pillar.get('network_provider', '').lower() == 'flannel' %}
 cluster/saltbase/salt/kube-controller-manager/kube-controller-manager.manifest:{% set params = "--master=127.0.0.1:8080" + " " + cluster_name + " " + cluster_cidr + " " + allocate_node_cidrs + " " + service_cluster_ip_range + " " + terminated_pod_gc + " " + cloud_provider  + " " + cloud_config + " " + service_account_key + " " + log_level + " " + root_ca_file -%}
 cluster/saltbase/salt/kube-proxy/kube-proxy.manifest:  {% set api_servers_with_port = api_servers + ":6443" -%}
 cluster/saltbase/salt/kube-proxy/kube-proxy.manifest:  {% set api_servers_with_port = api_servers -%}
 cluster/saltbase/salt/kube-proxy/kube-proxy.manifest:  {% set cluster_cidr=" --cluster-cidr=" + pillar['cluster_cidr'] %}
+cluster/saltbase/salt/kubelet/default:  {% elif api_servers_with_port == '' and pillar.get('network_provider', '').lower() == 'kubenet' %}
 cluster/saltbase/salt/kubelet/default:  {% set api_servers_with_port = api_servers + ":6443" -%}
 cluster/saltbase/salt/kubelet/default:  {% set api_servers_with_port = api_servers -%}
 cluster/saltbase/salt/kubelet/default:  {% set enable_custom_metrics="--enable-custom-metrics=" + pillar['enable_custom_metrics'] %}
 cluster/saltbase/salt/kubelet/default:  {% set eviction_hard="--eviction-hard=" + pillar['eviction_hard'] %}
 cluster/saltbase/salt/kubelet/default:  {% set kubelet_port="--port=" + pillar['kubelet_port'] %}
 cluster/saltbase/salt/kubelet/default:  {% set node_labels="--node-labels=" + pillar['node_labels'] %}
+cluster/saltbase/salt/kubelet/default:{% elif pillar.get('network_provider', '').lower() == 'cni' %}
+cluster/saltbase/salt/kubelet/default:{% elif pillar.get('network_provider', '').lower() == 'kubenet' %}
+cluster/saltbase/salt/kubelet/default:{% if pillar.get('network_provider', '').lower() == 'flannel' and grains['roles'][0] != 'kubernetes-master' %}
+cluster/saltbase/salt/kubelet/default:{% if pillar.get('network_provider', '').lower() == 'opencontrail' %}
 cluster/saltbase/salt/kubelet/default:{% if pillar.get('non_masquerade_cidr','') -%}
 cluster/saltbase/salt/opencontrail-networking-master/init.sls:      - 'SERVICE_CLUSTER_IP_RANGE': '{{ pillar.get('service_cluster_ip_range') }}'
 cluster/saltbase/salt/opencontrail-networking-minion/init.sls:      - 'SERVICE_CLUSTER_IP_RANGE': '{{ pillar.get('service_cluster_ip_range') }}'
 cluster/saltbase/salt/supervisor/kubelet-checker.sh:	{% set kubelet_port = pillar['kubelet_port'] -%}
 cluster/saltbase/salt/supervisor/supervisor_watcher.sh:# Apply oom_score_adj: -901 to processes
+cluster/saltbase/salt/top.sls:{% elif pillar.get('network_provider', '').lower() == 'cni' %}
+cluster/saltbase/salt/top.sls:{% elif pillar.get('network_provider', '').lower() == 'cni' %}
 cluster/saltbase/salt/top.sls:{% elif pillar.get('network_provider', '').lower() == 'kubenet' %}
 cluster/saltbase/salt/top.sls:{% elif pillar.get('network_provider', '').lower() == 'kubenet' %}
 cluster/saltbase/salt/top.sls:{% if pillar.get('network_provider', '').lower() == 'flannel' %}
@@ -84,11 +95,6 @@ hack/hypernetes/hypernetes.sh:KUBELET_PORT="--kubelet_port=10250"
 hack/hypernetes/hypernetes.sh:KUBE_ADMISSION_CONTROL="--admission_control=NamespaceLifecycle,NamespaceExists,LimitRanger,SecurityContextDeny,ServiceAccount,ResourceQuota"
 hack/hypernetes/hypernetes.sh:KUBE_ALLOW_PRIV="--allow_privileged=false"
 hack/hypernetes/hypernetes.sh:KUBE_ETCD_SERVERS="--etcd_servers=http://${IF_IP}:2379"
-hack/jenkins/job-builder-image/Dockerfile:# JJB configuration lives in /etc/jenkins_jobs/jenkins_jobs.ini
-hack/jenkins/update-jobs.sh:    docker cp jenkins_jobs.ini job-builder:/etc/jenkins_jobs
-hack/jenkins/update-jobs.sh:    echo "jenkins_jobs.ini not found in workspace" >&2
-hack/jenkins/update-jobs.sh:  # jenkins_jobs.ini contains administrative credentials for Jenkins.
-hack/jenkins/update-jobs.sh:  if [[ -e jenkins_jobs.ini ]]; then
 hack/jenkins/e2e-runner.sh:    local -r image_project="$1"
 hack/local-up-cluster.sh:      runtime_config="--runtime-config=${RUNTIME_CONFIG}"
 hack/local-up-cluster.sh:    runtime_config=""
