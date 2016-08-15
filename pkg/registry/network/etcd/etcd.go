@@ -66,6 +66,7 @@ func NewREST(opts generic.RESTOptions) (*REST, *StatusREST) {
 
 		CreateStrategy:      network.Strategy,
 		UpdateStrategy:      network.Strategy,
+		DeleteStrategy:      network.Strategy,
 		ReturnDeletedObject: true,
 
 		Storage: storageInterface,
