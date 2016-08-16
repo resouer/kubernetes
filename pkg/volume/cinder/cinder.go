@@ -306,6 +306,17 @@ func (b *cinderVolumeMounter) SetUpAt(dir string, fsGroup *int64) error {
 	}
 	globalPDPath := makeGlobalPDName(b.plugin.host, b.pdName)
 
+	// NOTE(harryz): In hyper case, we use manager to attach disk. But this should be refactored into cinder.attacher
+	// after cinderVolume.manager is removed.
+	if !b.withOpenStackCP && b.isNoMountSupported {
+		if err := b.manager.AttachDisk(b, globalPDPath); err != nil {
+			glog.V(4).Infof("AttachDisk failed: %v", err)
+			return err
+		}
+		glog.V(3).Infof("Cinder volume %s attached", b.pdName)
+	}
+	// NOTE END
+
 	if err := os.MkdirAll(dir, 0750); err != nil {
 		// TODO: we should really eject the attach/detach out into its own control loop.
 		glog.V(4).Infof("Could not create directory %s: %v", dir, err)
@@ -424,7 +435,6 @@ func (c *cinderVolumeUnmounter) TearDownAt(dir string) error {
 		// Find Cinder volumeID to lock the right volume
 		// TODO: refactor VolumePlugin.NewCleaner to get full volume.Spec just like
 		// NewBuilder. We could then find volumeID there without probing MountRefs.
-
 		if !c.withOpenStackCP && c.isNoMountSupported {
 			volumeID, err := ioutil.ReadFile(path.Join(dir, OpenStackCloudProviderTagFile))
 			if err != nil {
@@ -470,6 +480,20 @@ func (c *cinderVolumeUnmounter) TearDownAt(dir string) error {
 		return err
 	}
 	glog.V(3).Infof("Successfully unmounted: %s\n", dir)
+
+	// NOTE(harryz) use manager to detach disk,refactor this into cinder.attacher when manager is removed
+	// If refCount is 1, then all bind mounts have been removed, and the
+	// remaining reference is the global mount. It is safe to detach.
+	if !c.withOpenStackCP && c.isNoMountSupported {
+		if len(refs) == 1 {
+			if err := c.manager.DetachDisk(c); err != nil {
+				glog.V(4).Infof("DetachDisk failed: %v", err)
+				return err
+			}
+			glog.V(3).Infof("Volume %s detached", c.pdName)
+		}
+	}
+	// NOTE END
 
 	notmnt, mntErr := c.mounter.IsLikelyNotMountPoint(dir)
 	if mntErr != nil {
