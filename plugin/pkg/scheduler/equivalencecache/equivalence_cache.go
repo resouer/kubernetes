@@ -1,5 +1,5 @@
 /*
-Copyright 2014 The Kubernetes Authors All rights reserved.
+Copyright 2016 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,7 +17,6 @@ limitations under the License.
 package equivalencecache
 
 import (
-	//	"github.com/golang/glog"
 	"github.com/golang/groupcache/lru"
 	"hash/adler32"
 
@@ -56,10 +55,8 @@ func newAlgorithmCache() AlgorithmCache {
 
 // Store a map of predicate cache with maxsize
 type EquivalenceCache struct {
-	getEquivalencePod algorithm.GetEquivalencePodFunc
-	algorithmCache    map[string]AlgorithmCache
-	//	realCacheLock     *sync.RWMutex
-
+	getEquivalencePod         algorithm.GetEquivalencePodFunc
+	algorithmCache            map[string]AlgorithmCache
 	invalidAlgorithmCacheList sets.String
 	allCacheExpired           bool
 	expireLock                *sync.RWMutex
@@ -67,9 +64,8 @@ type EquivalenceCache struct {
 
 func NewEquivalenceCache(getEquivalencePodFunc algorithm.GetEquivalencePodFunc) *EquivalenceCache {
 	return &EquivalenceCache{
-		getEquivalencePod: getEquivalencePodFunc,
-		algorithmCache:    make(map[string]AlgorithmCache),
-		//		realCacheLock:         new(sync.RWMutex),
+		getEquivalencePod:         getEquivalencePodFunc,
+		algorithmCache:            make(map[string]AlgorithmCache),
 		invalidAlgorithmCacheList: sets.NewString(),
 		allCacheExpired:           false,
 		expireLock:                new(sync.RWMutex),
@@ -113,9 +109,7 @@ func (ec *EquivalenceCache) GetCachedPredicates(pod *api.Pod, nodes api.NodeList
 	fitNodeList := api.NodeList{}
 	failedPredicates := FailedPredicateMap{}
 	noCacheNodeList := api.NodeList{}
-
 	equivalenceHash := ec.hashEquivalencePod(pod)
-
 	for _, node := range nodes.Items {
 		findCache := false
 		if algorithmCache, exist := ec.algorithmCache[node.Name]; exist {
@@ -133,7 +127,6 @@ func (ec *EquivalenceCache) GetCachedPredicates(pod *api.Pod, nodes api.NodeList
 			noCacheNodeList.Items = append(noCacheNodeList.Items, node)
 		}
 	}
-	//	glog.Infof("Get predicate cache: %v ----%v, nodes: %v has no cache date.", fitNodeList.Items, failedPredicates, noCacheNodeList.Items)
 	return fitNodeList, failedPredicates, noCacheNodeList
 }
 
