@@ -18,24 +18,25 @@ package etcd
 
 import (
 	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/rest"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/registry/cachesize"
 	"k8s.io/kubernetes/pkg/registry/generic"
-	etcdgeneric "k8s.io/kubernetes/pkg/registry/generic/etcd"
+	"k8s.io/kubernetes/pkg/registry/generic/registry"
 	"k8s.io/kubernetes/pkg/registry/network"
 	"k8s.io/kubernetes/pkg/runtime"
 )
 
 // rest implements a RESTStorage for networks against etcd
 type REST struct {
-	*etcdgeneric.Etcd
-	status *etcdgeneric.Etcd
+	*registry.Store
+	status *registry.Store
 }
 
 // StatusREST implements the REST endpoint for changing the status of a network.
 type StatusREST struct {
-	store *etcdgeneric.Etcd
+	store *registry.Store
 }
 
 // NewREST returns a RESTStorage object that will work against networks.
@@ -46,7 +47,7 @@ func NewREST(opts generic.RESTOptions) (*REST, *StatusREST) {
 	storageInterface := opts.Decorator(
 		opts.Storage, cachesize.GetWatchCacheSizeByResource(cachesize.Namespaces), &api.Network{}, prefix, network.Strategy, newListFunc)
 
-	store := &etcdgeneric.Etcd{
+	store := &registry.Store{
 		NewFunc:     func() runtime.Object { return &api.Network{} },
 		NewListFunc: newListFunc,
 		KeyRootFunc: func(ctx api.Context) string {
@@ -65,6 +66,7 @@ func NewREST(opts generic.RESTOptions) (*REST, *StatusREST) {
 
 		CreateStrategy:      network.Strategy,
 		UpdateStrategy:      network.Strategy,
+		DeleteStrategy:      network.Strategy,
 		ReturnDeletedObject: true,
 
 		Storage: storageInterface,
@@ -73,12 +75,12 @@ func NewREST(opts generic.RESTOptions) (*REST, *StatusREST) {
 	statusStore := *store
 	statusStore.UpdateStrategy = network.StatusStrategy
 
-	return &REST{Etcd: store, status: &statusStore}, &StatusREST{store: &statusStore}
+	return &REST{Store: store, status: &statusStore}, &StatusREST{store: &statusStore}
 }
 
 // Delete enforces life-cycle rules for network termination
 func (r *REST) Delete(ctx api.Context, name string, options *api.DeleteOptions) (runtime.Object, error) {
-	return r.Etcd.Delete(ctx, name, nil)
+	return r.Store.Delete(ctx, name, nil)
 }
 
 func (r *StatusREST) New() runtime.Object {
@@ -86,6 +88,6 @@ func (r *StatusREST) New() runtime.Object {
 }
 
 // Update alters the status subset of an object.
-func (r *StatusREST) Update(ctx api.Context, obj runtime.Object) (runtime.Object, bool, error) {
-	return r.store.Update(ctx, obj)
+func (r *StatusREST) Update(ctx api.Context, name string, objInfo rest.UpdatedObjectInfo) (runtime.Object, bool, error) {
+	return r.store.Update(ctx, name, objInfo)
 }

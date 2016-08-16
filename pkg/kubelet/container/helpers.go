@@ -25,7 +25,9 @@ import (
 	"k8s.io/kubernetes/pkg/client/record"
 	"k8s.io/kubernetes/pkg/kubelet/util/format"
 	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/types"
 	hashutil "k8s.io/kubernetes/pkg/util/hash"
+	"k8s.io/kubernetes/pkg/volume"
 	"k8s.io/kubernetes/third_party/golang/expansion"
 
 	"github.com/golang/glog"
@@ -33,7 +35,7 @@ import (
 
 // HandlerRunner runs a lifecycle handler for a container.
 type HandlerRunner interface {
-	Run(containerID ContainerID, pod *api.Pod, container *api.Container, handler *api.Handler) error
+	Run(containerID ContainerID, pod *api.Pod, container *api.Container, handler *api.Handler) (string, error)
 }
 
 // RuntimeHelper wraps kubelet to make container runtime
@@ -41,6 +43,9 @@ type HandlerRunner interface {
 type RuntimeHelper interface {
 	GenerateRunContainerOptions(pod *api.Pod, container *api.Container, podIP string) (*RunContainerOptions, error)
 	GetClusterDNS(pod *api.Pod) (dnsServers []string, dnsSearches []string, err error)
+	GetPodDir(podUID types.UID) string
+	GeneratePodHostNameAndDomain(pod *api.Pod) (hostname string, hostDomain string, err error)
+	ListVolumesForPod(podUID types.UID) (map[string]volume.Volume, bool)
 }
 
 // ShouldContainerBeRestarted checks whether a container needs to be restarted.
@@ -88,12 +93,11 @@ func ConvertPodStatusToRunningPod(podStatus *PodStatus) Pod {
 			continue
 		}
 		container := &Container{
-			ID:      containerStatus.ID,
-			Name:    containerStatus.Name,
-			Image:   containerStatus.Image,
-			Hash:    containerStatus.Hash,
-			Created: containerStatus.CreatedAt.Unix(),
-			State:   containerStatus.State,
+			ID:    containerStatus.ID,
+			Name:  containerStatus.Name,
+			Image: containerStatus.Image,
+			Hash:  containerStatus.Hash,
+			State: containerStatus.State,
 		}
 		runningPod.Containers = append(runningPod.Containers, container)
 	}
@@ -177,4 +181,9 @@ func (irecorder *innerEventRecorder) PastEventf(object runtime.Object, timestamp
 	if ref, ok := irecorder.shouldRecordEvent(object); ok {
 		irecorder.recorder.PastEventf(ref, timestamp, eventtype, reason, messageFmt, args...)
 	}
+}
+
+// Pod must not be nil.
+func IsHostNetworkPod(pod *api.Pod) bool {
+	return pod.Spec.SecurityContext != nil && pod.Spec.SecurityContext.HostNetwork
 }
