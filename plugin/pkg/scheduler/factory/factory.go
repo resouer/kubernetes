@@ -100,14 +100,12 @@ type ConfigFactory struct {
 
 	// Indicate the "all topologies" set for empty topologyKey when it's used for PreferredDuringScheduling pod anti-affinity.
 	FailureDomains string
-
-	// Equivalence class cache
-	EquivalencePodCache *equivalencecache.EquivalenceCache
 }
 
 // Initializes the factory.
 func NewConfigFactory(client *client.Client, schedulerName string, hardPodAffinitySymmetricWeight int, failureDomains string) *ConfigFactory {
 	stopEverything := make(chan struct{})
+
 	schedulerCache := schedulercache.New(30*time.Second, stopEverything)
 
 	c := &ConfigFactory{
@@ -163,13 +161,13 @@ func NewConfigFactory(client *client.Client, schedulerName string, hardPodAffini
 		0,
 		framework.ResourceEventHandlerFuncs{
 			AddFunc: func(_ interface{}) {
-				c.EquivalencePodCache.SendClearAllCacheReq()
+				c.schedulerCache.SendClearAllCacheReq()
 			},
 			UpdateFunc: func(_, _ interface{}) {
-				c.EquivalencePodCache.SendClearAllCacheReq()
+				c.schedulerCache.SendClearAllCacheReq()
 			},
 			DeleteFunc: func(_ interface{}) {
-				c.EquivalencePodCache.SendClearAllCacheReq()
+				c.schedulerCache.SendClearAllCacheReq()
 			},
 		},
 	)
@@ -180,13 +178,13 @@ func NewConfigFactory(client *client.Client, schedulerName string, hardPodAffini
 		0,
 		framework.ResourceEventHandlerFuncs{
 			AddFunc: func(_ interface{}) {
-				c.EquivalencePodCache.SendClearAllCacheReq()
+				c.schedulerCache.SendClearAllCacheReq()
 			},
 			UpdateFunc: func(_, _ interface{}) {
-				c.EquivalencePodCache.SendClearAllCacheReq()
+				c.schedulerCache.SendClearAllCacheReq()
 			},
 			DeleteFunc: func(_ interface{}) {
-				c.EquivalencePodCache.SendClearAllCacheReq()
+				c.schedulerCache.SendClearAllCacheReq()
 			},
 		},
 	)
@@ -197,17 +195,17 @@ func NewConfigFactory(client *client.Client, schedulerName string, hardPodAffini
 		0,
 		framework.ResourceEventHandlerFuncs{
 			AddFunc: func(_ interface{}) {
-				c.EquivalencePodCache.SendClearAllCacheReq()
+				c.schedulerCache.SendClearAllCacheReq()
 			},
 			UpdateFunc: func(oldObj, newObj interface{}) {
 				oldService := oldObj.(api.Service)
 				newService := newObj.(api.Service)
 				if !reflect.DeepEqual(oldService.Spec.Selector, newService.Spec.Selector) {
-					c.EquivalencePodCache.SendClearAllCacheReq()
+					c.schedulerCache.SendClearAllCacheReq()
 				}
 			},
 			DeleteFunc: func(_ interface{}) {
-				c.EquivalencePodCache.SendClearAllCacheReq()
+				c.schedulerCache.SendClearAllCacheReq()
 			},
 		},
 	)
@@ -218,17 +216,17 @@ func NewConfigFactory(client *client.Client, schedulerName string, hardPodAffini
 		0,
 		framework.ResourceEventHandlerFuncs{
 			AddFunc: func(_ interface{}) {
-				c.EquivalencePodCache.SendClearAllCacheReq()
+				c.schedulerCache.SendClearAllCacheReq()
 			},
 			UpdateFunc: func(oldObj, newObj interface{}) {
 				oldRC := oldObj.(api.ReplicationController)
 				newRC := newObj.(api.ReplicationController)
 				if !reflect.DeepEqual(oldRC.Spec.Selector, newRC.Spec.Selector) {
-					c.EquivalencePodCache.SendClearAllCacheReq()
+					c.schedulerCache.SendClearAllCacheReq()
 				}
 			},
 			DeleteFunc: func(_ interface{}) {
-				c.EquivalencePodCache.SendClearAllCacheReq()
+				c.schedulerCache.SendClearAllCacheReq()
 			},
 		},
 	)
@@ -269,7 +267,7 @@ func (c *ConfigFactory) deletePodFromCache(obj interface{}) {
 	case *api.Pod:
 		pod = t
 		if pod.Spec.NodeName != "" {
-			c.EquivalencePodCache.SendInvalidAlgorithmCacheReq(pod.Spec.NodeName)
+			c.schedulerCache.SendInvalidAlgorithmCacheReq(pod.Spec.NodeName)
 		}
 	case cache.DeletedFinalStateUnknown:
 		var ok bool
@@ -279,7 +277,7 @@ func (c *ConfigFactory) deletePodFromCache(obj interface{}) {
 			return
 		}
 		if pod.Spec.NodeName != "" {
-			c.EquivalencePodCache.SendInvalidAlgorithmCacheReq(pod.Spec.NodeName)
+			c.schedulerCache.SendInvalidAlgorithmCacheReq(pod.Spec.NodeName)
 		}
 	default:
 		glog.Errorf("cannot convert to *api.Pod: %v", t)
@@ -317,7 +315,7 @@ func (c *ConfigFactory) updateNodeInCache(oldObj, newObj interface{}) {
 	}
 
 	if !reflect.DeepEqual(oldNode.Labels, newNode.Labels) {
-		c.EquivalencePodCache.SendInvalidNodeCacheReq(oldNode.Name)
+		c.schedulerCache.SendInvalidNodeCacheReq(oldNode.Name)
 	}
 }
 
@@ -326,7 +324,7 @@ func (c *ConfigFactory) deleteNodeFromCache(obj interface{}) {
 	switch t := obj.(type) {
 	case *api.Node:
 		node = t
-		c.EquivalencePodCache.SendInvalidNodeCacheReq(node.Name)
+		c.schedulerCache.SendInvalidNodeCacheReq(node.Name)
 	case cache.DeletedFinalStateUnknown:
 		var ok bool
 		node, ok = t.Obj.(*api.Node)
@@ -334,7 +332,7 @@ func (c *ConfigFactory) deleteNodeFromCache(obj interface{}) {
 			glog.Errorf("cannot convert to *api.Node: %v", t.Obj)
 			return
 		}
-		c.EquivalencePodCache.SendInvalidNodeCacheReq(node.Name)
+		c.schedulerCache.SendInvalidNodeCacheReq(node.Name)
 	default:
 		glog.Errorf("cannot convert to *api.Node: %v", t)
 		return
@@ -413,15 +411,9 @@ func (f *ConfigFactory) CreateFromKeys(predicateKeys, priorityKeys sets.String, 
 		return nil, err
 	}
 
-	// Init equivalence class cache
-	if getEquivalencePodFunc != nil {
-		f.EquivalencePodCache = equivalencecache.NewEquivalenceCache(getEquivalencePodFunc)
-		glog.Info("Create equivalence class cache")
-	}
-
 	f.Run()
 
-	algo := scheduler.NewGenericScheduler(f.schedulerCache, f.EquivalencePodCache, predicateFuncs, priorityConfigs, extenders)
+	algo := scheduler.NewGenericScheduler(f.schedulerCache, predicateFuncs, priorityConfigs, extenders)
 
 	podBackoff := podBackoff{
 		perPodBackoff: map[types.NamespacedName]*backoffEntry{},

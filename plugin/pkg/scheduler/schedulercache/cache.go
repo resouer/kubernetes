@@ -18,17 +18,24 @@ package schedulercache
 
 import (
 	"fmt"
+	"hash/adler32"
 	"sync"
 	"time"
 
 	"github.com/golang/glog"
+	"github.com/golang/groupcache/lru"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/labels"
+	hashutil "k8s.io/kubernetes/pkg/util/hash"
+	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/util/wait"
+	"k8s.io/kubernetes/plugin/pkg/scheduler/algorithm"
+	schedulerapi "k8s.io/kubernetes/plugin/pkg/scheduler/api"
 )
 
 var (
 	cleanAssumedPeriod = 1 * time.Second
+	maxCacheEntries    = 4096
 )
 
 // New returns a Cache implementation.
@@ -37,8 +44,33 @@ var (
 // "stop" is the channel that would close the background goroutine.
 func New(ttl time.Duration, stop <-chan struct{}) Cache {
 	cache := newSchedulerCache(ttl, cleanAssumedPeriod, stop)
+	// Inject getEquivalencePodFunc into scheduler cache
+	cache.getEquivalencePod = getEquivalencePodFunc
 	cache.run()
 	return cache
+}
+
+type HostPredicate struct {
+	Fit        bool
+	FailReason sets.String
+}
+
+type podCacheEnty struct {
+	Fit        bool
+	FailReason sets.String
+	Score      schedulerapi.HostPriority
+}
+
+type AlgorithmCache struct {
+	predicatesCache *lru.Cache
+	prioritiesCache *lru.Cache
+}
+
+func newAlgorithmCache() AlgorithmCache {
+	return AlgorithmCache{
+		predicatesCache: lru.New(maxCacheEntries),
+		prioritiesCache: lru.New(maxCacheEntries),
+	}
 }
 
 type schedulerCache struct {
@@ -47,13 +79,19 @@ type schedulerCache struct {
 	period time.Duration
 
 	// This mutex guards all fields within this cache struct.
-	mu sync.Mutex
+	mu sync.RWMutex
 	// a set of assumed pod keys.
 	// The key could further be used to get an entry in podStates.
 	assumedPods map[string]bool
 	// a map from pod key to podState.
 	podStates map[string]*podState
 	nodes     map[string]*NodeInfo
+
+	// For equivalence class
+	getEquivalencePod         algorithm.GetEquivalencePodFunc
+	algorithmCache            map[string]AlgorithmCache
+	invalidAlgorithmCacheList sets.String
+	allCacheExpired           bool
 }
 
 type podState struct {
@@ -71,6 +109,10 @@ func newSchedulerCache(ttl, period time.Duration, stop <-chan struct{}) *schedul
 		nodes:       make(map[string]*NodeInfo),
 		assumedPods: make(map[string]bool),
 		podStates:   make(map[string]*podState),
+
+		algorithmCache:            make(map[string]AlgorithmCache),
+		invalidAlgorithmCacheList: sets.NewString(),
+		allCacheExpired:           false,
 	}
 }
 
@@ -216,21 +258,21 @@ func (cache *schedulerCache) updatePod(oldPod, newPod *api.Pod) error {
 }
 
 func (cache *schedulerCache) addPod(pod *api.Pod) {
-	n, ok := cache.nodes[pod.Spec.NodeName]
+	n, ok := cache.nodes[pod.Spcache.NodeName]
 	if !ok {
 		n = NewNodeInfo()
-		cache.nodes[pod.Spec.NodeName] = n
+		cache.nodes[pod.Spcache.NodeName] = n
 	}
 	n.addPod(pod)
 }
 
 func (cache *schedulerCache) removePod(pod *api.Pod) error {
-	n := cache.nodes[pod.Spec.NodeName]
+	n := cache.nodes[pod.Spcache.NodeName]
 	if err := n.removePod(pod); err != nil {
 		return err
 	}
 	if len(n.pods) == 0 && n.node == nil {
-		delete(cache.nodes, pod.Spec.NodeName)
+		delete(cache.nodes, pod.Spcache.NodeName)
 	}
 	return nil
 }
@@ -336,4 +378,142 @@ func (cache *schedulerCache) expirePod(key string, ps *podState) error {
 	delete(cache.assumedPods, key)
 	delete(cache.podStates, key)
 	return nil
+}
+
+// addPodPriority adds pod priority for equivalence class
+func (cache *schedulerCache) addPodPriority(podKey uint64, nodeName string, score int) {
+	if _, exist := cache.algorithmCache[nodeName]; !exist {
+		cache.algorithmCache[nodeName] = newAlgorithmCache()
+	}
+	cache.algorithmCache[nodeName].prioritiesCache.Add(podKey, schedulerapi.HostPriority{Host: nodeName, Score: score})
+}
+
+// addPodPredicate adds pod predicate for equivalence class
+func (cache *schedulerCache) addPodPredicate(podKey uint64, nodeName string, fit bool, failReason sets.String) {
+	if _, exist := cache.algorithmCache[nodeName]; !exist {
+		cache.algorithmCache[nodeName] = newAlgorithmCache()
+	}
+	cache.algorithmCache[nodeName].predicatesCache.Add(podKey, HostPredicate{Fit: fit, FailReason: failReason})
+}
+
+// AddPodPredicatesCache cache pod predicate for equivalence class
+func (cache *schedulerCache) AddPodPredicatesCache(pod *api.Pod, fitNodeList *api.NodeList, failedPredicates *FailedPredicateMap) {
+	equivalenceHash := cache.hashEquivalencePod(pod)
+
+	for _, fitNode := range fitNodeList.Items {
+		cache.addPodPredicate(equivalenceHash, fitNode.Name, true, sets.String{})
+	}
+	for failNodeName, failReason := range *failedPredicates {
+		cache.addPodPredicate(equivalenceHash, failNodeName, false, failReason)
+	}
+}
+
+// AddPodPredicatesCache cache pod priority for equivalence class
+func (cache *schedulerCache) AddPodPrioritiesCache(pod *api.Pod, priorities schedulerapi.HostPriorityList) {
+	equivalenceHash := cache.hashEquivalencePod(pod)
+
+	for _, priority := range priorities {
+		cache.addPodPriority(equivalenceHash, priority.Host, priority.Score)
+	}
+}
+
+// GetCachedPredicates gets cached predicates for equivalence class
+func (cache *schedulerCache) GetCachedPredicates(pod *api.Pod, nodes api.NodeList) (api.NodeList, FailedPredicateMap, api.NodeList) {
+	fitNodeList := api.NodeList{}
+	failedPredicates := FailedPredicateMap{}
+	noCacheNodeList := api.NodeList{}
+	equivalenceHash := cache.hashEquivalencePod(pod)
+	for _, node := range nodes.Items {
+		findCache := false
+		if algorithmCache, exist := cache.algorithmCache[node.Name]; exist {
+			if cachePredicate, exist := algorithmCache.predicatesCache.Get(equivalenceHash); exist {
+				hostPredicate := cachePredicate.(HostPredicate)
+				if hostPredicate.Fit {
+					fitNodeList.Items = append(fitNodeList.Items, node)
+				} else {
+					failedPredicates[node.Name] = hostPredicate.FailReason
+				}
+				findCache = true
+			}
+		}
+		if !findCache {
+			noCacheNodeList.Items = append(noCacheNodeList.Items, node)
+		}
+	}
+	return fitNodeList, failedPredicates, noCacheNodeList
+}
+
+// GetCachedPriorities gets cached priorities for equivalence class
+func (cache *schedulerCache) GetCachedPriorities(pod *api.Pod, nodes api.NodeList) (schedulerapi.HostPriorityList, api.NodeList) {
+	cachedPriorities := schedulerapi.HostPriorityList{}
+	noCacheNodeList := api.NodeList{}
+	equivalenceHash := cache.hashEquivalencePod(pod)
+	for _, node := range nodes.Items {
+		findCache := false
+		if algorithmCache, exist := cache.algorithmCache[node.Name]; exist {
+			if cachePriority, exist := algorithmCache.prioritiesCache.Get(equivalenceHash); exist {
+				hostPriotity := cachePriority.(schedulerapi.HostPriority)
+				cachedPriorities = append(cachedPriorities, hostPriotity)
+				findCache = true
+			}
+		}
+		if !findCache {
+			noCacheNodeList.Items = append(noCacheNodeList.Items, node)
+		}
+	}
+
+	return cachedPriorities, noCacheNodeList
+}
+
+// SendInvalidAlgorithmCacheReq marks AlgorithmCache item as invalid
+func (cache *schedulerCache) SendInvalidAlgorithmCacheReq(nodeName string) {
+	cache.mu.RLock()
+	allExpired := cache.allCacheExpired
+	cache.mu.RUnlock()
+
+	if !allExpired {
+		cache.mu.Lock()
+		defer cache.mu.Unlock()
+		cache.invalidAlgorithmCacheList.Insert(nodeName)
+	}
+}
+
+// SendClearAllCacheReq marks all cached item as invalid
+func (cache *schedulerCache) SendClearAllCacheReq() {
+	cache.mu.RLock()
+	allExpired := cache.allCacheExpired
+	cache.mu.RUnlock()
+
+	if !allExpired {
+		cache.mu.Lock()
+		cache.allCacheExpired = true
+		cache.mu.Unlock()
+	}
+}
+
+// HandleExpireDate removes expired AlgorithmCache
+func (cache *schedulerCache) HandleExpireDate() {
+	cache.mu.Lock()
+	defer cache.mu.Unlock()
+
+	// Remove expired AlgorithmCache
+	if cache.allCacheExpired {
+		cache.algorithmCache = make(map[string]AlgorithmCache)
+	} else {
+		for _, node := range cache.invalidAlgorithmCacheList.List() {
+			delete(cache.algorithmCache, node)
+		}
+	}
+
+	// Clear expired data records for next cycle
+	cache.invalidAlgorithmCacheList = sets.NewString()
+	cache.allCacheExpired = false
+}
+
+// hashEquivalencePod returns the hash of equivalence pod.
+func (cache *schedulerCache) hashEquivalencePod(pod *api.Pod) uint64 {
+	equivalencePod := cache.getEquivalencePod(pod)
+	hash := adler32.New()
+	hashutil.DeepHashObject(hash, equivalencePod)
+	return uint64(hash.Sum32())
 }
