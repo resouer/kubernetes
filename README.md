@@ -22,9 +22,9 @@ Hypernetes also integrates with a number of OpenStack projects:
 
 ![Architecture Diagram](architecture.png?raw=true "Architecture overview")
 
-## Documentation
+## Getting Started
 
-
+Please check [h8s getting started guide](hack/hypernetes/README.md) to play with Hypernetes.
 
 ## Find out more
 
