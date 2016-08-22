@@ -145,7 +145,6 @@ func NewFsInfo(context Context) (FsInfo, error) {
 	fsInfo.addDockerImagesLabel(context, mounts)
 	//add hyper images label
 	fsInfo.addHyperImagesLabel(context, mounts)
-
 	glog.Infof("Filesystem partitions: %+v", fsInfo.partitions)
 	fsInfo.addSystemRootLabel(mounts)
 	return fsInfo, nil
