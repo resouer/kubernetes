@@ -15,7 +15,9 @@
 package hyper
 
 import (
+	"flag"
 	"strings"
+	"sync"
 
 	"github.com/golang/glog"
 	"github.com/google/cadvisor/container"
@@ -28,6 +30,23 @@ const (
 	// HyperNamespace is namespace under which Hyper aliases are unique.
 	HyperNamespace = "hyper"
 )
+
+var (
+	hyperRootDir     string
+	hyperRootDirFlag = flag.String("hyper_root", "/var/lib/hyper", "DEPRECATED: hyper root is read from hyper info (this is a fallback, default: /var/lib/hyper)")
+	hyperRootDirOnce sync.Once
+)
+
+func RootDir(status info.DockerStatus) string {
+	hyperRootDirOnce.Do(func() {
+		if status.RootDir != "" {
+			hyperRootDir = status.RootDir
+		} else {
+			hyperRootDir = *hyperRootDirFlag
+		}
+	})
+	return hyperRootDir
+}
 
 type hyperFactory struct {
 	client             *HyperClient

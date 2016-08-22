@@ -152,6 +152,8 @@ func New(memoryCache *memory.InMemoryCache, sysfs sysfs.SysFs, maxHousekeepingIn
 	glog.Infof("cAdvisor running in container: %q", selfContainer)
 
 	dockerStatus, err := docker.Status()
+	newManager := &manager{}
+	hyperStatus, err := newManager.HyperInfo()
 	if err != nil {
 		glog.Warningf("Unable to connect to Docker: %v", err)
 	}
@@ -165,6 +167,11 @@ func New(memoryCache *memory.InMemoryCache, sysfs sysfs.SysFs, maxHousekeepingIn
 			Root:         docker.RootDir(),
 			Driver:       dockerStatus.Driver,
 			DriverStatus: dockerStatus.DriverStatus,
+		},
+		Hyper: fs.HyperContext{
+			Root:         hyper.RootDir(hyperStatus),
+			Driver:       hyperStatus.Driver,
+			DriverStatus: hyperStatus.DriverStatus,
 		},
 		RktPath: rktPath,
 	}
@@ -183,7 +190,7 @@ func New(memoryCache *memory.InMemoryCache, sysfs sysfs.SysFs, maxHousekeepingIn
 	// Register for new subcontainers.
 	eventsChannel := make(chan watcher.ContainerEvent, 16)
 
-	newManager := &manager{
+	newManager = &manager{
 		containers:               make(map[namespacedContainerName]*containerData),
 		quitChannels:             make([]chan error, 0, 2),
 		memoryCache:              memoryCache,
