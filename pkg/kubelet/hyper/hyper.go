@@ -101,6 +101,11 @@ func New(runtimeHelper kubecontainer.RuntimeHelper,
 	containerLogsDir string,
 	os kubecontainer.OSInterface,
 ) (kubecontainer.Runtime, error) {
+	hyperClient, err := NewHyperClient()
+	if err != nil {
+		return nil, err
+	}
+
 	hyper := &runtime{
 		dockerKeyring:               credentialprovider.NewDockerKeyring(),
 		containerLogsDir:            containerLogsDir,
@@ -110,7 +115,7 @@ func New(runtimeHelper kubecontainer.RuntimeHelper,
 		os:                          os,
 		recorder:                    recorder,
 		networkPlugin:               networkPlugin,
-		hyperClient:                 NewHyperClient(),
+		hyperClient:                 hyperClient,
 		kubeClient:                  kubeClient,
 		disableHyperInternalService: disableHyperInternalService,
 	}

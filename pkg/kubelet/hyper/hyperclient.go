@@ -35,12 +35,16 @@ import (
 	"github.com/docker/docker/pkg/parsers"
 	"github.com/docker/docker/pkg/term"
 	"github.com/golang/glog"
+	"golang.org/x/net/context"
+	"google.golang.org/grpc"
+	grpctypes "k8s.io/kubernetes/pkg/kubelet/hyper/types"
 )
 
 const (
 	HYPER_PROTO       = "unix"
 	HYPER_ADDR        = "/var/run/hyper.sock"
 	HYPER_SCHEME      = "http"
+	HYPER_SERVER      = "127.0.0.1:22318"
 	DEFAULT_IMAGE_TAG = "latest"
 
 	KEY_COMMAND        = "command"
@@ -89,6 +93,7 @@ type HyperClient struct {
 	proto  string
 	addr   string
 	scheme string
+	client grpctypes.PublicAPIClient
 }
 
 type AttachToContainerOptions struct {
@@ -136,18 +141,23 @@ type podRemoveResult struct {
 	ID    string `json:"ID"`
 }
 
-func NewHyperClient() *HyperClient {
+func NewHyperClient() (*HyperClient, error) {
 	var (
 		scheme = HYPER_SCHEME
 		proto  = HYPER_PROTO
 		addr   = HYPER_ADDR
 	)
+	conn, err := grpc.Dial(HYPER_SERVER, grpc.WithInsecure())
+	if err != nil {
+		return nil, err
+	}
 
 	return &HyperClient{
 		proto:  proto,
 		addr:   addr,
 		scheme: scheme,
-	}
+		client: grpctypes.NewPublicAPIClient(conn),
+	}, nil
 }
 
 var (
@@ -483,23 +493,12 @@ func (client *HyperClient) RemoveImage(imageID string) error {
 }
 
 func (client *HyperClient) RemovePod(podID string) error {
-	v := url.Values{}
-	v.Set(KEY_POD_ID, podID)
-	body, _, err := client.call("DELETE", "/pod?"+v.Encode(), "", nil)
-	if err != nil && !strings.Contains(err.Error(), "Can not find") {
-		return err
+	request := grpctypes.PodRemoveRequest{
+		PodID: podID,
 	}
-
-	var result podRemoveResult
-	err = json.Unmarshal(body, &result)
+	_, err := client.client.PodRemove(context.Background(), &request)
 	if err != nil {
-		glog.Warningf("Can not unmarshal pod delete result: %s, assume removed", string(body))
-		return nil
-	}
-	// !(errCode == types.E_OK || errCode == types.E_VM_SHUTDOWN)
-	if result.Code != 0 && result.Code != 2 {
-		glog.Errorf("Delete pod %s failed: %s", podID, result.Cause)
-		return errors.New(result.Cause)
+		return err
 	}
 
 	return nil
