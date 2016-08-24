@@ -93,7 +93,6 @@ func (dm *realDiskSpaceManager) IsRootDiskSpaceAvailable() (bool, error) {
 
 func (dm *realDiskSpaceManager) isSpaceAvailable(fsType string, threshold int, f func() (cadvisorapi.FsInfo, error)) (bool, error) {
 	fsInfo, err := dm.getFsInfo(fsType, f)
-
 	if err != nil {
 		return true, fmt.Errorf("failed to get fs info for %q: %v", fsType, err)
 	}
