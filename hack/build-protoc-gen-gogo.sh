@@ -14,17 +14,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-which yum>/dev/null
+set -o errexit
+set -o nounset
+set -o pipefail
+
+which protoc>/dev/null
 if [[ $? != 0 ]]; then
-  sudo apt-get install -y unzip
-else
-  sudo yum install -y unzip
+    echo "Please install grpc from www.grpc.io"
+    exit 1
 fi
 
-# Install protoc
-cd /tmp
-curl -sSL https://github.com/google/protobuf/releases/download/v3.0.0/protoc-3.0.0-linux-x86_64.zip -o protoc-3.0.0-linux-x86_64.zip
-unzip protoc-3.0.0-linux-x86_64.zip
-sudo mv bin/protoc /usr/bin/protoc
-
-echo "protoc installed success."
+KUBE_ROOT=$(dirname "${BASH_SOURCE}")/..
+KUBE_ROOT_ABS=$(cd ${KUBE_ROOT}; pwd)
+cd ${KUBE_ROOT_ABS}/cmd/protoc-gen-gogo
+go build

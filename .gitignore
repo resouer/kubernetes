@@ -97,3 +97,5 @@ network_closure.sh
 
 # Downloaded kubernetes binary release tar ball
 kubernetes.tar.gz
+
+cmd/protoc-gen-gogo/protoc-gen-gogo
