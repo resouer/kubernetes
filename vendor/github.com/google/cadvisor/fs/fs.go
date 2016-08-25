@@ -41,6 +41,7 @@ import (
 const (
 	LabelSystemRoot   = "root"
 	LabelDockerImages = "docker-images"
+	LabelHyperImages  = "hyper-images"
 	LabelRktImages    = "rkt-images"
 )
 
@@ -85,10 +86,17 @@ type RealFsInfo struct {
 type Context struct {
 	// docker root directory.
 	Docker  DockerContext
+	Hyper   HyperContext
 	RktPath string
 }
 
 type DockerContext struct {
+	Root         string
+	Driver       string
+	DriverStatus map[string]string
+}
+
+type HyperContext struct {
 	Root         string
 	Driver       string
 	DriverStatus map[string]string
@@ -135,7 +143,8 @@ func NewFsInfo(context Context) (FsInfo, error) {
 	// need to call this before the log line below printing out the partitions, as this function may
 	// add a "partition" for devicemapper to fsInfo.partitions
 	fsInfo.addDockerImagesLabel(context, mounts)
-
+	//add hyper images label
+	fsInfo.addHyperImagesLabel(context, mounts)
 	glog.Infof("Filesystem partitions: %+v", fsInfo.partitions)
 	fsInfo.addSystemRootLabel(mounts)
 	return fsInfo, nil
@@ -146,6 +155,29 @@ func NewFsInfo(context Context) (FsInfo, error) {
 // return any information or error, as we want to report based on the actual partition where the
 // loopback file resides, inside of the loopback file itself.
 func (self *RealFsInfo) getDockerDeviceMapperInfo(context DockerContext) (string, *partition, error) {
+	if context.Driver != DeviceMapper.String() {
+		return "", nil, nil
+	}
+
+	dataLoopFile := context.DriverStatus[dockerutil.DriverStatusDataLoopFile]
+	if len(dataLoopFile) > 0 {
+		return "", nil, nil
+	}
+
+	dev, major, minor, blockSize, err := dockerDMDevice(context.DriverStatus, self.dmsetup)
+	if err != nil {
+		return "", nil, err
+	}
+
+	return dev, &partition{
+		fsType:    DeviceMapper.String(),
+		major:     major,
+		minor:     minor,
+		blockSize: blockSize,
+	}, nil
+}
+
+func (self *RealFsInfo) getHyperDeviceMapperInfo(context HyperContext) (string, *partition, error) {
 	if context.Driver != DeviceMapper.String() {
 		return "", nil, nil
 	}
@@ -198,6 +230,19 @@ func (self *RealFsInfo) addDockerImagesLabel(context Context, mounts []*mount.In
 	}
 }
 
+func (self *RealFsInfo) addHyperImagesLabel(context Context, mounts []*mount.Info) {
+	hyperDev, hyperPartition, err := self.getHyperDeviceMapperInfo(context.Hyper)
+	if err != nil {
+		glog.Warningf("Could not get Hyper devicemapper device: %v", err)
+	}
+	if len(hyperDev) > 0 && hyperPartition != nil {
+		self.partitions[hyperDev] = *hyperPartition
+		self.labels[LabelHyperImages] = hyperDev
+	} else {
+		self.updateContainerImagesPath(LabelHyperImages, mounts, getHyperImagePaths(context))
+	}
+}
+
 func (self *RealFsInfo) addRktImagesLabel(context Context, mounts []*mount.Info) {
 	if context.RktPath != "" {
 		rktPath := context.RktPath
@@ -230,6 +275,21 @@ func getDockerImagePaths(context Context) map[string]struct{} {
 		dockerRoot = filepath.Dir(dockerRoot)
 	}
 	return dockerImagePaths
+}
+
+func getHyperImagePaths(context Context) map[string]struct{} {
+	hyperImagePaths := map[string]struct{}{
+		"/": {},
+	}
+	hyperRoot := context.Hyper.Root
+	for _, dir := range []string{"devicemapper", "btrfs", "aufs", "overlay", "zfs"} {
+		hyperImagePaths[path.Join(hyperRoot, dir)] = struct{}{}
+	}
+	for hyperRoot != "/" && hyperRoot != "." {
+		hyperImagePaths[hyperRoot] = struct{}{}
+		hyperRoot = filepath.Dir(hyperRoot)
+	}
+	return hyperImagePaths
 }
 
 // This method compares the mountpoints with possible container image mount points. If a match is found,

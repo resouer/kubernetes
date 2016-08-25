@@ -185,8 +185,7 @@ func (cc *cadvisorClient) ImagesFsInfo() (cadvisorapiv2.FsInfo, error) {
 	case "rkt":
 		label = cadvisorfs.LabelRktImages
 	case "hyper":
-		// TODO(harryz) ImageFsInfo is not working in hyper runtime
-		return cadvisorapiv2.FsInfo{}, nil
+		label = cadvisorfs.LabelHyperImages
 	default:
 		return cadvisorapiv2.FsInfo{}, fmt.Errorf("ImagesFsInfo: unknown runtime: %v", cc.runtime)
 	}
