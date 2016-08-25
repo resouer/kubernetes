@@ -24,6 +24,7 @@ install:
   - go get github.com/tools/godep
   - go get github.com/mattn/goveralls
   - go get github.com/jstemmer/go-junit-report
+  - ./hack/install-protoc.sh
   - ./hack/install-etcd.sh
   - travis_wait 30 ./hack/build-go.sh
   - travis_wait 30 godep go install ./...
