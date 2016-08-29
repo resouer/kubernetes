@@ -390,30 +390,20 @@ func (client *HyperClient) ListPods() ([]HyperPod, error) {
 }
 
 func (client *HyperClient) ListContainers() ([]HyperContainer, error) {
-	v := url.Values{}
-	v.Set(KEY_ITEM, TYPE_CONTAINER)
-	body, _, err := client.call("GET", "/list?"+v.Encode(), "", nil)
-	if err != nil {
-		return nil, err
-	}
+	request := grpctypes.ContainerListRequest{}
 
-	var containerList map[string]interface{}
-	err = json.Unmarshal(body, &containerList)
+	response, err := client.client.ContainerList(context.Background(), &request)
 	if err != nil {
 		return nil, err
 	}
 
 	var result []HyperContainer
-	for _, container := range containerList["cData"].([]interface{}) {
-		fields := strings.Split(container.(string), ":")
+	for _, container := range response.ContainerList {
 		var h HyperContainer
-		h.containerID = fields[0]
-		if len(fields[1]) < 1 {
-			return nil, errors.New("Hyper container name not resolved")
-		}
-		h.name = fields[1][1:]
-		h.podID = fields[2]
-		h.status = fields[3]
+		h.containerID = container.ContainerID
+		h.name = container.ContainerName[1:]
+		h.podID = container.PodID
+		h.status = container.Status
 
 		result = append(result, h)
 	}
