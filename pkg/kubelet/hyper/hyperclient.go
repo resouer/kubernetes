@@ -482,9 +482,11 @@ func (client *HyperClient) ListImages() ([]HyperImage, error) {
 }
 
 func (client *HyperClient) RemoveImage(imageID string) error {
-	v := url.Values{}
-	v.Set(KEY_IMAGEID, imageID)
-	_, _, err := client.call("DELETE", "/images?"+v.Encode(), "", nil)
+	request := grpctypes.ImageRemoveRequest{
+		Image: imageID,
+	}
+
+	_, err := client.client.ImageRemove(context.Background(), &request)
 	if err != nil {
 		return err
 	}
