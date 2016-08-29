@@ -93,8 +93,11 @@ var _ proxy.ProxyProvider = &Proxier{}
 
 // NewProxier returns a new Proxier given an pod-buildin-haproxy Interface instance.
 func NewProxier(syncPeriod time.Duration, kubeClient *kubeclient.Client, disableHyperInternalService bool) (*Proxier, error) {
-	client := hyper.NewHyperClient()
-	_, err := client.Version()
+	client, err := hyper.NewHyperClient()
+	if err != nil {
+		return nil, err
+	}
+	_, err = client.Version()
 	if err != nil {
 		glog.Errorf("Can not get hyper version: %v", err)
 		return nil, err

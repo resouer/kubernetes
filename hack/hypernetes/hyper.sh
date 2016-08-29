@@ -36,6 +36,7 @@ Initrd=/var/lib/hyper/hyper-initrd.img
 DisableIptables=true
 StorageDriver=devicemapper
 Hypervisor=libvirt
+gRPCHost=127.0.0.1:22318
 EOF
 
 	# Start libvirtd and hyperd services
