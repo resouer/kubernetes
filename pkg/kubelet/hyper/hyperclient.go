@@ -516,10 +516,10 @@ func (client *HyperClient) StartPod(podID string) error {
 }
 
 func (client *HyperClient) StopPod(podID string) error {
-	v := url.Values{}
-	v.Set(KEY_POD_ID, podID)
-	v.Set("stopVM", "yes")
-	_, _, err := client.call("POST", "/pod/stop?"+v.Encode(), "", nil)
+	request := grpctypes.PodStopRequest{
+		PodID: podID,
+	}
+	_, err := client.client.PodStop(context.Background(), &request)
 	if err != nil {
 		return err
 	}
