@@ -19,6 +19,7 @@ package hyper
 import (
 	"bytes"
 	"crypto/rand"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -492,20 +493,35 @@ func (client *HyperClient) StopPod(podID string) error {
 }
 
 func (client *HyperClient) PullImage(image string, credential string) error {
-	v := url.Values{}
-
 	imageName, tag := parseImageName(image)
-	v.Set(KEY_IMAGENAME, imageName)
-	v.Set(KEY_TAG, tag)
-
-	headers := make(map[string][]string)
+	authConfig := &grpctypes.AuthConfig{}
 	if credential != "" {
-		headers["X-Registry-Auth"] = []string{credential}
+		authJSON := base64.NewDecoder(base64.URLEncoding, strings.NewReader(credential))
+		if err := json.NewDecoder(authJSON).Decode(authConfig); err != nil {
+			// for a pull it is not an error if no auth was given
+			// to increase compatibility with the existing api it is defaulting to be empty
+			authConfig = &grpctypes.AuthConfig{}
+		}
 	}
 
-	err := client.stream("POST", "/image/create?"+v.Encode(), nil, nil, headers)
+	request := grpctypes.ImagePullRequest{
+		Image: imageName,
+		Tag:   tag,
+		Auth:  authConfig,
+	}
+	stream, err := client.client.ImagePull(context.Background(), &request)
 	if err != nil {
 		return err
+	}
+
+	for {
+		_, err := stream.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
