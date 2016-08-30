@@ -767,10 +767,12 @@ func (client *HyperClient) IsImagePresent(repo, tag string) (bool, error) {
 	return false, nil
 }
 
-func (client *HyperClient) ListServices(podId string) ([]HyperService, error) {
-	v := url.Values{}
-	v.Set("podId", podId)
-	body, _, err := client.call("GET", "/service/list?"+v.Encode(), "", nil)
+func (client *HyperClient) ListServices(podId string) ([]*grpctypes.UserService, error) {
+	request := grpctypes.ServiceListRequest{
+		PodID: podId,
+	}
+
+	response, err := client.client.ServiceList(context.Background(), &request)
 	if err != nil {
 		if strings.Contains(err.Error(), "doesn't have services discovery") {
 			return nil, nil
@@ -779,13 +781,7 @@ func (client *HyperClient) ListServices(podId string) ([]HyperService, error) {
 		}
 	}
 
-	var svcList []HyperService
-	err = json.Unmarshal(body, &svcList)
-	if err != nil {
-		return nil, err
-	}
-
-	return svcList, nil
+	return response.Services, nil
 }
 
 func (client *HyperClient) UpdateServices(podId string, services []HyperService) error {
