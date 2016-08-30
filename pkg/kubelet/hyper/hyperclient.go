@@ -325,27 +325,20 @@ func (client *HyperClient) Version() (string, error) {
 }
 
 func (client *HyperClient) GetPodIDByName(podName string) (string, error) {
-	v := url.Values{}
-	v.Set(KEY_ITEM, TYPE_POD)
-	body, _, err := client.call("GET", "/list?"+v.Encode(), "", nil)
+	request := grpctypes.PodListRequest{}
+
+	response, err := client.client.PodList(context.Background(), &request)
 	if err != nil {
 		return "", err
 	}
 
-	var podList map[string]interface{}
-	err = json.Unmarshal(body, &podList)
-	if err != nil {
-		return "", err
-	}
-
-	for _, pod := range podList["podData"].([]interface{}) {
-		fields := strings.Split(pod.(string), ":")
-		if fields[1] == podName {
-			return fields[0], nil
+	for _, pod := range response.PodList {
+		if pod.PodName == podName {
+			return pod.PodID, nil
 		}
 	}
 
-	return "", nil
+	return "", fmt.Errorf("Can not get PodID by name %s", podName)
 }
 
 func (client *HyperClient) ListPods() ([]HyperPod, error) {
