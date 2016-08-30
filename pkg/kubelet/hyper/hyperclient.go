@@ -305,23 +305,14 @@ func (cli *HyperClient) stream(method, path string, in io.Reader, out io.Writer,
 }
 
 func (client *HyperClient) Version() (string, error) {
-	body, _, err := client.call("GET", "/version", "", nil)
+	request := grpctypes.VersionRequest{}
+
+	response, err := client.client.Version(context.Background(), &request)
 	if err != nil {
 		return "", err
 	}
 
-	var info map[string]interface{}
-	err = json.Unmarshal(body, &info)
-	if err != nil {
-		return "", err
-	}
-
-	version, ok := info["Version"]
-	if !ok {
-		return "", fmt.Errorf("Can not get hyper version")
-	}
-
-	return version.(string), nil
+	return response.Version, nil
 }
 
 func (client *HyperClient) GetPodIDByName(podName string) (string, error) {
