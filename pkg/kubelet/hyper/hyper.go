@@ -40,6 +40,7 @@ import (
 	"k8s.io/kubernetes/pkg/client/record"
 	"k8s.io/kubernetes/pkg/credentialprovider"
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
+	grpctypes "k8s.io/kubernetes/pkg/kubelet/hyper/types"
 	"k8s.io/kubernetes/pkg/kubelet/lifecycle"
 	"k8s.io/kubernetes/pkg/kubelet/network"
 	proberesults "k8s.io/kubernetes/pkg/kubelet/prober/results"
@@ -386,16 +387,16 @@ func (r *runtime) GetPods(all bool) ([]*kubecontainer.Pod, error) {
 	return kubepods, nil
 }
 
-func (r *runtime) buildHyperPodServices(pod *api.Pod) []HyperService {
+func (r *runtime) buildHyperPodServices(pod *api.Pod) []grpctypes.UserService {
 	items, err := r.kubeClient.Core().Services(pod.Namespace).List(api.ListOptions{})
 	if err != nil {
 		glog.Warningf("Get services failed: %v", err)
 		return nil
 	}
 
-	var services []HyperService
+	var services []grpctypes.UserService
 	for _, svc := range items.Items {
-		hyperService := HyperService{
+		hyperService := grpctypes.UserService{
 			ServiceIP: svc.Spec.ClusterIP,
 		}
 		endpoints, _ := r.kubeClient.Core().Endpoints(pod.Namespace).Get(svc.Name)
@@ -405,7 +406,7 @@ func (r *runtime) buildHyperPodServices(pod *api.Pod) []HyperService {
 				for _, epPort := range ep.Ports {
 					if svcPort.Name == "" || svcPort.Name == epPort.Name {
 						for _, eh := range ep.Addresses {
-							hyperService.Hosts = append(hyperService.Hosts, HyperServiceBackend{
+							hyperService.Hosts = append(hyperService.Hosts, &grpctypes.UserServiceBackend{
 								HostIP:   eh.IP,
 								HostPort: epPort.Port,
 							})
@@ -474,7 +475,7 @@ func (r *runtime) buildHyperPod(pod *api.Pod, restartCount int, pullSecrets []ap
 		services := r.buildHyperPodServices(pod)
 		if services == nil {
 			// services can't be null for kubernetes, so fake one if it is null
-			services = []HyperService{
+			services = []grpctypes.UserService{
 				{
 					ServiceIP:   "127.0.0.2",
 					ServicePort: 65534,

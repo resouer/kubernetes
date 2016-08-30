@@ -786,16 +786,13 @@ func (client *HyperClient) ListServices(podId string) ([]*grpctypes.UserService,
 	return response.Services, nil
 }
 
-func (client *HyperClient) UpdateServices(podId string, services []HyperService) error {
-	v := url.Values{}
-	v.Set("podId", podId)
-
-	serviceData, err := json.Marshal(services)
-	if err != nil {
-		return err
+func (client *HyperClient) UpdateServices(podId string, services []*grpctypes.UserService) error {
+	request := grpctypes.ServiceUpdateRequest{
+		PodID:    podId,
+		Services: services,
 	}
-	v.Set("services", string(serviceData))
-	_, _, err = client.call("POST", "/service/update?"+v.Encode(), "", nil)
+
+	_, err := client.client.ServiceUpdate(context.Background(), &request)
 	if err != nil {
 		return err
 	}

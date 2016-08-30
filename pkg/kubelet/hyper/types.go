@@ -150,15 +150,3 @@ type HyperContainer struct {
 	podID       string
 	status      string
 }
-
-type HyperServiceBackend struct {
-	HostIP   string `json:"hostIP"`
-	HostPort int32  `json:"hostPort"`
-}
-
-type HyperService struct {
-	ServiceIP   string                `json:"serviceIP"`
-	ServicePort int32                 `json:"servicePort"`
-	Protocol    string                `json:"protocol"`
-	Hosts       []HyperServiceBackend `json:"hosts"`
-}
