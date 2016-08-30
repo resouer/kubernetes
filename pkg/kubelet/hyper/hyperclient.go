@@ -676,24 +676,76 @@ func (client *HyperClient) Attach(opts AttachToContainerOptions) error {
 		return fmt.Errorf("No Such Container %s", opts.Container)
 	}
 
-	tag := client.GetTag()
-	v := url.Values{}
-	v.Set(KEY_TYPE, TYPE_CONTAINER)
-	v.Set(KEY_VALUE, opts.Container)
-	v.Set(KEY_TAG, tag)
-	path := "/attach?" + v.Encode()
-	err := client.hijack("POST", path, hijackOptions{
-		in:     opts.InputStream,
-		stdout: opts.OutputStream,
-		stderr: opts.ErrorStream,
-		tty:    opts.TTY,
-	})
+	stream, err := client.client.Attach(context.Background())
+	if err != nil {
+		return err
+	}
+
+	request := grpctypes.AttachMessage{
+		ContainerID: opts.Container,
+	}
+	if err := stream.Send(&request); err != nil {
+		return nil
+	}
+
+	var recvStdoutError chan error
+	if opts.OutputStream != nil {
+		recvStdoutError = getReturnValue(func() error {
+			for {
+				res, err := stream.Recv()
+				if err != nil {
+					if err == io.EOF {
+						return nil
+					}
+					return err
+				}
+				n, err := opts.OutputStream.Write(res.Data)
+				if err != nil {
+					return err
+				}
+				if n != len(res.Data) {
+					return io.ErrShortWrite
+				}
+			}
+		})
+	}
+
+	var reqStdinError chan error
+	if opts.InputStream != nil {
+		reqStdinError = getReturnValue(func() error {
+			for {
+				req := make([]byte, 512)
+				n, err := opts.InputStream.Read(req)
+				if err := stream.Send(&grpctypes.AttachMessage{Data: req[:n]}); err != nil {
+					return err
+				}
+				if err == io.EOF {
+					return nil
+				}
+				if err != nil {
+					return err
+				}
+			}
+		})
+	}
+
+	if opts.OutputStream != nil && opts.InputStream != nil {
+		select {
+		case err = <-recvStdoutError:
+		case err = <-reqStdinError:
+		}
+	} else if opts.OutputStream != nil {
+		err = <-recvStdoutError
+	} else if opts.InputStream != nil {
+		err = <-reqStdinError
+	}
 
 	if err != nil {
 		return err
 	}
 
-	return client.GetExitCode(opts.Container, tag)
+	//TODO: GetExitCode
+	return nil
 }
 
 func (client *HyperClient) Exec(opts ExecInContainerOptions) error {
