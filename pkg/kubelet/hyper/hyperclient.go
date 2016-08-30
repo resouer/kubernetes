@@ -826,17 +826,13 @@ func (client *HyperClient) UpdateServices(podId string, services []HyperService)
 }
 
 func (client *HyperClient) UpdatePodLabels(podId string, labels map[string]string) error {
-	v := url.Values{}
-	v.Set("podId", podId)
-	v.Set("override", "true")
-
-	labelsData, err := json.Marshal(labels)
-	if err != nil {
-		return err
+	request := grpctypes.PodLabelsRequest{
+		PodID:    podId,
+		Override: true,
+		Labels:   labels,
 	}
-	v.Set("labels", string(labelsData))
 
-	_, _, err = client.call("POST", "/pod/labels?"+v.Encode(), "", nil)
+	_, err := client.client.SetPodLabels(context.Background(), &request)
 	if err != nil {
 		return err
 	}
