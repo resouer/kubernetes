@@ -729,33 +729,46 @@ func (client *HyperClient) Exec(opts ExecInContainerOptions) error {
 }
 
 func (client *HyperClient) ContainerLogs(opts ContainerLogsOptions) error {
-	if opts.Container == "" {
-		return fmt.Errorf("No Such Container %s", opts.Container)
+	request := grpctypes.ContainerLogsRequest{
+		Container:  opts.Container,
+		Follow:     opts.Follow,
+		Timestamps: opts.Timestamps,
+		Tail:       fmt.Sprintf("%d", opts.TailLines),
+		Since:      fmt.Sprintf("%d", opts.Since),
+		Stdout:     true,
+		Stderr:     true,
 	}
 
-	v := url.Values{}
-	v.Set(TYPE_CONTAINER, opts.Container)
-	v.Set("stdout", "yes")
-	v.Set("stderr", "yes")
-	if opts.TailLines > 0 {
-		v.Set("tail", fmt.Sprintf("%d", opts.TailLines))
-	}
-	if opts.Follow {
-		v.Set("follow", "yes")
-	}
-	if opts.Timestamps {
-		v.Set("timestamps", "yes")
-	}
-	if opts.Since > 0 {
-		v.Set("since", fmt.Sprintf("%d", opts.Since))
+	stream, err := client.client.ContainerLogs(context.Background(), &request)
+	if err != nil {
+		return err
 	}
 
-	headers := make(map[string][]string)
-	headers["User-Agent"] = []string{"kubelet"}
-	headers["Content-Type"] = []string{"text/plain"}
+	for {
+		res, err := stream.Recv()
+		if err == io.EOF {
+			if opts.Follow == true {
+				continue
+			}
+			break
+		}
+		if err != nil {
+			return err
+		}
 
-	path := "/container/logs?" + v.Encode()
-	return client.stream("GET", path, nil, opts.OutputStream, headers)
+		if len(res.Log) > 0 {
+			// there are 8 bytes of prefix in every line of hyperd's log
+			n, err := opts.OutputStream.Write(res.Log[8:])
+			if err != nil {
+				return err
+			}
+			if n != len(res.Log)-8 {
+				return io.ErrShortWrite
+			}
+		}
+	}
+
+	return nil
 }
 
 func (client *HyperClient) IsImagePresent(repo, tag string) (bool, error) {
