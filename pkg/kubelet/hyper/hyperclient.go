@@ -437,43 +437,22 @@ func (client *HyperClient) Info() (map[string]interface{}, error) {
 }
 
 func (client *HyperClient) ListImages() ([]HyperImage, error) {
-	v := url.Values{}
-	v.Set("all", "no")
-	body, _, err := client.call("GET", "/images/get?"+v.Encode(), "", nil)
-	if err != nil {
-		return nil, err
+	request := grpctypes.ImageListRequest{
+		All: false,
 	}
 
-	var images map[string][]string
-	err = json.Unmarshal(body, &images)
+	response, err := client.client.ImageList(context.Background(), &request)
 	if err != nil {
 		return nil, err
 	}
 
 	var hyperImages []HyperImage
-	for _, image := range images["imagesList"] {
-		imageDesc := strings.Split(image, ":")
-		if len(imageDesc) != 5 {
-			glog.Warning("Hyper: can not parse image info")
-			return nil, fmt.Errorf("Hyper: can not parse image info")
-		}
-
+	for _, image := range response.ImageList {
 		var imageHyper HyperImage
-		imageHyper.repository = imageDesc[0]
-		imageHyper.tag = imageDesc[1]
-		imageHyper.imageID = imageDesc[2]
-
-		createdAt, err := strconv.ParseInt(imageDesc[3], 10, 0)
-		if err != nil {
-			return nil, err
-		}
-		imageHyper.createdAt = createdAt
-
-		virtualSize, err := strconv.ParseInt(imageDesc[4], 10, 0)
-		if err != nil {
-			return nil, err
-		}
-		imageHyper.virtualSize = virtualSize
+		imageHyper.repository, imageHyper.tag = parseImageName(image.RepoTags[0])
+		imageHyper.imageID = image.Id
+		imageHyper.createdAt = image.Created
+		imageHyper.virtualSize = image.VirtualSize
 
 		hyperImages = append(hyperImages, imageHyper)
 	}
