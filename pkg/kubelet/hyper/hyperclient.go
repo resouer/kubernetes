@@ -461,9 +461,20 @@ func (client *HyperClient) RemovePod(podID string) error {
 }
 
 func (client *HyperClient) StartPod(podID string) error {
-	v := url.Values{}
-	v.Set(KEY_POD_ID, podID)
-	_, _, err := client.call("POST", "/pod/start?"+v.Encode(), "", nil)
+	stream, err := client.client.PodStart(context.Background())
+	if err != nil {
+		return err
+	}
+
+	request := grpctypes.PodStartMessage{
+		PodID: podID,
+	}
+	err = stream.Send(&request)
+	if err != nil {
+		return err
+	}
+
+	_, err = stream.Recv()
 	if err != nil {
 		return err
 	}
