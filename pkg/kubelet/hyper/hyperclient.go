@@ -29,7 +29,6 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
-	"strconv"
 	"strings"
 	"time"
 
@@ -702,30 +701,91 @@ func (client *HyperClient) Exec(opts ExecInContainerOptions) error {
 		return fmt.Errorf("No Such Container %s", opts.Container)
 	}
 
-	command, err := json.Marshal(opts.Commands)
+	createRequest := grpctypes.ExecCreateRequest{
+		ContainerID: opts.Container,
+		Command:     opts.Commands,
+		Tty:         opts.TTY,
+	}
+
+	createResponse, err := client.client.ExecCreate(context.Background(), &createRequest)
 	if err != nil {
 		return err
 	}
 
-	v := url.Values{}
-	tag := client.GetTag()
-	v.Set(KEY_TYPE, TYPE_CONTAINER)
-	v.Set(KEY_VALUE, opts.Container)
-	v.Set(KEY_TAG, tag)
-	v.Set(KEY_COMMAND, string(command))
-	v.Set(KEY_TTY, strconv.FormatBool(opts.TTY))
-	path := "/exec?" + v.Encode()
-	err = client.hijack("POST", path, hijackOptions{
-		in:     opts.InputStream,
-		stdout: opts.OutputStream,
-		stderr: opts.ErrorStream,
-		tty:    opts.TTY,
-	})
+	execId := createResponse.ExecID
+
+	stream, err := client.client.ExecStart(context.Background())
 	if err != nil {
 		return err
 	}
 
-	return client.GetExitCode(opts.Container, tag)
+	startRequest := grpctypes.ExecStartRequest{
+		ContainerID: opts.Container,
+		ExecID:      execId,
+	}
+	err = stream.Send(&startRequest)
+	if err != nil {
+		return err
+	}
+
+	var recvStdoutError chan error
+	if opts.OutputStream != nil {
+		recvStdoutError = getReturnValue(func() error {
+			for {
+				res, err := stream.Recv()
+				if err != nil {
+					if err == io.EOF {
+						return nil
+					}
+					return err
+				}
+				n, err := opts.OutputStream.Write(res.Stdout)
+				if err != nil {
+					return err
+				}
+				if n != len(res.Stdout) {
+					return io.ErrShortWrite
+				}
+			}
+		})
+	}
+
+	var reqStdinError chan error
+	if opts.InputStream != nil {
+		reqStdinError = getReturnValue(func() error {
+			for {
+				req := make([]byte, 512)
+				n, err := opts.InputStream.Read(req)
+				if err := stream.Send(&grpctypes.ExecStartRequest{Stdin: req[:n]}); err != nil {
+					return err
+				}
+				if err == io.EOF {
+					return nil
+				}
+				if err != nil {
+					return err
+				}
+			}
+		})
+	}
+
+	if opts.OutputStream != nil && opts.InputStream != nil {
+		select {
+		case err = <-recvStdoutError:
+		case err = <-reqStdinError:
+		}
+	} else if opts.OutputStream != nil {
+		err = <-recvStdoutError
+	} else if opts.InputStream != nil {
+		err = <-reqStdinError
+	}
+
+	if err != nil {
+		return err
+	}
+
+	//TODO: GetExitCode
+	return nil
 }
 
 func (client *HyperClient) ContainerLogs(opts ContainerLogsOptions) error {
