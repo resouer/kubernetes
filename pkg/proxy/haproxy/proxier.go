@@ -31,6 +31,7 @@ import (
 	kubeclient "k8s.io/kubernetes/pkg/client/unversioned"
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
 	"k8s.io/kubernetes/pkg/kubelet/hyper"
+	grpctypes "k8s.io/kubernetes/pkg/kubelet/hyper/types"
 	"k8s.io/kubernetes/pkg/proxy"
 	"k8s.io/kubernetes/pkg/types"
 
@@ -385,23 +386,23 @@ func (proxier *Proxier) syncProxyRules() {
 
 		// Build services of same namespace (assume all services within same
 		// namespace will be consumed)
-		consumedServices := make([]hyper.HyperService, 0, 1)
+		consumedServices := make([]*grpctypes.UserService, 0, 1)
 		for _, svcInfo := range proxier.serviceMap {
 			if svcInfo.namespace != podNamespace {
 				continue
 			}
 
-			svc := hyper.HyperService{
+			svc := &grpctypes.UserService{
 				ServicePort: svcInfo.port,
 				ServiceIP:   svcInfo.clusterIP.String(),
 				Protocol:    strings.ToLower(string(svcInfo.protocol)),
 			}
 
-			hosts := make([]hyper.HyperServiceBackend, 0, 1)
+			hosts := make([]*grpctypes.UserServiceBackend, 0, 1)
 			for _, ep := range svcInfo.endpoints {
 				hostport := strings.Split(ep, ":")
 				port, _ := strconv.ParseInt(hostport[1], 10, 0)
-				hosts = append(hosts, hyper.HyperServiceBackend{
+				hosts = append(hosts, &grpctypes.UserServiceBackend{
 					HostIP:   hostport[0],
 					HostPort: int32(port),
 				})
@@ -415,7 +416,7 @@ func (proxier *Proxier) syncProxyRules() {
 		// update existing services
 		if len(consumedServices) == 0 {
 			// services can't be null for kubernetes, so fake one if it is null
-			consumedServices = append(consumedServices, hyper.HyperService{
+			consumedServices = append(consumedServices, &grpctypes.UserService{
 				ServiceIP:   "127.0.0.2",
 				ServicePort: 65534,
 			})
