@@ -136,14 +136,6 @@ type PodInfo struct {
 	Status     PodStatus `json:"status"`
 }
 
-type HyperPod struct {
-	PodID   string
-	PodName string
-	VmName  string
-	Status  string
-	PodInfo PodInfo
-}
-
 type HyperContainer struct {
 	containerID string
 	name        string
