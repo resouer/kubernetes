@@ -21,14 +21,14 @@ set -o pipefail
 function kube::util::setup_kubestack() {
 	echo "Start $FUNCNAME"
 	
-	mkdir -p $GOPATH/src/github.com/hyperhq
-	cd $GOPATH/src/github.com/hyperhq
-	git clone https://github.com/hyperhq/kubestack.git
-	cd kubestack && make && make install
+	mkdir -p $GO_HYPERHQ_ROOT
+	kube::util::clone_git_repo https://github.com/hyperhq/kubestack.git $GO_HYPERHQ_ROOT/kubestack/
+	cd $GO_HYPERHQ_ROOT/kubestack && make && make install
 
 	## Configure KubeStack
 	source /root/keystonerc_admin
 	EXT_NET_ID=$(neutron net-show br-ex | awk '/ id /{print $4}')
+	rm -rf /etc/kubestack
 	mkdir /etc/kubestack/
 	cat > /etc/kubestack/kubestack.conf <<EOF
 [Global]
@@ -67,14 +67,10 @@ Restart=on-failure
 WantedBy=multi-user.target
 EOF
 
+	rm -rf /var/log/kubestack
 	mkdir -p /var/log/kubestack
-	systemctl start kubestack.service
 	systemctl enable kubestack.service
+	systemctl daemon-reload
+	systemctl start kubestack.service
 }
-
-
-
-
-
-
 

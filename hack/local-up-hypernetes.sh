@@ -24,6 +24,11 @@ export IF_NAME=${IF_NAME:-"eth0"}
 export IF_IP=${IF_IP:-""}
 export GOPATH=${GOPATH:-"/gopath"}
 export PATH="$PATH:$GOPATH/bin:/usr/local/bin:/usr/local/go/bin/"
+export DEV_MODE=${DEV_MODE:-"n"}
+
+# Set env used in script
+GO_HYPERHQ_ROOT=${GOPATH}/src/github.com/hyperhq
+GO_K8S_ROOT=${GOPATH}/src/k8s.io
 
 # Import essential files
 SCRIT_ROOT=$(dirname "${BASH_SOURCE}")
@@ -54,7 +59,7 @@ kube::util::setup_ceph
 kube::util::setup_cinder
 kube::util::setup_kubestack
 kube::util::setup_hyperd
-kube::util::upgrade_hyperd
+#kube::util::upgrade_hyperd
 kube::util::download_hypernetes
 kube::util::setup_hypernetes
 kube::util::setup_kubectl
