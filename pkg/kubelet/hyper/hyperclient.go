@@ -395,19 +395,14 @@ func (client *HyperClient) ListContainers() ([]HyperContainer, error) {
 	return result, nil
 }
 
-func (client *HyperClient) Info() (map[string]interface{}, error) {
-	body, _, err := client.call("GET", "/info", "", nil)
+func (client *HyperClient) Info() (*grpctypes.InfoResponse, error) {
+	request := grpctypes.InfoRequest{}
+	response, err := client.client.Info(context.Background(), &request)
 	if err != nil {
 		return nil, err
 	}
 
-	var result map[string]interface{}
-	err = json.Unmarshal(body, &result)
-	if err != nil {
-		return nil, err
-	}
-
-	return result, nil
+	return response, nil
 }
 
 func (client *HyperClient) ListImages() ([]HyperImage, error) {
