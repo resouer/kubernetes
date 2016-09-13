@@ -17,6 +17,8 @@ export IF_IP=""
 export GOPATH="/gopath"
 ```
 
+if you want use your own kebestack\hyperd\runv\hyperstart, you cloud set DEV_MODE to "y"(`export DEV_MODE="y"`) to use your own repo in $GOPATH.
+
 2. Clone hypernetes to go path:
 
 ```sh

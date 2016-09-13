@@ -28,7 +28,7 @@ function kube::util::download_hypernetes() {
 
 function kube::util::build_hypernetes() {
 	echo "Start $FUNCNAME"
-	cd ${GOPATH}/src/k8s.io/kubernetes
+	cd ${GO_K8S_ROOT}/kubernetes
 	hack/build-go.sh cmd/kube-proxy cmd/kube-apiserver cmd/kube-controller-manager cmd/kubelet cmd/kubectl plugin/cmd/kube-scheduler
 	/bin/cp -f _output/local/bin/linux/amd64/* /usr/bin/
 }
@@ -36,13 +36,14 @@ function kube::util::build_hypernetes() {
 function kube::util::setup_hypernetes() {
 	echo "Start $FUNCNAME"
 
+	rm -rf /var/lib/kubernetes /srv/kubernetes /var/log/kubernetes /var/run/kubernetes
 	mkdir -p /var/lib/kubernetes /srv/kubernetes  /var/log/kubernetes /var/run/kubernetes
 	chown kube:kube /var/log/kubernetes/
 	chown kube:kube /var/run/kubernetes/
 	chown kube:kube /srv/kubernetes
 	# openssl genrsa -out /var/lib/kubernetes/serviceaccount.key 2048
 	# chown kube:kube /var/lib/kubernetes/serviceaccount.key
-	CERT_GROUP=kube CERT_DIR=/srv/kubernetes $GOPATH/src/k8s.io/kubernetes/cluster/saltbase/salt/generate-cert/make-ca-cert.sh $(hostname -i) IP:10.254.0.1,IP:${IF_IP},DNS:kubernetes,DNS:kubernetes.default,DNS:kubernetes.default.svc,DNS:kubernetes.default.svc.cluster.local,DNS:k8s.local
+	CERT_GROUP=kube CERT_DIR=/srv/kubernetes ${GO_K8S_ROOT}/kubernetes/cluster/saltbase/salt/generate-cert/make-ca-cert.sh $(hostname -i) IP:10.254.0.1,IP:${IF_IP},DNS:kubernetes,DNS:kubernetes.default,DNS:kubernetes.default.svc,DNS:kubernetes.default.svc.cluster.local,DNS:k8s.local
 
 	cat >> /etc/etcd/etcd.conf <<EOF
 ETCD_LISTEN_CLIENT_URLS="http://${IF_IP}:2379"

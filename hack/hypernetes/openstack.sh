@@ -21,6 +21,8 @@ set -o pipefail
 function kube::util::setup_openstack() {
 	echo "Start $FUNCNAME"
 	
+	# make sure yum is not running
+	kube::util::ensure_yum_ready
 	yum install -y centos-release-openstack-mitaka
 	yum update -y
 	yum install -y openstack-packstack
@@ -47,9 +49,20 @@ function kube::util::setup_openstack() {
 
 	## Create external network
 	source /root/keystonerc_admin
+	## Make sure there is no network named br-ex, clean all resource
+	kube::util::clean_neutron_resource "demo"
+	kube::util::clean_neutron_resource "admin"
+	
 	neutron net-create --router:external br-ex
 	neutron subnet-create br-ex 58.215.33.0/24
 	sed -i 's/#dns_domain = openstacklocal/dns_domain = hypernetes/g' /etc/neutron/neutron.conf
 	sed -i 's/#extension_drivers.*/extension_drivers = port_security,dns/g' /etc/neutron/plugins/ml2/ml2_conf.ini
 	systemctl restart neutron-server
+}
+
+# will purge all resourses under tenant admin and demo
+function kube::util::clean_neutron_resource() {
+	local tenant_name=$1
+	local tenant_id=`keystone tenant-list 2>/dev/null | grep ${tenant_name} | awk '{print $2}'`
+	neutron purge $tenant_id
 }

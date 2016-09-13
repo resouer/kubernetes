@@ -18,6 +18,8 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+CENTOS_HYPER="hyper-container-0.6-1.el7.centos.x86_64"
+
 function kube::util::setup_hyperd() {
 	echo "Start $FUNCNAME"
 
@@ -29,7 +31,10 @@ group = "root"
 clear_emulator_capabilities = 0
 EOF
 
-	curl -sSL http://hypercontainer.io/install | bash
+	if ! rpm -qa | grep ${CENTOS_HYPER} &>/dev/null ; then
+		curl -sSl http://hypercontainer.io/install | bash
+	fi
+
 	cat >/etc/hyper/config <<EOF
 Kernel=/var/lib/hyper/kernel
 Initrd=/var/lib/hyper/hyper-initrd.img
@@ -51,14 +56,15 @@ function kube::util::upgrade_hyperd() {
 	
 	yum -y install git cmake gcc g++ autoconf automake device-mapper-devel sqlite-devel pcre-devel libsepol-devel libselinux-devel systemd-container-devel automake autoconf gcc make glibc-devel glibc-devel.i686 libvirt-devel
 
-	mkdir -p ${GOPATH}/src/github.com/hyperhq
-	git clone https://github.com/hyperhq/hyperd.git ${GOPATH}/src/github.com/hyperhq/hyperd
-	git clone https://github.com/hyperhq/runv.git ${GOPATH}/src/github.com/hyperhq/runv
-	git clone https://github.com/hyperhq/hyperstart.git ${GOPATH}/src/github.com/hyperhq/hyperstart
-	cd ${GOPATH}/src/github.com/hyperhq/hyperd
+	mkdir -p ${GO_HYPERHQ_ROOT}
+
+	kube::util::git_clone_repo https://github.com/hyperhq/hyperd.git ${GO_HYPERHQ_ROOT}/hyperd
+	kube::util::git_clone_repo https://github.com/hyperhq/runv.git ${GO_HYPERHQ_ROOT}/runv
+	kube::util::git_clone_repo https://github.com/hyperhq/hyperstart.git ${GO_HYPERHQ_ROOT}/hyperstart
+	cd ${GO_HYPERHQ_ROOT}/hyperd
 	./autogen.sh && ./configure --prefix=/usr && make && make install
 
-	cd ${GOPATH}/src/github.com/hyperhq/hyperstart
+	cd ${GO_HYPERHQ_ROOT}/hyperstart
 	./autogen.sh && ./configure && make && /bin/cp build/{hyper-initrd.img,kernel} /var/lib/hyper/
 
 	systemctl restart hyperd

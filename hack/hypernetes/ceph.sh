@@ -20,10 +20,24 @@ set -o pipefail
 
 function kube::util::setup_ceph() {
 	echo "Start $FUNCNAME"
+	rm -rf /etc/ceph
+	mkdir -p /etc/ceph
+	if ! kube::util::do_setup_ceph ; then
+		echo "Preinstall some package before exectue ceph-deploy..."
+		kube::util::ceph_preinstall
+		kube::util::do_setup_ceph
+	fi
+}
+
+function kube::util::do_setup_ceph() {
+	echo "Start $FUNCNAME"
+
+	kube::util::ensure_yum_ready
 
 	yum -y install python-pip
-	pip install ceph-deploy
+	pip install --upgrade ceph-deploy
 
+	rm -rf /root/ceph-cluster
 	mkdir /root/ceph-cluster
 	cd /root/ceph-cluster
 	ceph-deploy new $HOSTNAME
@@ -37,6 +51,7 @@ function kube::util::setup_ceph() {
 	    ceph-deploy --overwrite-conf mon create-initial
 	fi
 
+	rm -rf /var/local/osd
 	mkdir -p /var/local/osd
 	chown ceph:ceph /var/local/osd -R
 	ceph-deploy --overwrite-conf osd prepare $HOSTNAME:/var/local/osd
@@ -79,4 +94,11 @@ EOF
 	systemctl | awk '/cinder/{print $1}' | while read line; do
 	    systemctl restart $line
 	done
+}
+
+# actually we don't need this function in a good network environment,
+# just try again with other ceph repo location before abort the mission
+function kube::util::ceph_preinstall() {
+	kube::util::ensure_yum_ready
+	yum -y install epel-release ceph-radosgw ceph
 }
