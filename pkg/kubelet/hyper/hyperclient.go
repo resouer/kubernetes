@@ -357,7 +357,7 @@ func (client *HyperClient) ListPods() ([]HyperPod, error) {
 		hyperPod.VmName = pod.VmID
 		hyperPod.Status = pod.Status
 
-		req := grpctypes.PodInfoRequest{}
+		req := grpctypes.PodInfoRequest{PodID: pod.PodID}
 
 		res, err := client.client.PodInfo(context.Background(), &req)
 		if err != nil {
