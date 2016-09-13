@@ -202,7 +202,7 @@ func parseTimeString(str string) (time.Time, error) {
 	return t, nil
 }
 
-func (r *runtime) getContainerStatus(container ContainerStatus, image, imageID, startTime string, podLabels map[string]string) *kubecontainer.ContainerStatus {
+func (r *runtime) getContainerStatus(container *grpctypes.ContainerStatus, image, imageID, startTime string, podLabels map[string]string) *kubecontainer.ContainerStatus {
 	status := &kubecontainer.ContainerStatus{}
 
 	_, _, _, containerName, restartCount, _, err := r.parseHyperContainerFullName(container.Name)
@@ -267,7 +267,7 @@ func (r *runtime) getContainerStatus(container ContainerStatus, image, imageID, 
 		status.Message = message
 		status.State = kubecontainer.ContainerStateExited
 		status.Reason = container.Terminated.Reason
-		status.ExitCode = container.Terminated.ExitCode
+		status.ExitCode = int(container.Terminated.ExitCode)
 	default:
 		if startTime == "" {
 			status.StartedAt = time.Now().Add(-2 * time.Second)
@@ -348,7 +348,7 @@ func (r *runtime) GetPods(all bool) ([]*kubecontainer.Pod, error) {
 			container.ID = kubecontainer.ContainerID{Type: typeHyper, ID: cinfo.ContainerID}
 			container.Image = cinfo.Image
 
-			for _, cstatus := range podInfo.PodInfo.Status.Status {
+			for _, cstatus := range podInfo.PodInfo.Status.ContainerStatus {
 				if cstatus.ContainerID == cinfo.ContainerID {
 					switch cstatus.Phase {
 					case StatusRunning:
@@ -1067,7 +1067,7 @@ func (r *runtime) KillPod(pod *api.Pod, runningPod kubecontainer.Pod, gracePerio
 			podID = podInfo.PodID
 
 			// Remove log links
-			for _, c := range podInfo.PodInfo.Status.Status {
+			for _, c := range podInfo.PodInfo.Status.ContainerStatus {
 				_, _, _, containerName, _, _, err := r.parseHyperContainerFullName(c.Name)
 				if err != nil {
 					continue
@@ -1128,7 +1128,7 @@ func (r *runtime) GetPodStatus(uid types.UID, name, namespace string) (*kubecont
 			status.IP = podInfo.PodInfo.Status.PodIP[0]
 		}
 
-		for _, containerInfo := range podInfo.PodInfo.Status.Status {
+		for _, containerInfo := range podInfo.PodInfo.Status.ContainerStatus {
 			for _, container := range podInfo.PodInfo.Spec.Containers {
 				if container.ContainerID == containerInfo.ContainerID {
 					c := r.getContainerStatus(containerInfo, container.Image, container.ImageID,
@@ -1418,7 +1418,7 @@ func (r *runtime) GarbageCollect(gcPolicy kubecontainer.ContainerGCPolicy, allSo
 
 		if lastTime.Before(time.Now().Add(-gcPolicy.MinAge)) {
 			// Remove log links
-			for _, c := range pod.PodInfo.Status.Status {
+			for _, c := range pod.PodInfo.Status.ContainerStatus {
 				_, _, _, containerName, _, _, err := r.parseHyperContainerFullName(c.Name)
 				if err != nil {
 					continue

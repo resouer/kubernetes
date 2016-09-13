@@ -141,6 +141,14 @@ type podRemoveResult struct {
 	ID    string `json:"ID"`
 }
 
+type HyperPod struct {
+	PodID   string
+	PodName string
+	VmName  string
+	Status  string
+	PodInfo *grpctypes.PodInfo
+}
+
 func NewHyperClient() (*HyperClient, error) {
 	var (
 		scheme = HYPER_SCHEME
@@ -333,39 +341,30 @@ func (client *HyperClient) GetPodIDByName(podName string) (string, error) {
 }
 
 func (client *HyperClient) ListPods() ([]HyperPod, error) {
-	v := url.Values{}
-	v.Set(KEY_ITEM, TYPE_POD)
-	body, _, err := client.call("GET", "/list?"+v.Encode(), "", nil)
-	if err != nil {
-		return nil, err
-	}
+	request := grpctypes.PodListRequest{}
 
-	var podList map[string]interface{}
-	err = json.Unmarshal(body, &podList)
+	response, err := client.client.PodList(context.Background(), &request)
 	if err != nil {
 		return nil, err
 	}
 
 	var result []HyperPod
-	for _, pod := range podList["podData"].([]interface{}) {
-		fields := strings.Split(pod.(string), ":")
+	for _, pod := range response.PodList {
+
 		var hyperPod HyperPod
-		hyperPod.PodID = fields[0]
-		hyperPod.PodName = fields[1]
-		hyperPod.VmName = fields[2]
-		hyperPod.Status = fields[3]
+		hyperPod.PodID = pod.PodID
+		hyperPod.PodName = pod.PodName
+		hyperPod.VmName = pod.VmID
+		hyperPod.Status = pod.Status
 
-		values := url.Values{}
-		values.Set(KEY_POD_NAME, hyperPod.PodID)
-		body, _, err = client.call("GET", "/pod/info?"+values.Encode(), "", nil)
+		req := grpctypes.PodInfoRequest{PodID: pod.PodID}
+
+		res, err := client.client.PodInfo(context.Background(), &req)
 		if err != nil {
 			return nil, err
 		}
 
-		err = json.Unmarshal(body, &hyperPod.PodInfo)
-		if err != nil {
-			return nil, err
-		}
+		hyperPod.PodInfo = res.PodInfo
 
 		result = append(result, hyperPod)
 	}
