@@ -387,16 +387,16 @@ func (r *runtime) GetPods(all bool) ([]*kubecontainer.Pod, error) {
 	return kubepods, nil
 }
 
-func (r *runtime) buildHyperPodServices(pod *api.Pod) []grpctypes.UserService {
+func (r *runtime) buildHyperPodServices(pod *api.Pod) []*grpctypes.UserService {
 	items, err := r.kubeClient.Core().Services(pod.Namespace).List(api.ListOptions{})
 	if err != nil {
 		glog.Warningf("Get services failed: %v", err)
 		return nil
 	}
 
-	var services []grpctypes.UserService
+	var services []*grpctypes.UserService
 	for _, svc := range items.Items {
-		hyperService := grpctypes.UserService{
+		hyperService := &grpctypes.UserService{
 			ServiceIP: svc.Spec.ClusterIP,
 		}
 		endpoints, _ := r.kubeClient.Core().Endpoints(pod.Namespace).Get(svc.Name)
@@ -421,33 +421,40 @@ func (r *runtime) buildHyperPodServices(pod *api.Pod) []grpctypes.UserService {
 	return services
 }
 
-func (r *runtime) buildHyperPod(pod *api.Pod, restartCount int, pullSecrets []api.Secret) ([]byte, error) {
+func (r *runtime) buildHyperPod(pod *api.Pod, restartCount int, pullSecrets []api.Secret) ([]byte, *grpctypes.UserPod, error) {
 	// check and pull image
 	for _, c := range pod.Spec.Containers {
 		if err, _ := r.imagePuller.PullImage(pod, &c, pullSecrets); err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	}
 
 	// build hyper volume spec
 	specMap := make(map[string]interface{})
+	spec := &grpctypes.UserPod{}
 
 	// process rbd volume globally
 	volumeMap, ok := r.runtimeHelper.ListVolumesForPod(pod.UID)
 	if !ok {
-		return nil, fmt.Errorf("cannot get the volumes for pod %q", kubecontainer.GetPodFullName(pod))
+		return nil, nil, fmt.Errorf("cannot get the volumes for pod %q", kubecontainer.GetPodFullName(pod))
 	}
 	volumes := make([]map[string]interface{}, 0, 1)
+	var gVolumes []*grpctypes.UserVolume
 	for name, mounter := range volumeMap {
 		glog.V(4).Infof("Hyper: volume %s, path %s, meta %s", name, mounter.GetPath(), mounter.GetMetaData())
 		v := make(map[string]interface{})
 		v[KEY_NAME] = name
+		var gv grpctypes.UserVolume
+		gv.Name = name
 
 		// Process rbd volume
 		metadata := mounter.GetMetaData()
 		if metadata != nil && metadata["volume_type"].(string) == "rbd" {
 			v[KEY_VOLUME_DRIVE] = metadata["volume_type"]
 			v["source"] = "rbd:" + metadata["name"].(string)
+			gv.Driver = metadata["volume_type"].(string)
+			gv.Source = "rbd:" + metadata["name"].(string)
+
 			monitors := make([]string, 0, 1)
 			for _, host := range metadata["hosts"].([]interface{}) {
 				for _, port := range metadata["ports"].([]interface{}) {
@@ -459,14 +466,22 @@ func (r *runtime) buildHyperPod(pod *api.Pod, restartCount int, pullSecrets []ap
 				"keyring":  metadata["keyring"],
 				"monitors": monitors,
 			}
+			gv.Option = &grpctypes.UserVolumeOption{
+				User:     metadata["auth_username"].(string),
+				Keyring:  metadata["keyring"].(string),
+				Monitors: monitors,
+			}
 		} else {
 			glog.V(4).Infof("Hyper: volume %s %s", name, mounter.GetPath())
 
 			v[KEY_VOLUME_DRIVE] = VOLUME_TYPE_VFS
 			v[KEY_VOLUME_SOURCE] = mounter.GetPath()
+			gv.Driver = VOLUME_TYPE_VFS
+			gv.Source = mounter.GetPath()
 		}
 
 		volumes = append(volumes, v)
+		gVolumes = append(gVolumes, &gv)
 	}
 
 	glog.V(4).Infof("Hyper volumes: %v", volumes)
@@ -475,7 +490,7 @@ func (r *runtime) buildHyperPod(pod *api.Pod, restartCount int, pullSecrets []ap
 		services := r.buildHyperPodServices(pod)
 		if services == nil {
 			// services can't be null for kubernetes, so fake one if it is null
-			services = []grpctypes.UserService{
+			services = []*grpctypes.UserService{
 				{
 					ServiceIP:   "127.0.0.2",
 					ServicePort: 65534,
@@ -483,15 +498,19 @@ func (r *runtime) buildHyperPod(pod *api.Pod, restartCount int, pullSecrets []ap
 			}
 		}
 		specMap["services"] = services
+		spec.Services = services
 	}
 
 	// build hyper containers spec
 	var containers []map[string]interface{}
+	var gContainers []*grpctypes.UserContainer
 	var k8sHostNeeded = true
 	dnsServers := make(map[string]string)
+	var gDnsServers []string
 	terminationMsgLabels := make(map[string]string)
 	for _, container := range pod.Spec.Containers {
 		c := make(map[string]interface{})
+		var gc grpctypes.UserContainer
 		c[KEY_NAME] = r.buildHyperContainerFullName(
 			string(pod.UID),
 			string(pod.Name),
@@ -501,51 +520,77 @@ func (r *runtime) buildHyperPod(pod *api.Pod, restartCount int, pullSecrets []ap
 			container)
 		c[KEY_IMAGE] = container.Image
 		c[KEY_TTY] = container.TTY
+		gc.Name = r.buildHyperContainerFullName(
+			string(pod.UID),
+			string(pod.Name),
+			string(pod.Namespace),
+			container.Name,
+			restartCount,
+			container)
+		gc.Image = container.Image
+		gc.Tty = container.TTY
 
 		if container.WorkingDir != "" {
 			c[KEY_WORKDIR] = container.WorkingDir
+			gc.Workdir = container.WorkingDir
 		}
 
 		opts, err := r.runtimeHelper.GenerateRunContainerOptions(pod, &container, "")
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		command, args := kubecontainer.ExpandContainerCommandAndArgs(&container, opts.Envs)
 		if len(command) > 0 {
 			c[KEY_ENTRYPOINT] = command
+			gc.Entrypoint = command
 		}
 		if len(args) > 0 {
 			c[KEY_COMMAND] = args
+			gc.Command = args
 		}
 
 		// dns
 		for _, dns := range opts.DNS {
 			dnsServers[dns] = dns
+			gDnsServers = append(gDnsServers, dns)
 		}
 
 		// envs
 		envs := make([]map[string]string, 0, 1)
+		var gEnvs []*grpctypes.EnvironmentVar
 		for _, e := range opts.Envs {
 			envs = append(envs, map[string]string{
 				"env":   e.Name,
 				"value": e.Value,
 			})
+			gEnvs = append(gEnvs, &grpctypes.EnvironmentVar{
+				Env:   e.Name,
+				Value: e.Value,
+			})
 		}
 		c[KEY_ENVS] = envs
+		gc.Envs = gEnvs
 
 		// port-mappings
 		var ports []map[string]interface{}
+		var gPorts []*grpctypes.UserContainerPort
 		for _, mapping := range opts.PortMappings {
 			p := make(map[string]interface{})
+			var gp grpctypes.UserContainerPort
 			p[KEY_CONTAINER_PORT] = mapping.ContainerPort
+			gp.ContainerPort = int32(mapping.ContainerPort)
 			if mapping.HostPort != 0 {
 				p[KEY_HOST_PORT] = mapping.HostPort
+				gp.HostPort = int32(mapping.HostPort)
 			}
 			p[KEY_PROTOCOL] = mapping.Protocol
+			gp.Protocol = string(mapping.Protocol)
 			ports = append(ports, p)
+			gPorts = append(gPorts, &gp)
 		}
 		c[KEY_PORTS] = ports
+		gc.Ports = gPorts
 
 		// NOTE: PodContainerDir is from TerminationMessagePath, TerminationMessagePath  is default to /dev/termination-log
 		if opts.PodContainerDir != "" && container.TerminationMessagePath != "" {
@@ -558,11 +603,11 @@ func (r *runtime) buildHyperPod(pod *api.Pod, restartCount int, pullSecrets []ap
 			containerLogPath := path.Join(opts.PodContainerDir, string(randomUID))
 			fs, err := os.Create(containerLogPath)
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 
 			if err := fs.Close(); err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 			mnt := &kubecontainer.Mount{
 				// Use a random name for the termination message mount, so that
@@ -582,12 +627,18 @@ func (r *runtime) buildHyperPod(pod *api.Pod, restartCount int, pullSecrets []ap
 		// volumes
 		if len(opts.Mounts) > 0 {
 			var containerVolumes []map[string]interface{}
+			var gContainerVolumes []*grpctypes.UserVolumeReference
 			for _, volume := range opts.Mounts {
 				v := make(map[string]interface{})
 				v[KEY_MOUNTPATH] = volume.ContainerPath
 				v[KEY_VOLUME] = volume.Name
 				v[KEY_READONLY] = volume.ReadOnly
 				containerVolumes = append(containerVolumes, v)
+				gContainerVolumes = append(gContainerVolumes, &grpctypes.UserVolumeReference{
+					Path:     volume.ContainerPath,
+					Volume:   volume.Name,
+					ReadOnly: volume.ReadOnly,
+				})
 
 				if k8sHostNeeded {
 					// Setup global hosts volume
@@ -597,6 +648,11 @@ func (r *runtime) buildHyperPod(pod *api.Pod, restartCount int, pullSecrets []ap
 							KEY_NAME:          volume.Name,
 							KEY_VOLUME_DRIVE:  VOLUME_TYPE_VFS,
 							KEY_VOLUME_SOURCE: volume.HostPath,
+						})
+						gVolumes = append(gVolumes, &grpctypes.UserVolume{
+							Name:   volume.Name,
+							Driver: VOLUME_TYPE_VFS,
+							Source: volume.HostPath,
 						})
 					}
 
@@ -609,16 +665,25 @@ func (r *runtime) buildHyperPod(pod *api.Pod, restartCount int, pullSecrets []ap
 							KEY_VOLUME_DRIVE:  VOLUME_TYPE_VFS,
 							KEY_VOLUME_SOURCE: volume.HostPath,
 						})
+						gVolumes = append(gVolumes, &grpctypes.UserVolume{
+							Name:   volume.Name,
+							Driver: VOLUME_TYPE_VFS,
+							Source: volume.HostPath,
+						})
 					}
 				}
 			}
 			c[KEY_VOLUMES] = containerVolumes
+			gc.Volumes = gContainerVolumes
 		}
 
 		containers = append(containers, c)
+		gContainers = append(gContainers, &gc)
 	}
 	specMap[KEY_CONTAINERS] = containers
 	specMap[KEY_VOLUMES] = volumes
+	spec.Containers = gContainers
+	spec.Volumes = gVolumes
 
 	// dns
 	if len(dnsServers) > 0 {
@@ -628,11 +693,13 @@ func (r *runtime) buildHyperPod(pod *api.Pod, restartCount int, pullSecrets []ap
 		}
 		specMap[KEY_DNS] = dns
 	}
+	spec.Dns = gDnsServers
 
 	// build hyper pod resources spec
 	var podCPULimit, podMemLimit int64
 	var labels map[string]string
 	podResource := make(map[string]int64)
+	gPodResource := &grpctypes.UserResource{}
 	for _, container := range pod.Spec.Containers {
 		resource := container.Resources.Limits
 		var containerCPULimit, containerMemLimit int64
@@ -661,6 +728,9 @@ func (r *runtime) buildHyperPod(pod *api.Pod, restartCount int, pullSecrets []ap
 	podResource[KEY_VCPU] = (podCPULimit + 999) / 1000
 	podResource[KEY_MEMORY] = ((podMemLimit) / 1000 / 1024) / 1024
 	specMap[KEY_RESOURCE] = podResource
+	gPodResource.Vcpu = int32((podCPULimit + 999) / 1000)
+	gPodResource.Memory = int32(((podMemLimit) / 1000 / 1024) / 1024)
+	spec.Resource = gPodResource
 	glog.V(5).Infof("Hyper: pod limit vcpu=%v mem=%vMiB", podResource[KEY_VCPU], podResource[KEY_MEMORY])
 
 	// Setup labels
@@ -680,9 +750,11 @@ func (r *runtime) buildHyperPod(pod *api.Pod, restartCount int, pullSecrets []ap
 	}
 
 	specMap[KEY_LABELS] = podLabels
+	spec.Labels = podLabels
 
 	// other params required
 	specMap[KEY_ID] = kubecontainer.BuildPodFullName(pod.Name, pod.Namespace)
+	spec.Id = kubecontainer.BuildPodFullName(pod.Name, pod.Namespace)
 
 	// Cap hostname at 63 chars (specification is 64bytes which is 63 chars and the null terminating char).
 	const hostnameMaxLen = 63
@@ -691,13 +763,14 @@ func (r *runtime) buildHyperPod(pod *api.Pod, restartCount int, pullSecrets []ap
 		podHostname = podHostname[:hostnameMaxLen]
 	}
 	specMap[KEY_HOSTNAME] = podHostname
+	spec.Hostname = podHostname
 
 	podData, err := json.Marshal(specMap)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return podData, nil
+	return podData, spec, nil
 }
 
 func (r *runtime) savePodSpec(spec, podFullName string) error {
@@ -766,7 +839,7 @@ func (r *runtime) RunPod(pod *api.Pod, restartCount int, pullSecrets []api.Secre
 		podStatus   *kubecontainer.PodStatus
 	)
 
-	podData, err = r.buildHyperPod(pod, restartCount, pullSecrets)
+	podData, podSpec, err := r.buildHyperPod(pod, restartCount, pullSecrets)
 	if err != nil {
 		glog.Errorf("Hyper: buildHyperPod failed, error: %v", err)
 		return err
@@ -812,18 +885,12 @@ func (r *runtime) RunPod(pod *api.Pod, restartCount int, pullSecrets []api.Secre
 	}
 
 	// Create and start hyper pod
-	podSpec, err := r.getPodSpec(podFullName)
-	if err != nil {
-		glog.Errorf("Hyper: create pod %s failed, error: %v", podFullName, err)
-		return err
-	}
-	result, err := r.hyperClient.CreatePod(podSpec)
+	podID, err = r.hyperClient.CreatePod(podSpec)
 	if err != nil {
 		glog.Errorf("Hyper: create pod %s failed, error: %v", podData, err)
 		return err
 	}
 
-	podID = string(result["ID"].(string))
 	err = r.hyperClient.StartPod(podID)
 	if err != nil {
 		glog.Errorf("Hyper: start pod %s (ID:%s) failed, error: %v", pod.Name, podID, err)
