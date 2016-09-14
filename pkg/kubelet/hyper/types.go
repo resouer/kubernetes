@@ -23,14 +23,6 @@ const (
 	StatusSuccess = "succeeded"
 )
 
-type HyperImage struct {
-	repository  string
-	tag         string
-	imageID     string
-	createdAt   int64
-	virtualSize int64
-}
-
 // Container JSON Data Structure
 type ContainerPort struct {
 	Name          string `json:"name"`

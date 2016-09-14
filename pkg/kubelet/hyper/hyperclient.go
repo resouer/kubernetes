@@ -123,6 +123,14 @@ type ExecInContainerOptions struct {
 	TTY          bool
 }
 
+type HyperImage struct {
+	repository  string
+	tag         string
+	imageID     string
+	createdAt   int64
+	virtualSize int64
+}
+
 type hijackOptions struct {
 	in     io.Reader
 	stdout io.Writer
@@ -311,10 +319,10 @@ func (cli *HyperClient) stream(method, path string, in io.Reader, out io.Writer,
 
 }
 
-func (client *HyperClient) Version() (string, error) {
+func (c *HyperClient) Version() (string, error) {
 	request := grpctypes.VersionRequest{}
 
-	response, err := client.client.Version(context.Background(), &request)
+	response, err := c.client.Version(context.Background(), &request)
 	if err != nil {
 		return "", err
 	}
@@ -322,10 +330,10 @@ func (client *HyperClient) Version() (string, error) {
 	return response.Version, nil
 }
 
-func (client *HyperClient) GetPodIDByName(podName string) (string, error) {
+func (c *HyperClient) GetPodIDByName(podName string) (string, error) {
 	request := grpctypes.PodListRequest{}
 
-	response, err := client.client.PodList(context.Background(), &request)
+	response, err := c.client.PodList(context.Background(), &request)
 	if err != nil {
 		return "", err
 	}
@@ -339,10 +347,10 @@ func (client *HyperClient) GetPodIDByName(podName string) (string, error) {
 	return "", fmt.Errorf("Can not get PodID by name %s", podName)
 }
 
-func (client *HyperClient) ListPods() ([]HyperPod, error) {
+func (c *HyperClient) ListPods() ([]HyperPod, error) {
 	request := grpctypes.PodListRequest{}
 
-	response, err := client.client.PodList(context.Background(), &request)
+	response, err := c.client.PodList(context.Background(), &request)
 	if err != nil {
 		return nil, err
 	}
@@ -358,7 +366,7 @@ func (client *HyperClient) ListPods() ([]HyperPod, error) {
 
 		req := grpctypes.PodInfoRequest{PodID: pod.PodID}
 
-		res, err := client.client.PodInfo(context.Background(), &req)
+		res, err := c.client.PodInfo(context.Background(), &req)
 		if err != nil {
 			return nil, err
 		}
@@ -371,10 +379,10 @@ func (client *HyperClient) ListPods() ([]HyperPod, error) {
 	return result, nil
 }
 
-func (client *HyperClient) ListContainers() ([]HyperContainer, error) {
+func (c *HyperClient) ListContainers() ([]HyperContainer, error) {
 	request := grpctypes.ContainerListRequest{}
 
-	response, err := client.client.ContainerList(context.Background(), &request)
+	response, err := c.client.ContainerList(context.Background(), &request)
 	if err != nil {
 		return nil, err
 	}
@@ -393,9 +401,9 @@ func (client *HyperClient) ListContainers() ([]HyperContainer, error) {
 	return result, nil
 }
 
-func (client *HyperClient) Info() (*grpctypes.InfoResponse, error) {
+func (c *HyperClient) Info() (*grpctypes.InfoResponse, error) {
 	request := grpctypes.InfoRequest{}
-	response, err := client.client.Info(context.Background(), &request)
+	response, err := c.client.Info(context.Background(), &request)
 	if err != nil {
 		return nil, err
 	}
@@ -403,12 +411,12 @@ func (client *HyperClient) Info() (*grpctypes.InfoResponse, error) {
 	return response, nil
 }
 
-func (client *HyperClient) ListImages() ([]HyperImage, error) {
+func (c *HyperClient) ListImages() ([]HyperImage, error) {
 	request := grpctypes.ImageListRequest{
 		All: false,
 	}
 
-	response, err := client.client.ImageList(context.Background(), &request)
+	response, err := c.client.ImageList(context.Background(), &request)
 	if err != nil {
 		return nil, err
 	}
@@ -427,12 +435,12 @@ func (client *HyperClient) ListImages() ([]HyperImage, error) {
 	return hyperImages, nil
 }
 
-func (client *HyperClient) RemoveImage(imageID string) error {
+func (c *HyperClient) RemoveImage(imageID string) error {
 	request := grpctypes.ImageRemoveRequest{
 		Image: imageID,
 	}
 
-	_, err := client.client.ImageRemove(context.Background(), &request)
+	_, err := c.client.ImageRemove(context.Background(), &request)
 	if err != nil {
 		return err
 	}
@@ -440,11 +448,11 @@ func (client *HyperClient) RemoveImage(imageID string) error {
 	return nil
 }
 
-func (client *HyperClient) RemovePod(podID string) error {
+func (c *HyperClient) RemovePod(podID string) error {
 	request := grpctypes.PodRemoveRequest{
 		PodID: podID,
 	}
-	_, err := client.client.PodRemove(context.Background(), &request)
+	_, err := c.client.PodRemove(context.Background(), &request)
 	if err != nil {
 		return err
 	}
@@ -452,8 +460,8 @@ func (client *HyperClient) RemovePod(podID string) error {
 	return nil
 }
 
-func (client *HyperClient) StartPod(podID string) error {
-	stream, err := client.client.PodStart(context.Background())
+func (c *HyperClient) StartPod(podID string) error {
+	stream, err := c.client.PodStart(context.Background())
 	if err != nil {
 		return err
 	}
@@ -474,11 +482,11 @@ func (client *HyperClient) StartPod(podID string) error {
 	return nil
 }
 
-func (client *HyperClient) StopPod(podID string) error {
+func (c *HyperClient) StopPod(podID string) error {
 	request := grpctypes.PodStopRequest{
 		PodID: podID,
 	}
-	_, err := client.client.PodStop(context.Background(), &request)
+	_, err := c.client.PodStop(context.Background(), &request)
 	if err != nil {
 		return err
 	}
@@ -486,7 +494,7 @@ func (client *HyperClient) StopPod(podID string) error {
 	return nil
 }
 
-func (client *HyperClient) PullImage(image string, credential string) error {
+func (c *HyperClient) PullImage(image string, credential string) error {
 	imageName, tag := parseImageName(image)
 	authConfig := &grpctypes.AuthConfig{}
 	if credential != "" {
@@ -503,7 +511,7 @@ func (client *HyperClient) PullImage(image string, credential string) error {
 		Tag:   tag,
 		Auth:  authConfig,
 	}
-	stream, err := client.client.ImagePull(context.Background(), &request)
+	stream, err := c.client.ImagePull(context.Background(), &request)
 	if err != nil {
 		return err
 	}
@@ -521,11 +529,11 @@ func (client *HyperClient) PullImage(image string, credential string) error {
 	return nil
 }
 
-func (client *HyperClient) CreatePod(podSpec *grpctypes.UserPod) (string, error) {
+func (c *HyperClient) CreatePod(podSpec *grpctypes.UserPod) (string, error) {
 	request := grpctypes.PodCreateRequest{
 		PodSpec: podSpec,
 	}
-	response, err := client.client.PodCreate(context.Background(), &request)
+	response, err := c.client.PodCreate(context.Background(), &request)
 	if err != nil {
 		return "", err
 	}
@@ -685,7 +693,7 @@ func (client *HyperClient) Attach(opts AttachToContainerOptions) error {
 	return client.GetExitCode(opts.Container, tag)
 }
 
-func (client *HyperClient) Exec(opts ExecInContainerOptions) error {
+func (c *HyperClient) Exec(opts ExecInContainerOptions) error {
 	if opts.Container == "" {
 		return fmt.Errorf("No Such Container %s", opts.Container)
 	}
@@ -696,14 +704,14 @@ func (client *HyperClient) Exec(opts ExecInContainerOptions) error {
 		Tty:         opts.TTY,
 	}
 
-	createResponse, err := client.client.ExecCreate(context.Background(), &createRequest)
+	createResponse, err := c.client.ExecCreate(context.Background(), &createRequest)
 	if err != nil {
 		return err
 	}
 
 	execId := createResponse.ExecID
 
-	stream, err := client.client.ExecStart(context.Background())
+	stream, err := c.client.ExecStart(context.Background())
 	if err != nil {
 		return err
 	}
@@ -777,7 +785,7 @@ func (client *HyperClient) Exec(opts ExecInContainerOptions) error {
 	return nil
 }
 
-func (client *HyperClient) ContainerLogs(opts ContainerLogsOptions) error {
+func (c *HyperClient) ContainerLogs(opts ContainerLogsOptions) error {
 	request := grpctypes.ContainerLogsRequest{
 		Container:  opts.Container,
 		Follow:     opts.Follow,
@@ -788,7 +796,7 @@ func (client *HyperClient) ContainerLogs(opts ContainerLogsOptions) error {
 		Stderr:     true,
 	}
 
-	stream, err := client.client.ContainerLogs(context.Background(), &request)
+	stream, err := c.client.ContainerLogs(context.Background(), &request)
 	if err != nil {
 		return err
 	}
@@ -831,12 +839,12 @@ func (client *HyperClient) IsImagePresent(repo, tag string) (bool, error) {
 	return false, nil
 }
 
-func (client *HyperClient) ListServices(podId string) ([]*grpctypes.UserService, error) {
+func (c *HyperClient) ListServices(podId string) ([]*grpctypes.UserService, error) {
 	request := grpctypes.ServiceListRequest{
 		PodID: podId,
 	}
 
-	response, err := client.client.ServiceList(context.Background(), &request)
+	response, err := c.client.ServiceList(context.Background(), &request)
 	if err != nil {
 		if strings.Contains(err.Error(), "doesn't have services discovery") {
 			return nil, nil
@@ -848,13 +856,13 @@ func (client *HyperClient) ListServices(podId string) ([]*grpctypes.UserService,
 	return response.Services, nil
 }
 
-func (client *HyperClient) UpdateServices(podId string, services []*grpctypes.UserService) error {
+func (c *HyperClient) UpdateServices(podId string, services []*grpctypes.UserService) error {
 	request := grpctypes.ServiceUpdateRequest{
 		PodID:    podId,
 		Services: services,
 	}
 
-	_, err := client.client.ServiceUpdate(context.Background(), &request)
+	_, err := c.client.ServiceUpdate(context.Background(), &request)
 	if err != nil {
 		return err
 	}
@@ -862,14 +870,14 @@ func (client *HyperClient) UpdateServices(podId string, services []*grpctypes.Us
 	return nil
 }
 
-func (client *HyperClient) UpdatePodLabels(podId string, labels map[string]string) error {
+func (c *HyperClient) UpdatePodLabels(podId string, labels map[string]string) error {
 	request := grpctypes.PodLabelsRequest{
 		PodID:    podId,
 		Override: true,
 		Labels:   labels,
 	}
 
-	_, err := client.client.SetPodLabels(context.Background(), &request)
+	_, err := c.client.SetPodLabels(context.Background(), &request)
 	if err != nil {
 		return err
 	}
