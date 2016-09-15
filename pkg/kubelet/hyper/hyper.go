@@ -812,18 +812,24 @@ func (r *runtime) RunPod(pod *api.Pod, restartCount int, pullSecrets []api.Secre
 	}
 
 	// Create and start hyper pod
-	podSpec, err := r.getPodSpec(podFullName)
+	specData, err := r.getPodSpec(podFullName)
 	if err != nil {
 		glog.Errorf("Hyper: create pod %s failed, error: %v", podFullName, err)
 		return err
 	}
-	result, err := r.hyperClient.CreatePod(podSpec)
+
+	var podSpec grpctypes.UserPod
+	err = json.Unmarshal([]byte(specData), &podSpec)
+	if err != nil {
+		glog.Errorf("Hyper: marshal pod %s from specData error: %v", podFullName, err)
+	}
+
+	podID, err = r.hyperClient.CreatePod(&podSpec)
 	if err != nil {
 		glog.Errorf("Hyper: create pod %s failed, error: %v", podData, err)
 		return err
 	}
 
-	podID = string(result["ID"].(string))
 	err = r.hyperClient.StartPod(podID)
 	if err != nil {
 		glog.Errorf("Hyper: start pod %s (ID:%s) failed, error: %v", pod.Name, podID, err)

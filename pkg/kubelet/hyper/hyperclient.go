@@ -34,7 +34,6 @@ import (
 
 	"github.com/docker/docker/pkg/parsers"
 	"github.com/docker/docker/pkg/term"
-	"github.com/golang/glog"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	grpctypes "k8s.io/kubernetes/pkg/kubelet/hyper/types"
@@ -522,20 +521,16 @@ func (client *HyperClient) PullImage(image string, credential string) error {
 	return nil
 }
 
-func (client *HyperClient) CreatePod(podArgs string) (map[string]interface{}, error) {
-	glog.V(5).Infof("Hyper: starting to create pod %s", podArgs)
-	body, _, err := client.call("POST", "/pod/create", podArgs, nil)
+func (client *HyperClient) CreatePod(podSpec *grpctypes.UserPod) (string, error) {
+	request := grpctypes.PodCreateRequest{
+		PodSpec: podSpec,
+	}
+	response, err := client.client.PodCreate(context.Background(), &request)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	var result map[string]interface{}
-	err = json.Unmarshal(body, &result)
-	if err != nil {
-		return nil, err
-	}
-
-	return result, nil
+	return response.PodID, nil
 }
 
 func (c *HyperClient) GetExitCode(container, tag string) error {
