@@ -17,24 +17,15 @@ limitations under the License.
 package hyper
 
 import (
-	"bytes"
-	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
-	"net"
-	"net/http"
-	"net/http/httputil"
-	"net/url"
 	"strings"
 	"time"
 
 	"github.com/docker/docker/pkg/parsers"
-	"github.com/docker/docker/pkg/term"
-	"golang.org/x/net/context"
+	"github.com/golang/glog"
 	"google.golang.org/grpc"
 	grpctypes "k8s.io/kubernetes/pkg/kubelet/hyper/types"
 )
@@ -86,6 +77,12 @@ const (
 	TYPE_POD       = "pod"
 
 	VOLUME_TYPE_VFS = "vfs"
+
+	//timeout in second for creating context with timeout.
+	hyperContextTimeout = 15 * time.Second
+
+	//timeout for image pulling progress report
+	defaultImagePullingStuckTimeout = 1 * time.Minute
 )
 
 type HyperClient struct {
@@ -93,67 +90,6 @@ type HyperClient struct {
 	addr   string
 	scheme string
 	client grpctypes.PublicAPIClient
-}
-
-type AttachToContainerOptions struct {
-	Container    string
-	InputStream  io.Reader
-	OutputStream io.Writer
-	ErrorStream  io.Writer
-	TTY          bool
-}
-
-type ContainerLogsOptions struct {
-	Container    string
-	OutputStream io.Writer
-	ErrorStream  io.Writer
-
-	Follow     bool
-	Since      int64
-	Timestamps bool
-	TailLines  int64
-}
-
-type ExecInContainerOptions struct {
-	Container    string
-	InputStream  io.Reader
-	OutputStream io.Writer
-	ErrorStream  io.Writer
-	Commands     []string
-	TTY          bool
-}
-
-type HyperImage struct {
-	repository  string
-	tag         string
-	imageID     string
-	createdAt   int64
-	virtualSize int64
-}
-
-type hijackOptions struct {
-	in     io.Reader
-	stdout io.Writer
-	stderr io.Writer
-	data   interface{}
-	tty    bool
-}
-
-/*
-{"Cause":"VM shut down","Code":0,"ID":"pod-MavdmoyvEP"}
-*/
-type podRemoveResult struct {
-	Cause string `json:"Cause"`
-	Code  int    `json:"Code"`
-	ID    string `json:"ID"`
-}
-
-type HyperPod struct {
-	PodID   string
-	PodName string
-	VmName  string
-	Status  string
-	PodInfo *grpctypes.PodInfo
 }
 
 func NewHyperClient() (*HyperClient, error) {
@@ -175,20 +111,6 @@ func NewHyperClient() (*HyperClient, error) {
 	}, nil
 }
 
-var (
-	ErrConnectionRefused = errors.New("Cannot connect to the Hyper daemon. Is 'hyperd' running on this host?")
-)
-
-func (cli *HyperClient) encodeData(data string) (*bytes.Buffer, error) {
-	params := bytes.NewBuffer(nil)
-	if data != "" {
-		if _, err := params.Write([]byte(data)); err != nil {
-			return nil, err
-		}
-	}
-	return params, nil
-}
-
 // parseImageName parses a docker image string into two parts: repo and tag.
 // If tag is empty, return the defaultImageTag.
 func parseImageName(image string) (string, string) {
@@ -200,129 +122,13 @@ func parseImageName(image string) (string, string) {
 	return repoToPull, tag
 }
 
-func (cli *HyperClient) clientRequest(method, path string, in io.Reader, headers map[string][]string) (io.ReadCloser, string, int, *net.Conn, *httputil.ClientConn, error) {
-	expectedPayload := (method == "POST" || method == "PUT")
-	if expectedPayload && in == nil {
-		in = bytes.NewReader([]byte{})
-	}
-	req, err := http.NewRequest(method, path, in)
-	if err != nil {
-		return nil, "", -1, nil, nil, err
-	}
-	req.Header.Set("User-Agent", "kubelet")
-	req.URL.Host = cli.addr
-	req.URL.Scheme = cli.scheme
-
-	if headers != nil {
-		for k, v := range headers {
-			req.Header[k] = v
-		}
-	}
-
-	if expectedPayload && req.Header.Get("Content-Type") == "" {
-		req.Header.Set("Content-Type", "text/plain")
-	}
-
-	var dial net.Conn
-	dial, err = net.DialTimeout(HYPER_PROTO, HYPER_ADDR, 32*time.Second)
-	if err != nil {
-		return nil, "", -1, nil, nil, err
-	}
-
-	clientconn := httputil.NewClientConn(dial, nil)
-	resp, err := clientconn.Do(req)
-	statusCode := -1
-	if resp != nil {
-		statusCode = resp.StatusCode
-	}
-	if err != nil {
-		if strings.Contains(err.Error(), "connection refused") {
-			return nil, "", statusCode, &dial, clientconn, ErrConnectionRefused
-		}
-
-		return nil, "", statusCode, &dial, clientconn, fmt.Errorf("An error occurred trying to connect: %v", err)
-	}
-
-	if statusCode < 200 || statusCode >= 400 {
-		body, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			return nil, "", statusCode, &dial, clientconn, err
-		}
-		if len(body) == 0 {
-			return nil, "", statusCode, nil, nil, fmt.Errorf("Error: request returned %s for API route and version %s, check if the server supports the requested API version", http.StatusText(statusCode), req.URL)
-		}
-
-		return nil, "", statusCode, &dial, clientconn, fmt.Errorf("%s", bytes.TrimSpace(body))
-	}
-
-	return resp.Body, resp.Header.Get("Content-Type"), statusCode, &dial, clientconn, nil
-}
-
-func (cli *HyperClient) call(method, path string, data string, headers map[string][]string) ([]byte, int, error) {
-	params, err := cli.encodeData(data)
-	if err != nil {
-		return nil, -1, err
-	}
-
-	if data != "" {
-		if headers == nil {
-			headers = make(map[string][]string)
-		}
-		headers["Content-Type"] = []string{"application/json"}
-	}
-
-	body, _, statusCode, dial, clientconn, err := cli.clientRequest(method, path, params, headers)
-	if dial != nil {
-		defer (*dial).Close()
-	}
-	if clientconn != nil {
-		defer clientconn.Close()
-	}
-	if err != nil {
-		return nil, statusCode, err
-	}
-
-	if body == nil {
-		return nil, statusCode, err
-	}
-
-	defer body.Close()
-
-	result, err := ioutil.ReadAll(body)
-	if err != nil {
-		return nil, -1, err
-	}
-
-	return result, statusCode, nil
-}
-
-func (cli *HyperClient) stream(method, path string, in io.Reader, out io.Writer, headers map[string][]string) error {
-	body, _, _, dial, clientconn, err := cli.clientRequest(method, path, in, headers)
-	if dial != nil {
-		defer (*dial).Close()
-	}
-	if clientconn != nil {
-		defer clientconn.Close()
-	}
-	if err != nil {
-		return err
-	}
-
-	defer body.Close()
-
-	if out != nil {
-		_, err := io.Copy(out, body)
-		return err
-	}
-
-	return nil
-
-}
-
 func (c *HyperClient) Version() (string, error) {
 	request := grpctypes.VersionRequest{}
 
-	response, err := c.client.Version(context.Background(), &request)
+	ctx, cancel := getContextWithTimeout(hyperContextTimeout)
+	defer cancel()
+
+	response, err := c.client.Version(ctx, &request)
 	if err != nil {
 		return "", err
 	}
@@ -333,7 +139,10 @@ func (c *HyperClient) Version() (string, error) {
 func (c *HyperClient) GetPodIDByName(podName string) (string, error) {
 	request := grpctypes.PodListRequest{}
 
-	response, err := c.client.PodList(context.Background(), &request)
+	ctx, cancel := getContextWithTimeout(hyperContextTimeout)
+	defer cancel()
+
+	response, err := c.client.PodList(ctx, &request)
 	if err != nil {
 		return "", err
 	}
@@ -350,7 +159,10 @@ func (c *HyperClient) GetPodIDByName(podName string) (string, error) {
 func (c *HyperClient) ListPods() ([]HyperPod, error) {
 	request := grpctypes.PodListRequest{}
 
-	response, err := c.client.PodList(context.Background(), &request)
+	ctx, cancel := getContextWithTimeout(hyperContextTimeout)
+	defer cancel()
+
+	response, err := c.client.PodList(ctx, &request)
 	if err != nil {
 		return nil, err
 	}
@@ -366,7 +178,7 @@ func (c *HyperClient) ListPods() ([]HyperPod, error) {
 
 		req := grpctypes.PodInfoRequest{PodID: pod.PodID}
 
-		res, err := c.client.PodInfo(context.Background(), &req)
+		res, err := c.client.PodInfo(ctx, &req)
 		if err != nil {
 			return nil, err
 		}
@@ -382,7 +194,10 @@ func (c *HyperClient) ListPods() ([]HyperPod, error) {
 func (c *HyperClient) ListContainers() ([]HyperContainer, error) {
 	request := grpctypes.ContainerListRequest{}
 
-	response, err := c.client.ContainerList(context.Background(), &request)
+	ctx, cancel := getContextWithTimeout(hyperContextTimeout)
+	defer cancel()
+
+	response, err := c.client.ContainerList(ctx, &request)
 	if err != nil {
 		return nil, err
 	}
@@ -403,7 +218,11 @@ func (c *HyperClient) ListContainers() ([]HyperContainer, error) {
 
 func (c *HyperClient) Info() (*grpctypes.InfoResponse, error) {
 	request := grpctypes.InfoRequest{}
-	response, err := c.client.Info(context.Background(), &request)
+
+	ctx, cancel := getContextWithTimeout(hyperContextTimeout)
+	defer cancel()
+
+	response, err := c.client.Info(ctx, &request)
 	if err != nil {
 		return nil, err
 	}
@@ -416,7 +235,10 @@ func (c *HyperClient) ListImages() ([]HyperImage, error) {
 		All: false,
 	}
 
-	response, err := c.client.ImageList(context.Background(), &request)
+	ctx, cancel := getContextWithTimeout(hyperContextTimeout)
+	defer cancel()
+
+	response, err := c.client.ImageList(ctx, &request)
 	if err != nil {
 		return nil, err
 	}
@@ -440,7 +262,10 @@ func (c *HyperClient) RemoveImage(imageID string) error {
 		Image: imageID,
 	}
 
-	_, err := c.client.ImageRemove(context.Background(), &request)
+	ctx, cancel := getContextWithTimeout(hyperContextTimeout)
+	defer cancel()
+
+	_, err := c.client.ImageRemove(ctx, &request)
 	if err != nil {
 		return err
 	}
@@ -452,7 +277,11 @@ func (c *HyperClient) RemovePod(podID string) error {
 	request := grpctypes.PodRemoveRequest{
 		PodID: podID,
 	}
-	_, err := c.client.PodRemove(context.Background(), &request)
+
+	ctx, cancel := getContextWithTimeout(hyperContextTimeout)
+	defer cancel()
+
+	_, err := c.client.PodRemove(ctx, &request)
 	if err != nil {
 		return err
 	}
@@ -461,7 +290,10 @@ func (c *HyperClient) RemovePod(podID string) error {
 }
 
 func (c *HyperClient) StartPod(podID string) error {
-	stream, err := c.client.PodStart(context.Background())
+	ctx, cancel := getContextWithTimeout(hyperContextTimeout)
+	defer cancel()
+
+	stream, err := c.client.PodStart(ctx)
 	if err != nil {
 		return err
 	}
@@ -486,7 +318,11 @@ func (c *HyperClient) StopPod(podID string) error {
 	request := grpctypes.PodStopRequest{
 		PodID: podID,
 	}
-	_, err := c.client.PodStop(context.Background(), &request)
+
+	ctx, cancel := getContextWithTimeout(hyperContextTimeout)
+	defer cancel()
+
+	_, err := c.client.PodStop(ctx, &request)
 	if err != nil {
 		return err
 	}
@@ -506,23 +342,50 @@ func (c *HyperClient) PullImage(image string, credential string) error {
 		}
 	}
 
+	// We don't know the how long it will take to finish pulling, use pull progress to control it later
+	ctx, cancel := getContextWithCancel()
+	defer cancel()
+
 	request := grpctypes.ImagePullRequest{
 		Image: imageName,
 		Tag:   tag,
 		Auth:  authConfig,
 	}
-	stream, err := c.client.ImagePull(context.Background(), &request)
+	stream, err := c.client.ImagePull(ctx, &request)
 	if err != nil {
 		return err
 	}
 
-	for {
-		_, err := stream.Recv()
-		if err == io.EOF {
-			break
+	errC := make(chan error)
+	progressC := make(chan struct{})
+	ticker := time.NewTicker(defaultImagePullingStuckTimeout)
+	defer ticker.Stop()
+
+	go func() {
+		for {
+			_, err := stream.Recv()
+			if err == io.EOF {
+				errC <- nil
+				return
+			}
+			if err != nil {
+				errC <- err
+				return
+			}
+			progressC <- struct{}{}
 		}
-		if err != nil {
+	}()
+
+	for {
+		select {
+		case <-ticker.C:
+			return fmt.Errorf("Cancel pulling image %q because of no progress for %v", image, defaultImagePullingStuckTimeout)
+		case err = <-errC:
 			return err
+		case <-progressC:
+			ticker.Stop()
+			ticker = time.NewTicker(defaultImagePullingStuckTimeout)
+			glog.V(2).Infof("Pulling image: %s", image)
 		}
 	}
 
@@ -533,7 +396,11 @@ func (c *HyperClient) CreatePod(podSpec *grpctypes.UserPod) (string, error) {
 	request := grpctypes.PodCreateRequest{
 		PodSpec: podSpec,
 	}
-	response, err := c.client.PodCreate(context.Background(), &request)
+
+	ctx, cancel := getContextWithTimeout(hyperContextTimeout)
+	defer cancel()
+
+	response, err := c.client.PodCreate(ctx, &request)
 	if err != nil {
 		return "", err
 	}
@@ -541,139 +408,15 @@ func (c *HyperClient) CreatePod(podSpec *grpctypes.UserPod) (string, error) {
 	return response.PodID, nil
 }
 
-func (c *HyperClient) GetExitCode(container, tag string) error {
-	v := url.Values{}
-	v.Set("container", container)
-	v.Set(KEY_TAG, tag)
-	code := -1
-
-	body, _, err := c.call("GET", "/exitcode?"+v.Encode(), "", nil)
-	if err != nil {
-		return err
-	}
-
-	err = json.Unmarshal(body, &code)
-	if err != nil {
-		return err
-	}
-
-	if code != 0 {
-		return fmt.Errorf("Exit code %d", code)
-	}
-
-	return nil
-}
-
-func (c *HyperClient) GetTag() string {
-	dictionary := "0123456789abcdefghijklmnopqrstuvwxyz"
-
-	var bytes = make([]byte, 8)
-	rand.Read(bytes)
-	for k, v := range bytes {
-		bytes[k] = dictionary[v%byte(len(dictionary))]
-	}
-	return string(bytes)
-}
-
-func (c *HyperClient) hijack(method, path string, hijackOptions hijackOptions) error {
-	var params io.Reader
-	if hijackOptions.data != nil {
-		buf, err := json.Marshal(hijackOptions.data)
-		if err != nil {
-			return err
-		}
-		params = bytes.NewBuffer(buf)
-	}
-
-	if hijackOptions.tty {
-		in, isTerm := term.GetFdInfo(hijackOptions.in)
-		if isTerm {
-			state, err := term.SetRawTerminal(in)
-			if err != nil {
-				return err
-			}
-
-			defer term.RestoreTerminal(in, state)
-		}
-	}
-	req, err := http.NewRequest(method, fmt.Sprintf("/v%s%s", hyperMinimumVersion, path), params)
-	if err != nil {
-		return err
-	}
-
-	req.Header.Set("User-Agent", "kubelet")
-	req.Header.Set("Content-Type", "text/plain")
-	req.Header.Set("Connection", "Upgrade")
-	req.Header.Set("Upgrade", "tcp")
-	req.Host = HYPER_ADDR
-
-	dial, err := net.Dial(HYPER_PROTO, HYPER_ADDR)
-	if err != nil {
-		return err
-	}
-
-	clientconn := httputil.NewClientConn(dial, nil)
-	defer clientconn.Close()
-
-	clientconn.Do(req)
-
-	rwc, br := clientconn.Hijack()
-	defer rwc.Close()
-
-	errChanOut := make(chan error, 1)
-	errChanIn := make(chan error, 1)
-	exit := make(chan bool)
-
-	if hijackOptions.stdout == nil && hijackOptions.stderr == nil {
-		close(errChanOut)
-	}
-	if hijackOptions.stdout == nil {
-		hijackOptions.stdout = ioutil.Discard
-	}
-	if hijackOptions.stderr == nil {
-		hijackOptions.stderr = ioutil.Discard
-	}
-
-	go func() {
-		defer func() {
-			close(errChanOut)
-			close(exit)
-		}()
-
-		_, err := io.Copy(hijackOptions.stdout, br)
-		errChanOut <- err
-	}()
-
-	go func() {
-		defer close(errChanIn)
-
-		if hijackOptions.in != nil {
-			_, err := io.Copy(rwc, hijackOptions.in)
-			errChanIn <- err
-
-			rwc.(interface {
-				CloseWrite() error
-			}).CloseWrite()
-		}
-	}()
-
-	<-exit
-	select {
-	case err = <-errChanIn:
-		return err
-	case err = <-errChanOut:
-		return err
-	}
-
-	return nil
-}
-
-func (client *HyperClient) Attach(opts AttachToContainerOptions) error {
+func (c *HyperClient) Attach(opts AttachToContainerOptions) error {
 	if opts.Container == "" {
 		return fmt.Errorf("No Such Container %s", opts.Container)
 	}
 
-	stream, err := client.client.Attach(context.Background())
+	ctx, cancel := getContextWithTimeout(hyperContextTimeout)
+	defer cancel()
+
+	stream, err := c.client.Attach(ctx)
 	if err != nil {
 		return err
 	}
@@ -756,14 +499,17 @@ func (c *HyperClient) Exec(opts ExecInContainerOptions) error {
 		Tty:         opts.TTY,
 	}
 
-	createResponse, err := c.client.ExecCreate(context.Background(), &createRequest)
+	ctx, cancel := getContextWithTimeout(hyperContextTimeout)
+	defer cancel()
+
+	createResponse, err := c.client.ExecCreate(ctx, &createRequest)
 	if err != nil {
 		return err
 	}
 
 	execId := createResponse.ExecID
 
-	stream, err := c.client.ExecStart(context.Background())
+	stream, err := c.client.ExecStart(ctx)
 	if err != nil {
 		return err
 	}
@@ -848,7 +594,10 @@ func (c *HyperClient) ContainerLogs(opts ContainerLogsOptions) error {
 		Stderr:     true,
 	}
 
-	stream, err := c.client.ContainerLogs(context.Background(), &request)
+	ctx, cancel := getContextWithTimeout(hyperContextTimeout)
+	defer cancel()
+
+	stream, err := c.client.ContainerLogs(ctx, &request)
 	if err != nil {
 		return err
 	}
@@ -896,7 +645,10 @@ func (c *HyperClient) ListServices(podId string) ([]*grpctypes.UserService, erro
 		PodID: podId,
 	}
 
-	response, err := c.client.ServiceList(context.Background(), &request)
+	ctx, cancel := getContextWithTimeout(hyperContextTimeout)
+	defer cancel()
+
+	response, err := c.client.ServiceList(ctx, &request)
 	if err != nil {
 		if strings.Contains(err.Error(), "doesn't have services discovery") {
 			return nil, nil
@@ -914,7 +666,10 @@ func (c *HyperClient) UpdateServices(podId string, services []*grpctypes.UserSer
 		Services: services,
 	}
 
-	_, err := c.client.ServiceUpdate(context.Background(), &request)
+	ctx, cancel := getContextWithTimeout(hyperContextTimeout)
+	defer cancel()
+
+	_, err := c.client.ServiceUpdate(ctx, &request)
 	if err != nil {
 		return err
 	}
@@ -929,7 +684,10 @@ func (c *HyperClient) UpdatePodLabels(podId string, labels map[string]string) er
 		Labels:   labels,
 	}
 
-	_, err := c.client.SetPodLabels(context.Background(), &request)
+	ctx, cancel := getContextWithTimeout(hyperContextTimeout)
+	defer cancel()
+
+	_, err := c.client.SetPodLabels(ctx, &request)
 	if err != nil {
 		return err
 	}
