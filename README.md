@@ -22,6 +22,10 @@ Hypernetes also integrates with a number of OpenStack projects:
 
 ![Architecture Diagram](architecture.png?raw=true "Architecture overview")
 
+## Getting Started
+
+Please check [h8s getting started guide](hack/hypernetes/README.md) to play with Hypernetes.
+
 ## Find out more
 
 * [Documentation](https://github.com/hyperhq/hypernetes-book)
@@ -30,7 +34,7 @@ Hypernetes also integrates with a number of OpenStack projects:
 ## Contact Us
 
 * Twitter: [@hyper_sh](https://twitter.com/hyper_sh)
-* Blog: [https://hyper.sh/blog.html](https://hyper.sh/blog.html)
+* Blog: [https://blog.hyper.sh](https://blog.hyper.sh)
 * Slack: [#hyper](https://slack.hyper.sh/) (The IRC has been migrated to slack.)
 
 [![Analytics](https://kubernetes-site.appspot.com/UA-36037335-10/GitHub/README.md?pixel)]()

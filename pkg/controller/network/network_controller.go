@@ -420,12 +420,12 @@ func (e *NetworkController) getEndpointHosts(service *api.Service) ([]*types.Hos
 	}
 
 	for _, svc := range service.Spec.Ports {
-		var targetPort int
+		var targetPort int32
 		portName := svc.TargetPort
 		if portName.String() == "" {
 			targetPort = svc.Port
 		} else if portName.Type == intstr.Int {
-			targetPort = int(portName.IntVal)
+			targetPort = int32(portName.IntVal)
 		}
 
 		for _, hostport := range hosts {

@@ -17,30 +17,24 @@ limitations under the License.
 package hyper
 
 import (
-	"bytes"
-	"crypto/rand"
+	"encoding/base64"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
-	"net"
-	"net/http"
-	"net/http/httputil"
-	"net/url"
-	"strconv"
 	"strings"
 	"time"
 
 	"github.com/docker/docker/pkg/parsers"
-	"github.com/docker/docker/pkg/term"
 	"github.com/golang/glog"
+	"google.golang.org/grpc"
+	grpctypes "k8s.io/kubernetes/pkg/kubelet/hyper/types"
 )
 
 const (
 	HYPER_PROTO       = "unix"
 	HYPER_ADDR        = "/var/run/hyper.sock"
 	HYPER_SCHEME      = "http"
+	HYPER_SERVER      = "127.0.0.1:22318"
 	DEFAULT_IMAGE_TAG = "latest"
 
 	KEY_COMMAND        = "command"
@@ -84,85 +78,38 @@ const (
 	TYPE_POD       = "pod"
 
 	VOLUME_TYPE_VFS = "vfs"
+
+	//timeout in second for creating context with timeout.
+	hyperContextTimeout = 15 * time.Second
+
+	//timeout for image pulling progress report
+	defaultImagePullingStuckTimeout = 1 * time.Minute
 )
 
 type HyperClient struct {
 	proto  string
 	addr   string
 	scheme string
+	client grpctypes.PublicAPIClient
 }
 
-type AttachToContainerOptions struct {
-	Container    string
-	InputStream  io.Reader
-	OutputStream io.Writer
-	ErrorStream  io.Writer
-	TTY          bool
-}
-
-type ContainerLogsOptions struct {
-	Container    string
-	OutputStream io.Writer
-	ErrorStream  io.Writer
-
-	Follow     bool
-	Since      int64
-	Timestamps bool
-	TailLines  int64
-}
-
-type ExecInContainerOptions struct {
-	Container    string
-	InputStream  io.Reader
-	OutputStream io.Writer
-	ErrorStream  io.Writer
-	Commands     []string
-	TTY          bool
-}
-
-type hijackOptions struct {
-	in     io.Reader
-	stdout io.Writer
-	stderr io.Writer
-	data   interface{}
-	tty    bool
-}
-
-/*
-{"Cause":"VM shut down","Code":0,"ID":"pod-MavdmoyvEP"}
-*/
-type podRemoveResult struct {
-	Cause string `json:"Cause"`
-	Code  int    `json:"Code"`
-	ID    string `json:"ID"`
-}
-
-func NewHyperClient() *HyperClient {
+func NewHyperClient() (*HyperClient, error) {
 	var (
 		scheme = HYPER_SCHEME
 		proto  = HYPER_PROTO
 		addr   = HYPER_ADDR
 	)
+	conn, err := grpc.Dial(HYPER_SERVER, grpc.WithInsecure())
+	if err != nil {
+		return nil, err
+	}
 
 	return &HyperClient{
 		proto:  proto,
 		addr:   addr,
 		scheme: scheme,
-	}
-}
-
-var (
-	ErrConnectionRefused = errors.New("Cannot connect to the Hyper daemon. Is 'hyperd' running on this host?")
-)
-
-func (cli *HyperClient) encodeData(data string) (*bytes.Buffer, error) {
-	params := bytes.NewBuffer(nil)
-	if data != "" {
-		if _, err := params.Write([]byte(data)); err != nil {
-			return nil, err
-		}
-	}
-	return params, nil
+		client: grpctypes.NewPublicAPIClient(conn),
+	}, nil
 }
 
 // parseImageName parses a docker image string into two parts: repo and tag.
@@ -176,207 +123,68 @@ func parseImageName(image string) (string, string) {
 	return repoToPull, tag
 }
 
-func (cli *HyperClient) clientRequest(method, path string, in io.Reader, headers map[string][]string) (io.ReadCloser, string, int, *net.Conn, *httputil.ClientConn, error) {
-	expectedPayload := (method == "POST" || method == "PUT")
-	if expectedPayload && in == nil {
-		in = bytes.NewReader([]byte{})
-	}
-	req, err := http.NewRequest(method, path, in)
-	if err != nil {
-		return nil, "", -1, nil, nil, err
-	}
-	req.Header.Set("User-Agent", "kubelet")
-	req.URL.Host = cli.addr
-	req.URL.Scheme = cli.scheme
+func (c *HyperClient) Version() (string, error) {
+	request := grpctypes.VersionRequest{}
 
-	if headers != nil {
-		for k, v := range headers {
-			req.Header[k] = v
-		}
-	}
+	ctx, cancel := getContextWithTimeout(hyperContextTimeout)
+	defer cancel()
 
-	if expectedPayload && req.Header.Get("Content-Type") == "" {
-		req.Header.Set("Content-Type", "text/plain")
-	}
-
-	var dial net.Conn
-	dial, err = net.DialTimeout(HYPER_PROTO, HYPER_ADDR, 32*time.Second)
-	if err != nil {
-		return nil, "", -1, nil, nil, err
-	}
-
-	clientconn := httputil.NewClientConn(dial, nil)
-	resp, err := clientconn.Do(req)
-	statusCode := -1
-	if resp != nil {
-		statusCode = resp.StatusCode
-	}
-	if err != nil {
-		if strings.Contains(err.Error(), "connection refused") {
-			return nil, "", statusCode, &dial, clientconn, ErrConnectionRefused
-		}
-
-		return nil, "", statusCode, &dial, clientconn, fmt.Errorf("An error occurred trying to connect: %v", err)
-	}
-
-	if statusCode < 200 || statusCode >= 400 {
-		body, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			return nil, "", statusCode, &dial, clientconn, err
-		}
-		if len(body) == 0 {
-			return nil, "", statusCode, nil, nil, fmt.Errorf("Error: request returned %s for API route and version %s, check if the server supports the requested API version", http.StatusText(statusCode), req.URL)
-		}
-
-		return nil, "", statusCode, &dial, clientconn, fmt.Errorf("%s", bytes.TrimSpace(body))
-	}
-
-	return resp.Body, resp.Header.Get("Content-Type"), statusCode, &dial, clientconn, nil
-}
-
-func (cli *HyperClient) call(method, path string, data string, headers map[string][]string) ([]byte, int, error) {
-	params, err := cli.encodeData(data)
-	if err != nil {
-		return nil, -1, err
-	}
-
-	if data != "" {
-		if headers == nil {
-			headers = make(map[string][]string)
-		}
-		headers["Content-Type"] = []string{"application/json"}
-	}
-
-	start := time.Now().UTC()
-	defer func() {
-		glog.V(5).Infof("HyperClient: calling %s %s spent %s", method, path, time.Since(start).String())
-	}()
-	body, _, statusCode, dial, clientconn, err := cli.clientRequest(method, path, params, headers)
-	if dial != nil {
-		defer (*dial).Close()
-	}
-	if clientconn != nil {
-		defer clientconn.Close()
-	}
-	if err != nil {
-		return nil, statusCode, err
-	}
-
-	if body == nil {
-		return nil, statusCode, err
-	}
-
-	defer body.Close()
-
-	result, err := ioutil.ReadAll(body)
-	if err != nil {
-		return nil, -1, err
-	}
-
-	return result, statusCode, nil
-}
-
-func (cli *HyperClient) stream(method, path string, in io.Reader, out io.Writer, headers map[string][]string) error {
-	body, _, _, dial, clientconn, err := cli.clientRequest(method, path, in, headers)
-	if dial != nil {
-		defer (*dial).Close()
-	}
-	if clientconn != nil {
-		defer clientconn.Close()
-	}
-	if err != nil {
-		return err
-	}
-
-	defer body.Close()
-
-	if out != nil {
-		_, err := io.Copy(out, body)
-		return err
-	}
-
-	return nil
-
-}
-
-func (client *HyperClient) Version() (string, error) {
-	body, _, err := client.call("GET", "/version", "", nil)
+	response, err := c.client.Version(ctx, &request)
 	if err != nil {
 		return "", err
 	}
 
-	var info map[string]interface{}
-	err = json.Unmarshal(body, &info)
-	if err != nil {
-		return "", err
-	}
-
-	version, ok := info["Version"]
-	if !ok {
-		return "", fmt.Errorf("Can not get hyper version")
-	}
-
-	return version.(string), nil
+	return response.Version, nil
 }
 
-func (client *HyperClient) GetPodIDByName(podName string) (string, error) {
-	v := url.Values{}
-	v.Set(KEY_ITEM, TYPE_POD)
-	body, _, err := client.call("GET", "/list?"+v.Encode(), "", nil)
+func (c *HyperClient) GetPodIDByName(podName string) (string, error) {
+	request := grpctypes.PodListRequest{}
+
+	ctx, cancel := getContextWithTimeout(hyperContextTimeout)
+	defer cancel()
+
+	response, err := c.client.PodList(ctx, &request)
 	if err != nil {
 		return "", err
 	}
 
-	var podList map[string]interface{}
-	err = json.Unmarshal(body, &podList)
-	if err != nil {
-		return "", err
-	}
-
-	for _, pod := range podList["podData"].([]interface{}) {
-		fields := strings.Split(pod.(string), ":")
-		if fields[1] == podName {
-			return fields[0], nil
+	for _, pod := range response.PodList {
+		if pod.PodName == podName {
+			return pod.PodID, nil
 		}
 	}
 
-	return "", nil
+	return "", fmt.Errorf("Can not get PodID by name %s", podName)
 }
 
-func (client *HyperClient) ListPods() ([]HyperPod, error) {
-	v := url.Values{}
-	v.Set(KEY_ITEM, TYPE_POD)
-	body, _, err := client.call("GET", "/list?"+v.Encode(), "", nil)
-	if err != nil {
-		return nil, err
-	}
+func (c *HyperClient) ListPods() ([]HyperPod, error) {
+	request := grpctypes.PodListRequest{}
 
-	var podList map[string]interface{}
-	err = json.Unmarshal(body, &podList)
+	ctx, cancel := getContextWithTimeout(hyperContextTimeout)
+	defer cancel()
+
+	response, err := c.client.PodList(ctx, &request)
 	if err != nil {
 		return nil, err
 	}
 
 	var result []HyperPod
-	for _, pod := range podList["podData"].([]interface{}) {
-		fields := strings.Split(pod.(string), ":")
+	for _, pod := range response.PodList {
+
 		var hyperPod HyperPod
-		hyperPod.PodID = fields[0]
-		hyperPod.PodName = fields[1]
-		hyperPod.VmName = fields[2]
-		hyperPod.Status = fields[3]
+		hyperPod.PodID = pod.PodID
+		hyperPod.PodName = pod.PodName
+		hyperPod.VmName = pod.VmID
+		hyperPod.Status = pod.Status
 
-		values := url.Values{}
-		values.Set(KEY_POD_NAME, hyperPod.PodID)
-		body, _, err = client.call("GET", "/pod/info?"+values.Encode(), "", nil)
+		req := grpctypes.PodInfoRequest{PodID: pod.PodID}
+
+		res, err := c.client.PodInfo(ctx, &req)
 		if err != nil {
 			return nil, err
 		}
 
-		err = json.Unmarshal(body, &hyperPod.PodInfo)
-		if err != nil {
-			return nil, err
-		}
+		hyperPod.PodInfo = res.PodInfo
 
 		result = append(result, hyperPod)
 	}
@@ -384,31 +192,24 @@ func (client *HyperClient) ListPods() ([]HyperPod, error) {
 	return result, nil
 }
 
-func (client *HyperClient) ListContainers() ([]HyperContainer, error) {
-	v := url.Values{}
-	v.Set(KEY_ITEM, TYPE_CONTAINER)
-	body, _, err := client.call("GET", "/list?"+v.Encode(), "", nil)
-	if err != nil {
-		return nil, err
-	}
+func (c *HyperClient) ListContainers() ([]HyperContainer, error) {
+	request := grpctypes.ContainerListRequest{}
 
-	var containerList map[string]interface{}
-	err = json.Unmarshal(body, &containerList)
+	ctx, cancel := getContextWithTimeout(hyperContextTimeout)
+	defer cancel()
+
+	response, err := c.client.ContainerList(ctx, &request)
 	if err != nil {
 		return nil, err
 	}
 
 	var result []HyperContainer
-	for _, container := range containerList["cData"].([]interface{}) {
-		fields := strings.Split(container.(string), ":")
+	for _, container := range response.ContainerList {
 		var h HyperContainer
-		h.containerID = fields[0]
-		if len(fields[1]) < 1 {
-			return nil, errors.New("Hyper container name not resolved")
-		}
-		h.name = fields[1][1:]
-		h.podID = fields[2]
-		h.status = fields[3]
+		h.containerID = container.ContainerID
+		h.name = container.ContainerName[1:]
+		h.podID = container.PodID
+		h.status = container.Status
 
 		result = append(result, h)
 	}
@@ -416,59 +217,40 @@ func (client *HyperClient) ListContainers() ([]HyperContainer, error) {
 	return result, nil
 }
 
-func (client *HyperClient) Info() (map[string]interface{}, error) {
-	body, _, err := client.call("GET", "/info", "", nil)
+func (c *HyperClient) Info() (*grpctypes.InfoResponse, error) {
+	request := grpctypes.InfoRequest{}
+
+	ctx, cancel := getContextWithTimeout(hyperContextTimeout)
+	defer cancel()
+
+	response, err := c.client.Info(ctx, &request)
 	if err != nil {
 		return nil, err
 	}
 
-	var result map[string]interface{}
-	err = json.Unmarshal(body, &result)
-	if err != nil {
-		return nil, err
-	}
-
-	return result, nil
+	return response, nil
 }
 
-func (client *HyperClient) ListImages() ([]HyperImage, error) {
-	v := url.Values{}
-	v.Set("all", "no")
-	body, _, err := client.call("GET", "/images/get?"+v.Encode(), "", nil)
-	if err != nil {
-		return nil, err
+func (c *HyperClient) ListImages() ([]HyperImage, error) {
+	request := grpctypes.ImageListRequest{
+		All: false,
 	}
 
-	var images map[string][]string
-	err = json.Unmarshal(body, &images)
+	ctx, cancel := getContextWithTimeout(hyperContextTimeout)
+	defer cancel()
+
+	response, err := c.client.ImageList(ctx, &request)
 	if err != nil {
 		return nil, err
 	}
 
 	var hyperImages []HyperImage
-	for _, image := range images["imagesList"] {
-		imageDesc := strings.Split(image, ":")
-		if len(imageDesc) != 5 {
-			glog.Warning("Hyper: can not parse image info")
-			return nil, fmt.Errorf("Hyper: can not parse image info")
-		}
-
+	for _, image := range response.ImageList {
 		var imageHyper HyperImage
-		imageHyper.repository = imageDesc[0]
-		imageHyper.tag = imageDesc[1]
-		imageHyper.imageID = imageDesc[2]
-
-		createdAt, err := strconv.ParseInt(imageDesc[3], 10, 0)
-		if err != nil {
-			return nil, err
-		}
-		imageHyper.createdAt = createdAt
-
-		virtualSize, err := strconv.ParseInt(imageDesc[4], 10, 0)
-		if err != nil {
-			return nil, err
-		}
-		imageHyper.virtualSize = virtualSize
+		imageHyper.repository, imageHyper.tag = parseImageName(image.RepoTags[0])
+		imageHyper.imageID = image.Id
+		imageHyper.createdAt = image.Created
+		imageHyper.virtualSize = image.VirtualSize
 
 		hyperImages = append(hyperImages, imageHyper)
 	}
@@ -476,10 +258,15 @@ func (client *HyperClient) ListImages() ([]HyperImage, error) {
 	return hyperImages, nil
 }
 
-func (client *HyperClient) RemoveImage(imageID string) error {
-	v := url.Values{}
-	v.Set(KEY_IMAGEID, imageID)
-	_, _, err := client.call("DELETE", "/images?"+v.Encode(), "", nil)
+func (c *HyperClient) RemoveImage(imageID string) error {
+	request := grpctypes.ImageRemoveRequest{
+		Image: imageID,
+	}
+
+	ctx, cancel := getContextWithTimeout(hyperContextTimeout)
+	defer cancel()
+
+	_, err := c.client.ImageRemove(ctx, &request)
 	if err != nil {
 		return err
 	}
@@ -487,309 +274,375 @@ func (client *HyperClient) RemoveImage(imageID string) error {
 	return nil
 }
 
-func (client *HyperClient) RemovePod(podID string) error {
-	v := url.Values{}
-	v.Set(KEY_POD_ID, podID)
-	body, _, err := client.call("DELETE", "/pod?"+v.Encode(), "", nil)
-	if err != nil && !strings.Contains(err.Error(), "Can not find") {
+func (c *HyperClient) RemovePod(podID string) error {
+	request := grpctypes.PodRemoveRequest{
+		PodID: podID,
+	}
+
+	ctx, cancel := getContextWithTimeout(hyperContextTimeout)
+	defer cancel()
+
+	_, err := c.client.PodRemove(ctx, &request)
+	if err != nil {
 		return err
 	}
 
-	var result podRemoveResult
-	err = json.Unmarshal(body, &result)
+	return nil
+}
+
+func (c *HyperClient) StartPod(podID string) error {
+	ctx, cancel := getContextWithTimeout(hyperContextTimeout)
+	defer cancel()
+
+	stream, err := c.client.PodStart(ctx)
 	if err != nil {
-		glog.Warningf("Can not unmarshal pod delete result: %s, assume removed", string(body))
+		return err
+	}
+
+	request := grpctypes.PodStartMessage{
+		PodID: podID,
+	}
+	err = stream.Send(&request)
+	if err != nil {
+		return err
+	}
+
+	_, err = stream.Recv()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *HyperClient) StopPod(podID string) error {
+	request := grpctypes.PodStopRequest{
+		PodID: podID,
+	}
+
+	ctx, cancel := getContextWithTimeout(hyperContextTimeout)
+	defer cancel()
+
+	_, err := c.client.PodStop(ctx, &request)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *HyperClient) PullImage(image string, credential string) error {
+	imageName, tag := parseImageName(image)
+	authConfig := &grpctypes.AuthConfig{}
+	if credential != "" {
+		authJSON := base64.NewDecoder(base64.URLEncoding, strings.NewReader(credential))
+		if err := json.NewDecoder(authJSON).Decode(authConfig); err != nil {
+			// for a pull it is not an error if no auth was given
+			// to increase compatibility with the existing api it is defaulting to be empty
+			authConfig = &grpctypes.AuthConfig{}
+		}
+	}
+
+	// We don't know the how long it will take to finish pulling, use pull progress to control it later
+	ctx, cancel := getContextWithCancel()
+	defer cancel()
+
+	request := grpctypes.ImagePullRequest{
+		Image: imageName,
+		Tag:   tag,
+		Auth:  authConfig,
+	}
+	stream, err := c.client.ImagePull(ctx, &request)
+	if err != nil {
+		return err
+	}
+
+	errC := make(chan error)
+	progressC := make(chan struct{})
+	ticker := time.NewTicker(defaultImagePullingStuckTimeout)
+	defer ticker.Stop()
+
+	go func() {
+		for {
+			_, err := stream.Recv()
+			if err == io.EOF {
+				errC <- nil
+				return
+			}
+			if err != nil {
+				errC <- err
+				return
+			}
+			progressC <- struct{}{}
+		}
+	}()
+
+	for {
+		select {
+		case <-ticker.C:
+			return fmt.Errorf("Cancel pulling image %q because of no progress for %v", image, defaultImagePullingStuckTimeout)
+		case err = <-errC:
+			return err
+		case <-progressC:
+			ticker.Stop()
+			ticker = time.NewTicker(defaultImagePullingStuckTimeout)
+			glog.V(2).Infof("Pulling image: %s", image)
+		}
+	}
+
+	return nil
+}
+
+func (c *HyperClient) CreatePod(podSpec *grpctypes.UserPod) (string, error) {
+	request := grpctypes.PodCreateRequest{
+		PodSpec: podSpec,
+	}
+
+	ctx, cancel := getContextWithTimeout(hyperContextTimeout)
+	defer cancel()
+
+	response, err := c.client.PodCreate(ctx, &request)
+	if err != nil {
+		return "", err
+	}
+
+	return response.PodID, nil
+}
+
+func (c *HyperClient) Attach(opts AttachToContainerOptions) error {
+	if opts.Container == "" {
+		return fmt.Errorf("No Such Container %s", opts.Container)
+	}
+
+	ctx, cancel := getContextWithTimeout(hyperContextTimeout)
+	defer cancel()
+
+	stream, err := c.client.Attach(ctx)
+	if err != nil {
+		return err
+	}
+
+	request := grpctypes.AttachMessage{
+		ContainerID: opts.Container,
+	}
+	if err := stream.Send(&request); err != nil {
 		return nil
 	}
-	// !(errCode == types.E_OK || errCode == types.E_VM_SHUTDOWN)
-	if result.Code != 0 && result.Code != 2 {
-		glog.Errorf("Delete pod %s failed: %s", podID, result.Cause)
-		return errors.New(result.Cause)
+
+	var recvStdoutError chan error
+	if opts.OutputStream != nil {
+		recvStdoutError = getReturnValue(func() error {
+			for {
+				res, err := stream.Recv()
+				if err != nil {
+					if err == io.EOF {
+						return nil
+					}
+					return err
+				}
+				n, err := opts.OutputStream.Write(res.Data)
+				if err != nil {
+					return err
+				}
+				if n != len(res.Data) {
+					return io.ErrShortWrite
+				}
+			}
+		})
 	}
 
-	return nil
-}
+	var reqStdinError chan error
+	if opts.InputStream != nil {
+		reqStdinError = getReturnValue(func() error {
+			for {
+				req := make([]byte, 512)
+				n, err := opts.InputStream.Read(req)
+				if err := stream.Send(&grpctypes.AttachMessage{Data: req[:n]}); err != nil {
+					return err
+				}
+				if err == io.EOF {
+					return nil
+				}
+				if err != nil {
+					return err
+				}
+			}
+		})
+	}
 
-func (client *HyperClient) StartPod(podID string) error {
-	v := url.Values{}
-	v.Set(KEY_POD_ID, podID)
-	_, _, err := client.call("POST", "/pod/start?"+v.Encode(), "", nil)
+	if opts.OutputStream != nil && opts.InputStream != nil {
+		select {
+		case err = <-recvStdoutError:
+		case err = <-reqStdinError:
+		}
+	} else if opts.OutputStream != nil {
+		err = <-recvStdoutError
+	} else if opts.InputStream != nil {
+		err = <-reqStdinError
+	}
+
 	if err != nil {
 		return err
 	}
 
+	//TODO: GetExitCode
 	return nil
 }
 
-func (client *HyperClient) StopPod(podID string) error {
-	v := url.Values{}
-	v.Set(KEY_POD_ID, podID)
-	v.Set("stopVM", "yes")
-	_, _, err := client.call("POST", "/pod/stop?"+v.Encode(), "", nil)
+func (c *HyperClient) Exec(opts ExecInContainerOptions) error {
+	if opts.Container == "" {
+		return fmt.Errorf("No Such Container %s", opts.Container)
+	}
+
+	createRequest := grpctypes.ExecCreateRequest{
+		ContainerID: opts.Container,
+		Command:     opts.Commands,
+		Tty:         opts.TTY,
+	}
+
+	ctx, cancel := getContextWithTimeout(hyperContextTimeout)
+	defer cancel()
+
+	createResponse, err := c.client.ExecCreate(ctx, &createRequest)
 	if err != nil {
 		return err
 	}
 
-	return nil
-}
+	execId := createResponse.ExecID
 
-func (client *HyperClient) PullImage(image string, credential string) error {
-	v := url.Values{}
-
-	imageName, tag := parseImageName(image)
-	v.Set(KEY_IMAGENAME, imageName)
-	v.Set(KEY_TAG, tag)
-
-	headers := make(map[string][]string)
-	if credential != "" {
-		headers["X-Registry-Auth"] = []string{credential}
-	}
-
-	err := client.stream("POST", "/image/create?"+v.Encode(), nil, nil, headers)
+	stream, err := c.client.ExecStart(ctx)
 	if err != nil {
 		return err
 	}
 
-	return nil
-}
-
-func (client *HyperClient) CreatePod(podArgs string) (map[string]interface{}, error) {
-	glog.V(5).Infof("Hyper: starting to create pod %s", podArgs)
-	body, _, err := client.call("POST", "/pod/create", podArgs, nil)
-	if err != nil {
-		return nil, err
+	startRequest := grpctypes.ExecStartRequest{
+		ContainerID: opts.Container,
+		ExecID:      execId,
 	}
-
-	var result map[string]interface{}
-	err = json.Unmarshal(body, &result)
-	if err != nil {
-		return nil, err
-	}
-
-	return result, nil
-}
-
-func (c *HyperClient) GetExitCode(container, tag string) error {
-	v := url.Values{}
-	v.Set("container", container)
-	v.Set(KEY_TAG, tag)
-	code := -1
-
-	body, _, err := c.call("GET", "/exitcode?"+v.Encode(), "", nil)
+	err = stream.Send(&startRequest)
 	if err != nil {
 		return err
 	}
 
-	err = json.Unmarshal(body, &code)
+	var recvStdoutError chan error
+	if opts.OutputStream != nil {
+		recvStdoutError = getReturnValue(func() error {
+			for {
+				res, err := stream.Recv()
+				if err != nil {
+					if err == io.EOF {
+						return nil
+					}
+					return err
+				}
+				n, err := opts.OutputStream.Write(res.Stdout)
+				if err != nil {
+					return err
+				}
+				if n != len(res.Stdout) {
+					return io.ErrShortWrite
+				}
+			}
+		})
+	}
+
+	var reqStdinError chan error
+	if opts.InputStream != nil {
+		reqStdinError = getReturnValue(func() error {
+			for {
+				req := make([]byte, 512)
+				n, err := opts.InputStream.Read(req)
+				if err := stream.Send(&grpctypes.ExecStartRequest{Stdin: req[:n]}); err != nil {
+					return err
+				}
+				if err == io.EOF {
+					return nil
+				}
+				if err != nil {
+					return err
+				}
+			}
+		})
+	}
+
+	if opts.OutputStream != nil && opts.InputStream != nil {
+		select {
+		case err = <-recvStdoutError:
+		case err = <-reqStdinError:
+		}
+	} else if opts.OutputStream != nil {
+		err = <-recvStdoutError
+	} else if opts.InputStream != nil {
+		err = <-reqStdinError
+	}
+
 	if err != nil {
 		return err
 	}
 
-	if code != 0 {
-		return fmt.Errorf("Exit code %d", code)
-	}
-
+	//TODO: GetExitCode
 	return nil
 }
 
-func (c *HyperClient) GetTag() string {
-	dictionary := "0123456789abcdefghijklmnopqrstuvwxyz"
-
-	var bytes = make([]byte, 8)
-	rand.Read(bytes)
-	for k, v := range bytes {
-		bytes[k] = dictionary[v%byte(len(dictionary))]
+func (c *HyperClient) ContainerLogs(opts ContainerLogsOptions) error {
+	request := grpctypes.ContainerLogsRequest{
+		Container:  opts.Container,
+		Follow:     opts.Follow,
+		Timestamps: opts.Timestamps,
+		Tail:       fmt.Sprintf("%d", opts.TailLines),
+		Since:      fmt.Sprintf("%d", opts.Since),
+		Stdout:     true,
+		Stderr:     true,
 	}
-	return string(bytes)
-}
 
-func (c *HyperClient) hijack(method, path string, hijackOptions hijackOptions) error {
-	var params io.Reader
-	if hijackOptions.data != nil {
-		buf, err := json.Marshal(hijackOptions.data)
+	ctx, cancel := getContextWithTimeout(hyperContextTimeout)
+	defer cancel()
+
+	stream, err := c.client.ContainerLogs(ctx, &request)
+	if err != nil {
+		return err
+	}
+
+	for {
+		res, err := stream.Recv()
+		if err == io.EOF {
+			if opts.Follow == true {
+				continue
+			}
+			break
+		}
 		if err != nil {
 			return err
 		}
-		params = bytes.NewBuffer(buf)
-	}
 
-	if hijackOptions.tty {
-		in, isTerm := term.GetFdInfo(hijackOptions.in)
-		if isTerm {
-			state, err := term.SetRawTerminal(in)
+		if len(res.Log) > 0 {
+			// there are 8 bytes of prefix in every line of hyperd's log
+			n, err := opts.OutputStream.Write(res.Log[8:])
 			if err != nil {
 				return err
 			}
-
-			defer term.RestoreTerminal(in, state)
+			if n != len(res.Log)-8 {
+				return io.ErrShortWrite
+			}
 		}
-	}
-	req, err := http.NewRequest(method, fmt.Sprintf("/v%s%s", hyperMinimumVersion, path), params)
-	if err != nil {
-		return err
-	}
-
-	req.Header.Set("User-Agent", "kubelet")
-	req.Header.Set("Content-Type", "text/plain")
-	req.Header.Set("Connection", "Upgrade")
-	req.Header.Set("Upgrade", "tcp")
-	req.Host = HYPER_ADDR
-
-	dial, err := net.Dial(HYPER_PROTO, HYPER_ADDR)
-	if err != nil {
-		return err
-	}
-
-	clientconn := httputil.NewClientConn(dial, nil)
-	defer clientconn.Close()
-
-	clientconn.Do(req)
-
-	rwc, br := clientconn.Hijack()
-	defer rwc.Close()
-
-	errChanOut := make(chan error, 1)
-	errChanIn := make(chan error, 1)
-	exit := make(chan bool)
-
-	if hijackOptions.stdout == nil && hijackOptions.stderr == nil {
-		close(errChanOut)
-	}
-	if hijackOptions.stdout == nil {
-		hijackOptions.stdout = ioutil.Discard
-	}
-	if hijackOptions.stderr == nil {
-		hijackOptions.stderr = ioutil.Discard
-	}
-
-	go func() {
-		defer func() {
-			close(errChanOut)
-			close(exit)
-		}()
-
-		_, err := io.Copy(hijackOptions.stdout, br)
-		errChanOut <- err
-	}()
-
-	go func() {
-		defer close(errChanIn)
-
-		if hijackOptions.in != nil {
-			_, err := io.Copy(rwc, hijackOptions.in)
-			errChanIn <- err
-
-			rwc.(interface {
-				CloseWrite() error
-			}).CloseWrite()
-		}
-	}()
-
-	<-exit
-	select {
-	case err = <-errChanIn:
-		return err
-	case err = <-errChanOut:
-		return err
 	}
 
 	return nil
-}
-
-func (client *HyperClient) Attach(opts AttachToContainerOptions) error {
-	if opts.Container == "" {
-		return fmt.Errorf("No Such Container %s", opts.Container)
-	}
-
-	tag := client.GetTag()
-	v := url.Values{}
-	v.Set(KEY_TYPE, TYPE_CONTAINER)
-	v.Set(KEY_VALUE, opts.Container)
-	v.Set(KEY_TAG, tag)
-	path := "/attach?" + v.Encode()
-	err := client.hijack("POST", path, hijackOptions{
-		in:     opts.InputStream,
-		stdout: opts.OutputStream,
-		stderr: opts.ErrorStream,
-		tty:    opts.TTY,
-	})
-
-	if err != nil {
-		return err
-	}
-
-	return client.GetExitCode(opts.Container, tag)
-}
-
-func (client *HyperClient) Exec(opts ExecInContainerOptions) error {
-	if opts.Container == "" {
-		return fmt.Errorf("No Such Container %s", opts.Container)
-	}
-
-	command, err := json.Marshal(opts.Commands)
-	if err != nil {
-		return err
-	}
-
-	v := url.Values{}
-	tag := client.GetTag()
-	v.Set(KEY_TYPE, TYPE_CONTAINER)
-	v.Set(KEY_VALUE, opts.Container)
-	v.Set(KEY_TAG, tag)
-	v.Set(KEY_COMMAND, string(command))
-	v.Set(KEY_TTY, strconv.FormatBool(opts.TTY))
-	path := "/exec?" + v.Encode()
-	err = client.hijack("POST", path, hijackOptions{
-		in:     opts.InputStream,
-		stdout: opts.OutputStream,
-		stderr: opts.ErrorStream,
-		tty:    opts.TTY,
-	})
-	if err != nil {
-		return err
-	}
-
-	return client.GetExitCode(opts.Container, tag)
-}
-
-func (client *HyperClient) ContainerLogs(opts ContainerLogsOptions) error {
-	if opts.Container == "" {
-		return fmt.Errorf("No Such Container %s", opts.Container)
-	}
-
-	v := url.Values{}
-	v.Set(TYPE_CONTAINER, opts.Container)
-	v.Set("stdout", "yes")
-	v.Set("stderr", "yes")
-	if opts.TailLines > 0 {
-		v.Set("tail", fmt.Sprintf("%d", opts.TailLines))
-	}
-	if opts.Follow {
-		v.Set("follow", "yes")
-	}
-	if opts.Timestamps {
-		v.Set("timestamps", "yes")
-	}
-	if opts.Since > 0 {
-		v.Set("since", fmt.Sprintf("%d", opts.Since))
-	}
-
-	headers := make(map[string][]string)
-	headers["User-Agent"] = []string{"kubelet"}
-	headers["Content-Type"] = []string{"text/plain"}
-
-	path := "/container/logs?" + v.Encode()
-	return client.stream("GET", path, nil, opts.OutputStream, headers)
 }
 
 func (client *HyperClient) IsImagePresent(repo, tag string) (bool, error) {
 	return true, nil
 }
 
-func (client *HyperClient) ListServices(podId string) ([]HyperService, error) {
-	v := url.Values{}
-	v.Set("podId", podId)
-	body, _, err := client.call("GET", "/service/list?"+v.Encode(), "", nil)
+func (c *HyperClient) ListServices(podId string) ([]*grpctypes.UserService, error) {
+	request := grpctypes.ServiceListRequest{
+		PodID: podId,
+	}
+
+	ctx, cancel := getContextWithTimeout(hyperContextTimeout)
+	defer cancel()
+
+	response, err := c.client.ServiceList(ctx, &request)
 	if err != nil {
 		if strings.Contains(err.Error(), "doesn't have services discovery") {
 			return nil, nil
@@ -798,25 +651,19 @@ func (client *HyperClient) ListServices(podId string) ([]HyperService, error) {
 		}
 	}
 
-	var svcList []HyperService
-	err = json.Unmarshal(body, &svcList)
-	if err != nil {
-		return nil, err
-	}
-
-	return svcList, nil
+	return response.Services, nil
 }
 
-func (client *HyperClient) UpdateServices(podId string, services []HyperService) error {
-	v := url.Values{}
-	v.Set("podId", podId)
-
-	serviceData, err := json.Marshal(services)
-	if err != nil {
-		return err
+func (c *HyperClient) UpdateServices(podId string, services []*grpctypes.UserService) error {
+	request := grpctypes.ServiceUpdateRequest{
+		PodID:    podId,
+		Services: services,
 	}
-	v.Set("services", string(serviceData))
-	_, _, err = client.call("POST", "/service/update?"+v.Encode(), "", nil)
+
+	ctx, cancel := getContextWithTimeout(hyperContextTimeout)
+	defer cancel()
+
+	_, err := c.client.ServiceUpdate(ctx, &request)
 	if err != nil {
 		return err
 	}
@@ -824,18 +671,17 @@ func (client *HyperClient) UpdateServices(podId string, services []HyperService)
 	return nil
 }
 
-func (client *HyperClient) UpdatePodLabels(podId string, labels map[string]string) error {
-	v := url.Values{}
-	v.Set("podId", podId)
-	v.Set("override", "true")
-
-	labelsData, err := json.Marshal(labels)
-	if err != nil {
-		return err
+func (c *HyperClient) UpdatePodLabels(podId string, labels map[string]string) error {
+	request := grpctypes.PodLabelsRequest{
+		PodID:    podId,
+		Override: true,
+		Labels:   labels,
 	}
-	v.Set("labels", string(labelsData))
 
-	_, _, err = client.call("POST", "/pod/labels?"+v.Encode(), "", nil)
+	ctx, cancel := getContextWithTimeout(hyperContextTimeout)
+	defer cancel()
+
+	_, err := c.client.SetPodLabels(ctx, &request)
 	if err != nil {
 		return err
 	}

@@ -31,7 +31,7 @@ type CinderBaremetalUtil struct {
 	isNoMountSupported bool
 }
 
-func (cb *CinderBaremetalUtil) AttachDiskBaremetal(b *cinderVolumeBuilder, globalPDPath string) error {
+func (cb *CinderBaremetalUtil) AttachDiskBaremetal(b *cinderVolumeMounter, globalPDPath string) error {
 	glog.V(4).Infof("Begin to attach volume %v", b.pdName)
 	volume, err := cb.client.getVolume(b.pdName)
 	if err != nil {
@@ -72,9 +72,9 @@ func (cb *CinderBaremetalUtil) AttachDiskBaremetal(b *cinderVolumeBuilder, globa
 		return nil
 	}
 
-	mountMode := "rw"
+	mountMode := volumeactions.ReadWrite
 	if b.readOnly {
-		mountMode = "ro"
+		mountMode = volumeactions.ReadOnly
 	}
 
 	// attach volume
@@ -118,7 +118,7 @@ func (cb *CinderBaremetalUtil) AttachDiskBaremetal(b *cinderVolumeBuilder, globa
 }
 
 // Unmounts the device and detaches the disk from the kubelet's host machine.
-func (cb *CinderBaremetalUtil) DetachDiskBaremetal(cd *cinderVolumeCleaner, globalPDPath string) error {
+func (cb *CinderBaremetalUtil) DetachDiskBaremetal(cd *cinderVolumeUnmounter, globalPDPath string) error {
 	volume, err := cb.client.getVolume(cd.pdName)
 	if err != nil {
 		return err

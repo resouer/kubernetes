@@ -20,11 +20,13 @@ import (
 	"net"
 
 	"github.com/golang/glog"
+	"k8s.io/kubernetes/pkg/apis/componentconfig"
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
 	"k8s.io/kubernetes/pkg/kubelet/network"
 	"k8s.io/kubernetes/pkg/networkprovider"
 	"k8s.io/kubernetes/pkg/networkprovider/types"
+	utilsets "k8s.io/kubernetes/pkg/util/sets"
 )
 
 const (
@@ -43,7 +45,8 @@ func NewRemoteNetworkPlugin(provider networkprovider.Interface) *RemoteNetworkPl
 
 // Init initializes the plugin.  This will be called exactly once
 // before any other methods are called.
-func (plugin *RemoteNetworkPlugin) Init(host network.Host) error {
+func (plugin *RemoteNetworkPlugin) Init(host network.Host, hairpinMode componentconfig.HairpinMode, nonMasqueradeCIDR string) error {
+	// TODO(harryz) hairpinMode & nonMasqueradeCIDR is not supported for now
 	plugin.host = host
 	plugin.client = host.GetKubeClient()
 	return nil
@@ -89,10 +92,15 @@ func (plugin *RemoteNetworkPlugin) Name() string {
 	return pluginName
 }
 
+func (plugin *RemoteNetworkPlugin) Capabilities() utilsets.Int {
+	// NOTE(harryz) remote plugin does no handle shaping
+	return nil
+}
+
 // SetUpPod is the method called after the infra container of
 // the pod has been created but before the other containers of the
 // pod are launched.
-func (plugin *RemoteNetworkPlugin) SetUpPod(namespace string, name string, podInfraContainerID kubecontainer.DockerID, containerRuntime string) error {
+func (plugin *RemoteNetworkPlugin) SetUpPod(namespace string, name string, podInfraContainerID kubecontainer.ContainerID, containerRuntime string) error {
 	network, err := plugin.getNetworkOfNamespace(namespace)
 	if err != nil {
 		glog.Errorf("GetNetworkOfNamespace failed: %v", err)
@@ -104,7 +112,7 @@ func (plugin *RemoteNetworkPlugin) SetUpPod(namespace string, name string, podIn
 		return nil
 	}
 
-	err = plugin.provider.Pods().SetupPod(name, namespace, string(podInfraContainerID), network, containerRuntime)
+	err = plugin.provider.Pods().SetupPod(name, namespace, podInfraContainerID.ID, network, containerRuntime)
 	if err != nil {
 		glog.Errorf("SetupPod failed: %v", err)
 		return err
@@ -114,7 +122,7 @@ func (plugin *RemoteNetworkPlugin) SetUpPod(namespace string, name string, podIn
 }
 
 // TearDownPod is the method called before a pod's infra container will be deleted
-func (plugin *RemoteNetworkPlugin) TearDownPod(namespace string, name string, podInfraContainerID kubecontainer.DockerID, containerRuntime string) error {
+func (plugin *RemoteNetworkPlugin) TearDownPod(namespace string, name string, podInfraContainerID kubecontainer.ContainerID, containerRuntime string) error {
 	network, err := plugin.getNetworkOfNamespace(namespace)
 	if err != nil {
 		glog.Errorf("GetNetworkOfNamespace failed: %v", err)
@@ -126,7 +134,7 @@ func (plugin *RemoteNetworkPlugin) TearDownPod(namespace string, name string, po
 		return nil
 	}
 
-	err = plugin.provider.Pods().TeardownPod(name, namespace, string(podInfraContainerID), network, containerRuntime)
+	err = plugin.provider.Pods().TeardownPod(name, namespace, podInfraContainerID.ID, network, containerRuntime)
 	if err != nil {
 		glog.Errorf("TeardownPod failed: %v", err)
 		return err
@@ -135,8 +143,7 @@ func (plugin *RemoteNetworkPlugin) TearDownPod(namespace string, name string, po
 	return nil
 }
 
-// Status is the method called to obtain the ipv4 or ipv6 addresses of the container
-func (plugin *RemoteNetworkPlugin) Status(namespace string, name string, podInfraContainerID kubecontainer.DockerID, containerRuntime string) (*network.PodNetworkStatus, error) {
+func (plugin *RemoteNetworkPlugin) GetPodNetworkStatus(namespace string, name string, podInfraContainerID kubecontainer.ContainerID, containerRuntime string) (*network.PodNetworkStatus, error) {
 	networkInfo, err := plugin.getNetworkOfNamespace(namespace)
 	if err != nil {
 		glog.Errorf("GetNetworkOfNamespace failed: %v", err)
@@ -148,7 +155,7 @@ func (plugin *RemoteNetworkPlugin) Status(namespace string, name string, podInfr
 		return nil, nil
 	}
 
-	ipAddress, err := plugin.provider.Pods().PodStatus(name, namespace, string(podInfraContainerID), networkInfo, containerRuntime)
+	ipAddress, err := plugin.provider.Pods().PodStatus(name, namespace, podInfraContainerID.ID, networkInfo, containerRuntime)
 	if err != nil {
 		glog.Errorf("SetupPod failed: %v", err)
 		return nil, err
@@ -159,6 +166,11 @@ func (plugin *RemoteNetworkPlugin) Status(namespace string, name string, podInfr
 	}
 
 	return &status, nil
+}
+
+func (plugin *RemoteNetworkPlugin) Status() error {
+	// TODO(harryz) is there any way to detect plugin is ready?
+	return nil
 }
 
 func (plugin *RemoteNetworkPlugin) Event(name string, details map[string]interface{}) {

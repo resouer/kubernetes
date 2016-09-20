@@ -31,6 +31,7 @@ import (
 	kubeclient "k8s.io/kubernetes/pkg/client/unversioned"
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
 	"k8s.io/kubernetes/pkg/kubelet/hyper"
+	grpctypes "k8s.io/kubernetes/pkg/kubelet/hyper/types"
 	"k8s.io/kubernetes/pkg/proxy"
 	"k8s.io/kubernetes/pkg/types"
 
@@ -41,9 +42,9 @@ import (
 type serviceInfo struct {
 	clusterIP           net.IP
 	namespace           string
-	port                int
+	port                int32
 	protocol            api.Protocol
-	nodePort            int
+	nodePort            int32
 	loadBalancerStatus  api.LoadBalancerStatus
 	sessionAffinityType api.ServiceAffinity
 	endpoints           []string
@@ -93,8 +94,11 @@ var _ proxy.ProxyProvider = &Proxier{}
 
 // NewProxier returns a new Proxier given an pod-buildin-haproxy Interface instance.
 func NewProxier(syncPeriod time.Duration, kubeClient *kubeclient.Client, disableHyperInternalService bool) (*Proxier, error) {
-	client := hyper.NewHyperClient()
-	_, err := client.Version()
+	client, err := hyper.NewHyperClient()
+	if err != nil {
+		return nil, err
+	}
+	_, err = client.Version()
 	if err != nil {
 		glog.Errorf("Can not get hyper version: %v", err)
 		return nil, err
@@ -319,7 +323,7 @@ func (proxier *Proxier) OnEndpointsUpdate(allEndpoints []api.Endpoints) {
 // used in OnEndpointsUpdate
 type hostPortPair struct {
 	host string
-	port int
+	port int32
 }
 
 func isValidEndpoint(hpp *hostPortPair) bool {
@@ -343,7 +347,7 @@ func flattenValidEndpoints(endpoints []hostPortPair) []string {
 	for i := range endpoints {
 		hpp := &endpoints[i]
 		if isValidEndpoint(hpp) {
-			result = append(result, net.JoinHostPort(hpp.host, strconv.Itoa(hpp.port)))
+			result = append(result, net.JoinHostPort(hpp.host, strconv.Itoa(int(hpp.port))))
 		} else {
 			glog.Warningf("got invalid endpoint: %+v", *hpp)
 		}
@@ -382,25 +386,25 @@ func (proxier *Proxier) syncProxyRules() {
 
 		// Build services of same namespace (assume all services within same
 		// namespace will be consumed)
-		consumedServices := make([]hyper.HyperService, 0, 1)
+		consumedServices := make([]*grpctypes.UserService, 0, 1)
 		for _, svcInfo := range proxier.serviceMap {
 			if svcInfo.namespace != podNamespace {
 				continue
 			}
 
-			svc := hyper.HyperService{
+			svc := &grpctypes.UserService{
 				ServicePort: svcInfo.port,
 				ServiceIP:   svcInfo.clusterIP.String(),
 				Protocol:    strings.ToLower(string(svcInfo.protocol)),
 			}
 
-			hosts := make([]hyper.HyperServiceBackend, 0, 1)
+			hosts := make([]*grpctypes.UserServiceBackend, 0, 1)
 			for _, ep := range svcInfo.endpoints {
 				hostport := strings.Split(ep, ":")
 				port, _ := strconv.ParseInt(hostport[1], 10, 0)
-				hosts = append(hosts, hyper.HyperServiceBackend{
+				hosts = append(hosts, &grpctypes.UserServiceBackend{
 					HostIP:   hostport[0],
-					HostPort: int(port),
+					HostPort: int32(port),
 				})
 			}
 			svc.Hosts = hosts
@@ -412,7 +416,7 @@ func (proxier *Proxier) syncProxyRules() {
 		// update existing services
 		if len(consumedServices) == 0 {
 			// services can't be null for kubernetes, so fake one if it is null
-			consumedServices = append(consumedServices, hyper.HyperService{
+			consumedServices = append(consumedServices, &grpctypes.UserService{
 				ServiceIP:   "127.0.0.2",
 				ServicePort: 65534,
 			})

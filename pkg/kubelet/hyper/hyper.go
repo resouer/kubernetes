@@ -40,6 +40,7 @@ import (
 	"k8s.io/kubernetes/pkg/client/record"
 	"k8s.io/kubernetes/pkg/credentialprovider"
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
+	grpctypes "k8s.io/kubernetes/pkg/kubelet/hyper/types"
 	"k8s.io/kubernetes/pkg/kubelet/lifecycle"
 	"k8s.io/kubernetes/pkg/kubelet/network"
 	proberesults "k8s.io/kubernetes/pkg/kubelet/prober/results"
@@ -47,11 +48,12 @@ import (
 	"k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/util"
 	utilexec "k8s.io/kubernetes/pkg/util/exec"
+	"k8s.io/kubernetes/pkg/util/flowcontrol"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 )
 
 const (
-	hyperMinimumVersion = "0.5.0"
+	hyperMinimumVersion = "0.6.0"
 
 	typeHyper                   = "hyper"
 	hyperContainerNamePrefix    = "kube"
@@ -83,7 +85,6 @@ type runtime struct {
 	recorder            record.EventRecorder
 	livenessManager     proberesults.Manager
 	networkPlugin       network.NetworkPlugin
-	volumeGetter        volumeGetter
 	hyperClient         *HyperClient
 	kubeClient          clientset.Interface
 	imagePuller         kubecontainer.ImagePuller
@@ -99,25 +100,26 @@ type runtime struct {
 
 var _ kubecontainer.Runtime = &runtime{}
 
-type volumeGetter interface {
-	GetVolumes(podUID types.UID) (kubecontainer.VolumeMap, bool)
-}
-
 // New creates the hyper container runtime which implements the container runtime interface.
 func New(runtimeHelper kubecontainer.RuntimeHelper,
 	recorder record.EventRecorder,
 	networkPlugin network.NetworkPlugin,
 	containerRefManager *kubecontainer.RefManager,
 	livenessManager proberesults.Manager,
-	volumeGetter volumeGetter,
 	kubeClient clientset.Interface,
-	imageBackOff *util.Backoff,
+	imageBackOff *flowcontrol.Backoff,
 	serializeImagePulls bool,
 	httpClient kubetypes.HttpGetter,
 	disableHyperInternalService bool,
 	containerLogsDir string,
 	os kubecontainer.OSInterface,
 ) (kubecontainer.Runtime, error) {
+
+	hyperClient, err := NewHyperClient()
+	if err != nil {
+		return nil, err
+	}
+
 	hyper := &runtime{
 		dockerKeyring:               credentialprovider.NewDockerKeyring(),
 		containerLogsDir:            containerLogsDir,
@@ -127,8 +129,7 @@ func New(runtimeHelper kubecontainer.RuntimeHelper,
 		os:                          os,
 		recorder:                    recorder,
 		networkPlugin:               networkPlugin,
-		volumeGetter:                volumeGetter,
-		hyperClient:                 NewHyperClient(),
+		hyperClient:                 hyperClient,
 		kubeClient:                  kubeClient,
 		disableHyperInternalService: disableHyperInternalService,
 	}
@@ -168,6 +169,10 @@ func (r *runtime) Type() string {
 	return "hyper"
 }
 
+func (r *runtime) GetPodContainerID(pod *kubecontainer.Pod) (kubecontainer.ContainerID, error) {
+	return kubecontainer.ContainerID{ID: string(pod.ID)}, nil
+}
+
 func (r *runtime) Status() error {
 	version, err := r.hyperClient.Version()
 	if err != nil {
@@ -190,6 +195,11 @@ func (r *runtime) Status() error {
 	return nil
 }
 
+func (r *runtime) ImageStats() (*kubecontainer.ImageStats, error) {
+	// TODO(harryz) this requires to calculate real disk usage based on images history api. Fake it to 1GB for now.
+	return &kubecontainer.ImageStats{TotalStorageBytes: 1024 * 1024 * 1024}, nil
+}
+
 func parseTimeString(str string) (time.Time, error) {
 	t := time.Date(0, 0, 0, 0, 0, 0, 0, time.Local)
 	if str == "" {
@@ -205,7 +215,7 @@ func parseTimeString(str string) (time.Time, error) {
 	return t, nil
 }
 
-func (r *runtime) getContainerStatus(container ContainerStatus, image, imageID, startTime string) *kubecontainer.ContainerStatus {
+func (r *runtime) getContainerStatus(container *grpctypes.ContainerStatus, image, imageID, startTime string, podLabels map[string]string) *kubecontainer.ContainerStatus {
 	status := &kubecontainer.ContainerStatus{}
 
 	_, _, _, containerName, restartCount, _, err := r.parseHyperContainerFullName(container.Name)
@@ -230,6 +240,7 @@ func (r *runtime) getContainerStatus(container ContainerStatus, image, imageID, 
 			return status
 		}
 
+		// TDOO(harryz) no CreatedAt?
 		status.State = kubecontainer.ContainerStateRunning
 		status.StartedAt = runningStartedAt
 	case StatusFailed, StatusSuccess:
@@ -258,11 +269,18 @@ func (r *runtime) getContainerStatus(container ContainerStatus, image, imageID, 
 			status.FinishedAt = terminatedFinishedAt
 		}
 
+		var message string
+		path := podLabels[containerName]
+		if data, err := ioutil.ReadFile(path); err != nil {
+			message = fmt.Sprintf("Error on reading termination-log %s: %v", path, err)
+		} else {
+			message = string(data)
+		}
+
+		status.Message = message
 		status.State = kubecontainer.ContainerStateExited
 		status.Reason = container.Terminated.Reason
-
-		status.Message = container.Terminated.Message
-		status.ExitCode = container.Terminated.ExitCode
+		status.ExitCode = int(container.Terminated.ExitCode)
 	default:
 		if startTime == "" {
 			status.StartedAt = time.Now().Add(-2 * time.Second)
@@ -345,7 +363,7 @@ func (r *runtime) GetPods(all bool) ([]*kubecontainer.Pod, error) {
 			container.ID = kubecontainer.ContainerID{Type: typeHyper, ID: cinfo.ContainerID}
 			container.Image = cinfo.Image
 
-			for _, cstatus := range podInfo.PodInfo.Status.Status {
+			for _, cstatus := range podInfo.PodInfo.Status.ContainerStatus {
 				if cstatus.ContainerID == cinfo.ContainerID {
 					switch cstatus.Phase {
 					case StatusRunning:
@@ -354,10 +372,11 @@ func (r *runtime) GetPods(all bool) ([]*kubecontainer.Pod, error) {
 						container.State = kubecontainer.ContainerStateExited
 					}
 
-					createAt, err := parseTimeString(cstatus.Running.StartedAt)
-					if err == nil {
-						container.Created = createAt.Unix()
-					}
+					// harryz: container.Created is moved to ContainerStatus
+					// createAt, err := parseTimeString(cstatus.Running.StartedAt)
+					// if err == nil {
+					// 	container.Created = createAt.Unix()
+					// }
 				}
 			}
 
@@ -383,16 +402,16 @@ func (r *runtime) GetPods(all bool) ([]*kubecontainer.Pod, error) {
 	return kubepods, nil
 }
 
-func (r *runtime) buildHyperPodServices(pod *api.Pod) []HyperService {
+func (r *runtime) buildHyperPodServices(pod *api.Pod) []grpctypes.UserService {
 	items, err := r.kubeClient.Core().Services(pod.Namespace).List(api.ListOptions{})
 	if err != nil {
 		glog.Warningf("Get services failed: %v", err)
 		return nil
 	}
 
-	var services []HyperService
+	var services []grpctypes.UserService
 	for _, svc := range items.Items {
-		hyperService := HyperService{
+		hyperService := grpctypes.UserService{
 			ServiceIP: svc.Spec.ClusterIP,
 		}
 		endpoints, _ := r.kubeClient.Core().Endpoints(pod.Namespace).Get(svc.Name)
@@ -402,7 +421,7 @@ func (r *runtime) buildHyperPodServices(pod *api.Pod) []HyperService {
 				for _, epPort := range ep.Ports {
 					if svcPort.Name == "" || svcPort.Name == epPort.Name {
 						for _, eh := range ep.Addresses {
-							hyperService.Hosts = append(hyperService.Hosts, HyperServiceBackend{
+							hyperService.Hosts = append(hyperService.Hosts, &grpctypes.UserServiceBackend{
 								HostIP:   eh.IP,
 								HostPort: epPort.Port,
 							})
@@ -593,19 +612,20 @@ func (r *runtime) buildHyperPod(pod *api.Pod, restartCount int, pullSecrets []ap
 
 	// build hyper volume spec
 	specMap := make(map[string]interface{})
-	volumeMap, ok := r.volumeGetter.GetVolumes(pod.UID)
+
+	// process rbd volume globally
+	volumeMap, ok := r.runtimeHelper.ListVolumesForPod(pod.UID)
 	if !ok {
 		return nil, fmt.Errorf("cannot get the volumes for pod %q", kubecontainer.GetPodFullName(pod))
 	}
-
 	volumes := make([]map[string]interface{}, 0, 1)
-	for name, volume := range volumeMap {
-		glog.V(4).Infof("Hyper: volume %s, path %s, meta %s", name, volume.Builder.GetPath(), volume.Builder.GetMetaData())
+	for name, mounter := range volumeMap {
+		glog.V(4).Infof("Hyper: volume %s, path %s, meta %s", name, mounter.GetPath(), mounter.GetMetaData())
 		v := make(map[string]interface{})
 		v[KEY_NAME] = name
 
 		// Process rbd volume
-		metadata := volume.Builder.GetMetaData()
+		metadata := mounter.GetMetaData()
 		if metadata != nil && metadata["volume_type"].(string) == "rbd" {
 			v[KEY_VOLUME_DRIVE] = metadata["volume_type"]
 			v["source"] = "rbd:" + metadata["name"].(string)
@@ -621,10 +641,10 @@ func (r *runtime) buildHyperPod(pod *api.Pod, restartCount int, pullSecrets []ap
 				"monitors": monitors,
 			}
 		} else {
-			glog.V(4).Infof("Hyper: volume %s %s", name, volume.Builder.GetPath())
+			glog.V(4).Infof("Hyper: volume %s %s", name, mounter.GetPath())
 
 			v[KEY_VOLUME_DRIVE] = VOLUME_TYPE_VFS
-			v[KEY_VOLUME_SOURCE] = volume.Builder.GetPath()
+			v[KEY_VOLUME_SOURCE] = mounter.GetPath()
 		}
 
 		volumes = append(volumes, v)
@@ -636,7 +656,7 @@ func (r *runtime) buildHyperPod(pod *api.Pod, restartCount int, pullSecrets []ap
 		services := r.buildHyperPodServices(pod)
 		if services == nil {
 			// services can't be null for kubernetes, so fake one if it is null
-			services = []HyperService{
+			services = []grpctypes.UserService{
 				{
 					ServiceIP:   "127.0.0.2",
 					ServicePort: 65534,
@@ -651,6 +671,7 @@ func (r *runtime) buildHyperPod(pod *api.Pod, restartCount int, pullSecrets []ap
 	var k8sHostNeeded = true
 	dnsServers := make(map[string]string)
 	portMappings := r.parsePortMappings(pod.Labels)
+	terminationMsgLabels := make(map[string]string)
 	for _, container := range pod.Spec.Containers {
 		c := make(map[string]interface{})
 		c[KEY_NAME] = r.buildHyperContainerFullName(
@@ -721,6 +742,38 @@ func (r *runtime) buildHyperPod(pod *api.Pod, restartCount int, pullSecrets []ap
 
 		c[KEY_PORTS] = ports
 
+		// NOTE: PodContainerDir is from TerminationMessagePath, TerminationMessagePath  is default to /dev/termination-log
+		if opts.PodContainerDir != "" && container.TerminationMessagePath != "" {
+			// In docker runtime, the container log path contains the container ID.
+			// However, for hyper runtime, we cannot get the container ID before the
+			// the container is launched, so here we generate a random uuid to enable
+			// us to map a container's termination message path to an unique log file
+			// on the disk.
+			randomUID := util.NewUUID()
+			containerLogPath := path.Join(opts.PodContainerDir, string(randomUID))
+			fs, err := os.Create(containerLogPath)
+			if err != nil {
+				return nil, err
+			}
+
+			if err := fs.Close(); err != nil {
+				return nil, err
+			}
+			mnt := &kubecontainer.Mount{
+				// Use a random name for the termination message mount, so that
+				// when a container restarts, it will not overwrite the old termination
+				// message.
+				Name:          fmt.Sprintf("termination-message-%s", randomUID),
+				ContainerPath: container.TerminationMessagePath,
+				HostPath:      containerLogPath,
+				ReadOnly:      false,
+			}
+			opts.Mounts = append(opts.Mounts, *mnt)
+
+			// set termination msg labels with host path
+			terminationMsgLabels[container.Name] = mnt.HostPath
+		}
+
 		// volumes
 		if len(opts.Mounts) > 0 {
 			var containerVolumes []map[string]interface{}
@@ -731,14 +784,27 @@ func (r *runtime) buildHyperPod(pod *api.Pod, restartCount int, pullSecrets []ap
 				v[KEY_READONLY] = volume.ReadOnly
 				containerVolumes = append(containerVolumes, v)
 
-				// Setup global hosts volume
-				if volume.Name == "k8s-managed-etc-hosts" && k8sHostNeeded {
-					k8sHostNeeded = false
-					volumes = append(volumes, map[string]interface{}{
-						KEY_NAME:          volume.Name,
-						KEY_VOLUME_DRIVE:  VOLUME_TYPE_VFS,
-						KEY_VOLUME_SOURCE: volume.HostPath,
-					})
+				if k8sHostNeeded {
+					// Setup global hosts volume
+					if volume.Name == "k8s-managed-etc-hosts" {
+						k8sHostNeeded = false
+						volumes = append(volumes, map[string]interface{}{
+							KEY_NAME:          volume.Name,
+							KEY_VOLUME_DRIVE:  VOLUME_TYPE_VFS,
+							KEY_VOLUME_SOURCE: volume.HostPath,
+						})
+					}
+
+					// Setup global termination msg volume
+					if strings.HasPrefix(volume.Name, "termination-message") {
+						k8sHostNeeded = false
+
+						volumes = append(volumes, map[string]interface{}{
+							KEY_NAME:          volume.Name,
+							KEY_VOLUME_DRIVE:  VOLUME_TYPE_VFS,
+							KEY_VOLUME_SOURCE: volume.HostPath,
+						})
+					}
 				}
 			}
 			c[KEY_VOLUMES] = containerVolumes
@@ -810,6 +876,11 @@ func (r *runtime) buildHyperPod(pod *api.Pod, restartCount int, pullSecrets []ap
 	// append heapster needed labels
 	// NOTE(harryz): this only works for one pod one container model for now.
 	for k, v := range labels {
+		podLabels[k] = v
+	}
+
+	// append termination message label
+	for k, v := range terminationMsgLabels {
 		podLabels[k] = v
 	}
 
@@ -924,7 +995,7 @@ func (r *runtime) RunPod(pod *api.Pod, restartCount int, pullSecrets []api.Secre
 				}
 			}
 
-			tearDownError := r.networkPlugin.TearDownPod(pod.Namespace, pod.Name, "", "hyper")
+			tearDownError := r.networkPlugin.TearDownPod(pod.Namespace, pod.Name, kubecontainer.ContainerID{}, "hyper")
 			if tearDownError != nil {
 				glog.Warningf("Hyper: networkPlugin.TearDownPod failed: %v, kubelet will continue to rm pod %s", tearDownError, pod.Name)
 			}
@@ -934,25 +1005,31 @@ func (r *runtime) RunPod(pod *api.Pod, restartCount int, pullSecrets []api.Secre
 	// Setup pod's network by network plugin
 	// TODO: Add hostname in network plugin interface
 	hostname := r.getPodHostname(pod)
-	err = r.networkPlugin.SetUpPod(pod.Namespace, pod.Name, kubecontainer.DockerID(hostname), "hyper")
+	err = r.networkPlugin.SetUpPod(pod.Namespace, pod.Name, kubecontainer.DockerID(hostname).ContainerID(), "hyper")
 	if err != nil {
 		glog.Errorf("Hyper: networkPlugin.SetUpPod %s failed, error: %v", pod.Name, err)
 		return err
 	}
 
 	// Create and start hyper pod
-	podSpec, err := r.getPodSpec(podFullName)
+	specData, err := r.getPodSpec(podFullName)
 	if err != nil {
 		glog.Errorf("Hyper: create pod %s failed, error: %v", podFullName, err)
 		return err
 	}
-	result, err := r.hyperClient.CreatePod(podSpec)
+
+	var podSpec grpctypes.UserPod
+	err = json.Unmarshal([]byte(specData), &podSpec)
+	if err != nil {
+		glog.Errorf("Hyper: marshal pod %s from specData error: %v", podFullName, err)
+	}
+
+	podID, err = r.hyperClient.CreatePod(&podSpec)
 	if err != nil {
 		glog.Errorf("Hyper: create pod %s failed, error: %v", podData, err)
 		return err
 	}
 
-	podID = string(result["ID"].(string))
 	err = r.hyperClient.StartPod(podID)
 	if err != nil {
 		glog.Errorf("Hyper: start pod %s (ID:%s) failed, error: %v", pod.Name, podID, err)
@@ -994,10 +1071,10 @@ func (r *runtime) RunPod(pod *api.Pod, restartCount int, pullSecrets []api.Secre
 		}
 
 		if container.Lifecycle != nil && container.Lifecycle.PostStart != nil {
-			handlerErr := r.runner.Run(containerID, pod, &container, container.Lifecycle.PostStart)
+			msg, handlerErr := r.runner.Run(containerID, pod, &container, container.Lifecycle.PostStart)
 			if handlerErr != nil {
-				err = fmt.Errorf("PostStart handler: %v", handlerErr)
-				if e := r.KillPod(pod, runningPod); e != nil {
+				err = fmt.Errorf("PostStart handler: %v, error msg is: %v", handlerErr, msg)
+				if e := r.KillPod(pod, runningPod, nil); e != nil {
 					glog.Errorf("KillPod %v failed: %v", podFullName, e)
 				}
 				return err
@@ -1009,7 +1086,7 @@ func (r *runtime) RunPod(pod *api.Pod, restartCount int, pullSecrets []api.Secre
 }
 
 // Syncs the running pod into the desired pod.
-func (r *runtime) SyncPod(pod *api.Pod, podStatus api.PodStatus, internalPodStatus *kubecontainer.PodStatus, pullSecrets []api.Secret, backOff *util.Backoff) (result kubecontainer.PodSyncResult) {
+func (r *runtime) SyncPod(pod *api.Pod, podStatus api.PodStatus, internalPodStatus *kubecontainer.PodStatus, pullSecrets []api.Secret, backOff *flowcontrol.Backoff) (result kubecontainer.PodSyncResult) {
 	var err error
 	defer func() {
 		if err != nil {
@@ -1079,7 +1156,7 @@ func (r *runtime) SyncPod(pod *api.Pod, podStatus api.PodStatus, internalPodStat
 			}
 			restartCount++
 
-			if err = r.KillPod(pod, runningPod); err != nil {
+			if err = r.KillPod(pod, runningPod, nil); err != nil {
 				glog.Errorf("Hyper: kill pod %s failed, error: %s", runningPod.Name, err)
 				return
 			}
@@ -1094,7 +1171,7 @@ func (r *runtime) SyncPod(pod *api.Pod, podStatus api.PodStatus, internalPodStat
 }
 
 // KillPod kills all the containers of a pod.
-func (r *runtime) KillPod(pod *api.Pod, runningPod kubecontainer.Pod) error {
+func (r *runtime) KillPod(pod *api.Pod, runningPod kubecontainer.Pod, gracePeriodOverride *int64) error {
 	var (
 		podID        string
 		podFullName  string
@@ -1118,7 +1195,7 @@ func (r *runtime) KillPod(pod *api.Pod, runningPod kubecontainer.Pod) error {
 
 	defer func() {
 		// Teardown pod's network
-		err = r.networkPlugin.TearDownPod(podNamespace, podName, "", "hyper")
+		err = r.networkPlugin.TearDownPod(podNamespace, podName, kubecontainer.ContainerID{}, "hyper")
 		if err != nil {
 			glog.Warningf("Hyper: networkPlugin.TearDownPod failed, error: %v", err)
 		}
@@ -1148,6 +1225,7 @@ func (r *runtime) KillPod(pod *api.Pod, runningPod kubecontainer.Pod) error {
 			}
 		}
 
+		// TODO(harryz) not sure how to use gracePeriodOverride here
 		gracePeriod := int64(minimumGracePeriodInSeconds)
 		if pod != nil {
 			switch {
@@ -1165,8 +1243,8 @@ func (r *runtime) KillPod(pod *api.Pod, runningPod kubecontainer.Pod) error {
 			go func() {
 				defer close(done)
 				defer utilruntime.HandleCrash()
-				if err := r.runner.Run(c.ID, pod, container, container.Lifecycle.PreStop); err != nil {
-					glog.Errorf("preStop hook for container %q failed: %v", container.Name, err)
+				if msg, err := r.runner.Run(c.ID, pod, container, container.Lifecycle.PreStop); err != nil {
+					glog.Errorf("preStop hook for container %q failed: %v, error msg is: %v", container.Name, err, msg)
 				}
 			}()
 			select {
@@ -1195,7 +1273,7 @@ func (r *runtime) KillPod(pod *api.Pod, runningPod kubecontainer.Pod) error {
 			podID = podInfo.PodID
 
 			// Remove log links
-			for _, c := range podInfo.PodInfo.Status.Status {
+			for _, c := range podInfo.PodInfo.Status.ContainerStatus {
 				_, _, _, containerName, _, _, err := r.parseHyperContainerFullName(c.Name)
 				if err != nil {
 					continue
@@ -1256,13 +1334,14 @@ func (r *runtime) GetPodStatus(uid types.UID, name, namespace string) (*kubecont
 			status.IP = podInfo.PodInfo.Status.PodIP[0]
 		}
 
-		for _, containerInfo := range podInfo.PodInfo.Status.Status {
+		for _, containerInfo := range podInfo.PodInfo.Status.ContainerStatus {
 			for _, container := range podInfo.PodInfo.Spec.Containers {
 				if container.ContainerID == containerInfo.ContainerID {
+					c := r.getContainerStatus(containerInfo, container.Image, container.ImageID,
+						podInfo.PodInfo.Status.StartTime, podInfo.PodInfo.Spec.Labels)
 					status.ContainerStatuses = append(
 						status.ContainerStatuses,
-						r.getContainerStatus(containerInfo, container.Image, container.ImageID,
-							podInfo.PodInfo.Status.StartTime))
+						c)
 				}
 			}
 		}
@@ -1469,7 +1548,7 @@ func (r *runtime) ConvertPodStatusToAPIPodStatus(pod *api.Pod, status *kubeconta
 			}
 		case kubecontainer.ContainerStateExited:
 			st.Terminated = &api.ContainerStateTerminated{
-				ExitCode:    c.ExitCode,
+				ExitCode:    int32(c.ExitCode),
 				StartedAt:   unversioned.NewTime(c.StartedAt),
 				Reason:      c.Reason,
 				Message:     c.Message,
@@ -1488,7 +1567,7 @@ func (r *runtime) ConvertPodStatusToAPIPodStatus(pod *api.Pod, status *kubeconta
 				Image:        c.Image,
 				ImageID:      c.ImageID,
 				ContainerID:  c.ID.String(),
-				RestartCount: c.RestartCount,
+				RestartCount: int32(c.RestartCount),
 				State:        st,
 			}
 			continue
@@ -1520,7 +1599,7 @@ func (r *runtime) ConvertPodStatusToAPIPodStatus(pod *api.Pod, status *kubeconta
 	return apiPodStatus, nil
 }
 
-func (r *runtime) GarbageCollect(gcPolicy kubecontainer.ContainerGCPolicy) error {
+func (r *runtime) GarbageCollect(gcPolicy kubecontainer.ContainerGCPolicy, allSourcesReady bool) error {
 	podInfos, err := r.hyperClient.ListPods()
 	if err != nil {
 		return err
@@ -1545,7 +1624,7 @@ func (r *runtime) GarbageCollect(gcPolicy kubecontainer.ContainerGCPolicy) error
 
 		if lastTime.Before(time.Now().Add(-gcPolicy.MinAge)) {
 			// Remove log links
-			for _, c := range pod.PodInfo.Status.Status {
+			for _, c := range pod.PodInfo.Status.ContainerStatus {
 				_, _, _, containerName, _, _, err := r.parseHyperContainerFullName(c.Name)
 				if err != nil {
 					continue
@@ -1557,6 +1636,7 @@ func (r *runtime) GarbageCollect(gcPolicy kubecontainer.ContainerGCPolicy) error
 				}
 			}
 
+			// TODO(harryz) use allSourcesReady to prevent aggressive actions
 			// Remove the pod
 			err = r.hyperClient.RemovePod(pod.PodID)
 			if err != nil {
@@ -1565,7 +1645,7 @@ func (r *runtime) GarbageCollect(gcPolicy kubecontainer.ContainerGCPolicy) error
 			}
 
 			// KillPod is only called for running Pods, we should teardown network here for non-running Pods
-			err = r.networkPlugin.TearDownPod(podNamespace, podName, "", "hyper")
+			err = r.networkPlugin.TearDownPod(podNamespace, podName, kubecontainer.ContainerID{}, "hyper")
 			if err != nil {
 				glog.Warningf("Hyper: networkPlugin.TearDownPod failed, error: %v", err)
 			}
@@ -1604,4 +1684,9 @@ func (r *runtime) APIVersion() (kubecontainer.Version, error) {
 // LogSymlink generates symlink file path for specified container
 func LogSymlink(containerLogsDir, podFullName, containerName, containerID string) string {
 	return path.Join(containerLogsDir, fmt.Sprintf("%s_%s-%s.log", podFullName, containerName, containerID))
+}
+
+// GetNetNS does not make sense in hyper runtime
+func (r *runtime) GetNetNS(containerID kubecontainer.ContainerID) (string, error) {
+	return "", nil
 }
