@@ -429,7 +429,7 @@ func (e *NetworkController) getEndpointHosts(service *api.Service) ([]*types.Hos
 		}
 
 		for _, hostport := range hosts {
-			if int(hostport.TargetPort) == targetPort || svc.TargetPort.StrVal == hostport.Name {
+			if int32(hostport.TargetPort) == targetPort || svc.TargetPort.StrVal == hostport.Name {
 				hostport.ServicePort = int32(svc.Port)
 			}
 		}

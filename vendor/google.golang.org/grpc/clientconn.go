@@ -52,10 +52,10 @@ var (
 	// ErrUnspecTarget indicates that the target address is unspecified.
 	ErrUnspecTarget = errors.New("grpc: target is unspecified")
 	// ErrNoTransportSecurity indicates that there is no transport security
-	// being set for ClientConn. Users should either set one or explicitly
+	// being set for ClientConn. Users should either set one or explicityly
 	// call WithInsecure DialOption to disable security.
 	ErrNoTransportSecurity = errors.New("grpc: no transport security set (use grpc.WithInsecure() explicitly or set credentials)")
-	// ErrCredentialsMisuse indicates that users want to transmit security information
+	// ErrCredentialsMisuse indicates that users want to transmit security infomation
 	// (e.g., oauth2 token) which requires secure connection on an insecure
 	// connection.
 	ErrCredentialsMisuse = errors.New("grpc: the credentials require transport level security (use grpc.WithTransportAuthenticator() to set)")
@@ -288,9 +288,10 @@ func NewConn(cc *ClientConn) (*Conn, error) {
 	if !c.dopts.insecure {
 		var ok bool
 		for _, cd := range c.dopts.copts.AuthOptions {
-			if _, ok = cd.(credentials.TransportAuthenticator); ok {
-				break
+			if _, ok := cd.(credentials.TransportAuthenticator); !ok {
+				continue
 			}
+			ok = true
 		}
 		if !ok {
 			return nil, ErrNoTransportSecurity
@@ -538,9 +539,8 @@ func (cc *Conn) Wait(ctx context.Context) (transport.ClientTransport, error) {
 			cc.mu.Unlock()
 			return nil, ErrClientConnClosing
 		case cc.state == Ready:
-			ct := cc.transport
 			cc.mu.Unlock()
-			return ct, nil
+			return cc.transport, nil
 		default:
 			ready := cc.ready
 			if ready == nil {
