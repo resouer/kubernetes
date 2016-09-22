@@ -414,7 +414,7 @@ func (c *HyperClient) Attach(opts AttachToContainerOptions) error {
 		return fmt.Errorf("No Such Container %s", opts.Container)
 	}
 
-	ctx, cancel := getContextWithTimeout(hyperContextTimeout)
+	ctx, cancel := getContextWithCancel()
 	defer cancel()
 
 	stream, err := c.client.Attach(ctx)
@@ -500,7 +500,7 @@ func (c *HyperClient) Exec(opts ExecInContainerOptions) error {
 		Tty:         opts.TTY,
 	}
 
-	ctx, cancel := getContextWithTimeout(hyperContextTimeout)
+	ctx, cancel := getContextWithCancel()
 	defer cancel()
 
 	createResponse, err := c.client.ExecCreate(ctx, &createRequest)

@@ -68,6 +68,8 @@ spec:
   containers:
   - name: busybox
     image: busybox
+    command:
+    - "top"
 EOF
 }
 
