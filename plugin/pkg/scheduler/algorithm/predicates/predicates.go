@@ -107,6 +107,23 @@ type predicateMetadata struct {
 	serviceAffinityMatchingPodServices []*api.Service
 }
 
+func PredicateMetadata(pod *api.Pod, nodeInfoMap map[string]*schedulercache.NodeInfo) interface{} {
+	// If we cannot compute metadata, just return nil
+	if pod == nil {
+		return nil
+	}
+	matchingTerms, err := getMatchingAntiAffinityTerms(pod, nodeInfoMap)
+	if err != nil {
+		return nil
+	}
+	return &predicateMetadata{
+		podBestEffort:             isPodBestEffort(pod),
+		podRequest:                GetResourceRequest(pod),
+		podPorts:                  GetUsedPorts(pod),
+		matchingAntiAffinityTerms: matchingTerms,
+	}
+}
+
 func isVolumeConflict(volume api.Volume, pod *api.Pod) bool {
 	// fast path if there is no conflict checking targets.
 	if volume.GCEPersistentDisk == nil && volume.AWSElasticBlockStore == nil && volume.RBD == nil {

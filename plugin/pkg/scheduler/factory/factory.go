@@ -20,6 +20,7 @@ package factory
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -31,6 +32,7 @@ import (
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/controller/informers"
 	"k8s.io/kubernetes/pkg/fields"
+	"k8s.io/kubernetes/pkg/kubelet/qos"
 	"k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
@@ -82,8 +84,11 @@ type ConfigFactory struct {
 	nodePopulator         *cache.Controller
 	pvPopulator           *cache.Controller
 	pvcPopulator          cache.ControllerInterface
-	servicePopulator      *cache.Controller
-	controllerPopulator   *cache.Controller
+	// TODO(harry) my version:
+	// pvcPopulator          *cache.Controller
+	PodPopulator        *cache.Controller
+	servicePopulator    *cache.Controller
+	controllerPopulator *cache.Controller
 
 	schedulerCache schedulercache.Cache
 
@@ -162,19 +167,66 @@ func NewConfigFactory(client clientset.Interface, schedulerName string, hardPodA
 		},
 	)
 
-	// TODO(harryz) need to fill all the handlers here and below for equivalence cache
 	c.PVLister.Store, c.pvPopulator = cache.NewInformer(
 		c.createPersistentVolumeLW(),
 		&api.PersistentVolume{},
 		0,
-		cache.ResourceEventHandlerFuncs{},
+		cache.ResourceEventHandlerFuncs{
+			// MaxPDVolumeCountPredicate: since it relies on the counts of PV.
+			AddFunc: func(_ interface{}) {
+				c.EquivalencePodCache.SendClearAllCacheReq()
+			},
+			DeleteFunc: func(_ interface{}) {
+				c.EquivalencePodCache.SendClearAllCacheReq()
+			},
+			// MaxPDVolumeCountPredicate: when the PV is updated to PVC (or vice versa) which will affect counts of PV.
+			UpdateFunc: func(oldObj, newObj, interface{}) {
+				oldPV := oldObj.(api.PersistentVolume)
+				newPV := newObj.(api.PersistentVolume)
+				if (oldPV.PersistentVolumeClaim == nil && newPV.PersistentVolumeClaim != nil) ||
+					(oldPV.PersistentVolumeClaim != nil && newPV.PersistentVolumeClaim == nil) {
+					c.EquivalencePodCache.SendClearAllCacheReq()
+				}
+			},
+		},
+	)
+
+	c.PVCLister.Store, c.pvcPopulator = cache.NewInformer(
+		c.createPersistentVolumeClaimLW(),
+		&api.PersistentVolumeClaim{},
+		0,
+		cache.ResourceEventHandlerFuncs{
+			// MaxPDVolumeCountPredicate: add/delete PVC will affect counts of PV when it is bound.
+			AddFunc: func(obj interface{}) {
+				pvc := obj.(api.PersistentVolumeClaim)
+				if pvc.Spec.VolumeName != "" {
+					c.EquivalencePodCache.SendClearAllCacheReq()
+				}
+			},
+			DeleteFunc: func(obj interface{}) {
+				pvc := obj.(api.PersistentVolumeClaim)
+				if pvc.Spec.VolumeName != "" {
+					c.EquivalencePodCache.SendClearAllCacheReq()
+				}
+			},
+		},
 	)
 
 	c.ServiceLister.Indexer, c.servicePopulator = cache.NewIndexerInformer(
 		c.createServiceLW(),
 		&api.Service{},
 		0,
-		cache.ResourceEventHandlerFuncs{},
+		cache.ResourceEventHandlerFuncs{
+			// ServiceAffinity: it will not be affected by svc add/delete,
+			// except that the selector of the service is updated. (TODO, is it true?)
+			UpdateFunc: func(oldObj, newObj interface{}) {
+				oldService := oldObj.(api.Service)
+				newService := newObj.(api.Service)
+				if !reflect.DeepEqual(oldService.Spec.Selector, newService.Spec.Selector) {
+					c.EquivalencePodCache.SendClearAllCacheReq()
+				}
+			},
+		},
 		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
 	)
 
@@ -182,19 +234,33 @@ func NewConfigFactory(client clientset.Interface, schedulerName string, hardPodA
 		c.createControllerLW(),
 		&api.ReplicationController{},
 		0,
-		cache.ResourceEventHandlerFuncs{},
+		cache.ResourceEventHandlerFuncs{
+			// Pod change (including resize) will be handled by PodLister, not here.
+			// Existing equivalence cache should not be affected by add/delete RC
+			// but selector change should be cared.
+			UpdateFunc: func(oldObj, newObj interface{}) {
+				oldRC := oldObj.(api.ReplicationController)
+				newRC := newObj.(api.ReplicationController)
+				if !reflect.DeepEqual(oldRC.Spec.Selector, newRC.Spec.Selector) {
+					c.EquivalencePodCache.SendClearAllCacheReq()
+				}
+			},
+		},
 		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
 	)
 
 	return c
 }
 
-// TODO(harryz) need to update all the handlers here and below for equivalence cache
 func (c *ConfigFactory) addPodToCache(obj interface{}) {
 	pod, ok := obj.(*api.Pod)
 	if !ok {
 		glog.Errorf("cannot convert to *api.Pod: %v", obj)
 		return
+	}
+
+	if pod.Spec.NodeName != "" {
+		c.EquivalencePodCache.SendInvalidAlgorithmCacheReq(pod.Spec.NodeName)
 	}
 
 	if err := c.schedulerCache.AddPod(pod); err != nil {
@@ -214,6 +280,40 @@ func (c *ConfigFactory) updatePodInCache(oldObj, newObj interface{}) {
 		return
 	}
 
+	oldToleration, err := api.GetTolerationsFromPodAnnotations(oldPod.Annotations)
+	newToleration, err := api.GetTolerationsFromPodAnnotations(newPod.Annotations)
+	if err != nil {
+		glog.Errorf("Failed to get tolerations from pod annotation for equivalence cache")
+	}
+
+	oldAffinity, err := api.GetAffinityFromPodAnnotations(oldPod.Annotations)
+	newAffinity, err := api.GetAffinityFromPodAnnotations(newPod.Annotations)
+	if err != nil {
+		glog.Errorf("Failed to get affinity from pod annotation for equivalence cache")
+	}
+
+	// When pod is updated, in some cases we need to invalid equivalence cache of its node.
+	switch {
+	// PodFitsHost
+	case !reflect.DeepEqual(oldPod.Spec.NodeName, newPod.Spec.NodeName),
+		// PodFitsResources
+		!reflect.DeepEqual(predicates.GetResourceRequest(oldPod), predicates.GetResourceRequest(newPod)),
+		// PodFitsHostPorts
+		!reflect.DeepEqual(predicates.GetUsedPorts(oldPod), predicates.GetUsedPorts(newPod)),
+		// PodSelectorMatches
+		!reflect.DeepEqual(oldPod.Spec.NodeSelector, newPod.Spec.NodeSelector),
+		// CheckNodeMemoryPressure
+		!reflect.DeepEqual(qos.GetPodQOS(oldPod), qos.GetPodQOS(newPod)),
+		// PodToleratesNodeTaints
+		!reflect.DeepEqual(oldToleration, newToleration):
+		if oldPod.Spec.NodeName != "" {
+			c.EquivalencePodCache.SendInvalidAlgorithmCacheReq(oldPod.Spec.NodeName)
+		}
+	// MatchInterPodAffinity, this case is complicated, so we'll invalid equivalence cache of all nodes
+	case !reflect.DeepEqual(oldAffinity, newAffinity):
+		c.EquivalencePodCache.SendClearAllCacheReq()
+	}
+
 	if err := c.schedulerCache.UpdatePod(oldPod, newPod); err != nil {
 		glog.Errorf("scheduler cache UpdatePod failed: %v", err)
 	}
@@ -224,12 +324,18 @@ func (c *ConfigFactory) deletePodFromCache(obj interface{}) {
 	switch t := obj.(type) {
 	case *api.Pod:
 		pod = t
+		if pod.Spec.NodeName != "" {
+			c.EquivalencePodCache.SendInvalidAlgorithmCacheReq(pod.Spec.NodeName)
+		}
 	case cache.DeletedFinalStateUnknown:
 		var ok bool
 		pod, ok = t.Obj.(*api.Pod)
 		if !ok {
 			glog.Errorf("cannot convert to *api.Pod: %v", t.Obj)
 			return
+		}
+		if pod.Spec.NodeName != "" {
+			c.EquivalencePodCache.SendInvalidAlgorithmCacheReq(pod.Spec.NodeName)
 		}
 	default:
 		glog.Errorf("cannot convert to *api.Pod: %v", t)
@@ -246,6 +352,9 @@ func (c *ConfigFactory) addNodeToCache(obj interface{}) {
 		glog.Errorf("cannot convert to *api.Node: %v", obj)
 		return
 	}
+
+	// have to invalid all equivalence cache when new node joined
+	c.EquivalencePodCache.SendClearAllCacheReq()
 
 	if err := c.schedulerCache.AddNode(node); err != nil {
 		glog.Errorf("scheduler cache AddNode failed: %v", err)
@@ -264,6 +373,10 @@ func (c *ConfigFactory) updateNodeInCache(oldObj, newObj interface{}) {
 		return
 	}
 
+	// When node is updated, we need to invalid equivalence cache of all nodes.
+	// TODO(harryz) or only in some cases?
+	c.EquivalencePodCache.SendClearAllCacheReq()
+
 	if err := c.schedulerCache.UpdateNode(oldNode, newNode); err != nil {
 		glog.Errorf("scheduler cache UpdateNode failed: %v", err)
 	}
@@ -274,6 +387,7 @@ func (c *ConfigFactory) deleteNodeFromCache(obj interface{}) {
 	switch t := obj.(type) {
 	case *api.Node:
 		node = t
+		c.EquivalencePodCache.SendInvalidAlgorithmCacheReq(node.Name)
 	case cache.DeletedFinalStateUnknown:
 		var ok bool
 		node, ok = t.Obj.(*api.Node)
@@ -281,6 +395,7 @@ func (c *ConfigFactory) deleteNodeFromCache(obj interface{}) {
 			glog.Errorf("cannot convert to *api.Node: %v", t.Obj)
 			return
 		}
+		c.EquivalencePodCache.SendInvalidAlgorithmCacheReq(node.Name)
 	default:
 		glog.Errorf("cannot convert to *api.Node: %v", t)
 		return
@@ -368,9 +483,14 @@ func (f *ConfigFactory) CreateFromKeys(predicateKeys, priorityKeys sets.String, 
 	if err != nil {
 		return nil, err
 	}
+	// Init equivalence class cache
+	if getEquivalencePodFunc != nil {
+		f.EquivalencePodCache = scheduler.NewEquivalenceCache(getEquivalencePodFunc)
+		glog.Info("Create equivalence class cache")
+	}
 
 	f.Run()
-	algo := scheduler.NewGenericScheduler(f.schedulerCache, predicateFuncs, predicateMetaProducer, priorityConfigs, priorityMetaProducer, extenders)
+	algo := scheduler.NewGenericScheduler(f.schedulerCache, f.EquivalencePodCache, predicateFuncs, predicateMetaProducer, priorityConfigs, priorityMetaProducer, extenders)
 	podBackoff := podBackoff{
 		perPodBackoff: map[types.NamespacedName]*backoffEntry{},
 		clock:         realClock{},

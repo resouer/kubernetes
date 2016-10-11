@@ -301,7 +301,7 @@ func TestGenericScheduler(t *testing.T) {
 		}
 
 		scheduler := NewGenericScheduler(
-			cache, test.predicates, algorithm.EmptyMetadataProducer, test.prioritizers, algorithm.EmptyMetadataProducer,
+			cache, nil, test.predicates, algorithm.EmptyMetadataProducer, test.prioritizers, algorithm.EmptyMetadataProducer,
 			[]algorithm.SchedulerExtender{})
 		machine, err := scheduler.Schedule(test.pod, algorithm.FakeNodeLister(makeNodeList(test.nodes)))
 
