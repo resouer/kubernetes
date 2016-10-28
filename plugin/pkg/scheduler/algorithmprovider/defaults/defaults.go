@@ -237,14 +237,14 @@ func GetEquivalencePod(pod *v1.Pod) interface{} {
 	// to be equivalent
 	if len(pod.OwnerReferences) != 0 {
 		for _, ref := range pod.OwnerReferences {
-			if *ref.Controller && isValidControllerKind(ref.Kind) {
+			if ref.Controller != nil && *ref.Controller && isValidControllerKind(ref.Kind) {
 				equivalencePod.ControllerRef = ref
 				// a pod can only belongs to one controller
-				break
+				return &equivalencePod
 			}
 		}
 	}
-	return &equivalencePod
+	return nil
 }
 
 // isValidControllerKind checks if a given controller's kind can be applied to equivalence pod algorithm.

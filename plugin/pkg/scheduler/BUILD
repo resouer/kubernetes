@@ -27,6 +27,7 @@ go_library(
         "//pkg/util/errors:go_default_library",
         "//pkg/util/hash:go_default_library",
         "//pkg/util/net:go_default_library",
+        "//pkg/util/sets:go_default_library",
         "//pkg/util/wait:go_default_library",
         "//pkg/util/workqueue:go_default_library",
         "//plugin/pkg/scheduler/algorithm:go_default_library",
