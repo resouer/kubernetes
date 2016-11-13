@@ -35,6 +35,7 @@ go_library(
         "e2e.go",
         "empty.go",
         "empty_dir_wrapper.go",
+        "equivalence_cache_predicates.go",
         "etcd_failure.go",
         "events.go",
         "example_cluster_dns.go",

@@ -20,10 +20,6 @@ import (
 	"hash/adler32"
 	"sync"
 
-	"github.com/golang/groupcache/lru"
-
-	"sync"
-
 	"k8s.io/kubernetes/pkg/api/v1"
 	hashutil "k8s.io/kubernetes/pkg/util/hash"
 	"k8s.io/kubernetes/pkg/util/sets"
@@ -70,7 +66,7 @@ func NewEquivalenceCache(getEquivalencePodFunc algorithm.GetEquivalencePodFunc) 
 	}
 }
 
-func (ec *EquivalenceCache) UpdateCachedPredicateItem(pod *api.Pod, nodeName, predicateKey string, fit bool, reasons []algorithm.PredicateFailureReason, equivalenceHash uint64) {
+func (ec *EquivalenceCache) UpdateCachedPredicateItem(pod *v1.Pod, nodeName, predicateKey string, fit bool, reasons []algorithm.PredicateFailureReason, equivalenceHash uint64) {
 	if _, exist := ec.algorithmCache[nodeName]; !exist {
 		ec.algorithmCache[nodeName] = newAlgorithmCache()
 	}
@@ -100,10 +96,14 @@ func (ec *EquivalenceCache) UpdateCachedPredicateItem(pod *api.Pod, nodeName, pr
 // 2. reasons if not fit
 // 3. if this cache is invalid
 // based on cached predicate results
-func (ec *EquivalenceCache) PredicateWithECache(pod *api.Pod, nodeName, predicateKey string, equivalenceHash uint64) (bool, []algorithm.PredicateFailureReason, bool) {
+func (ec *EquivalenceCache) PredicateWithECache(pod *v1.Pod, nodeName, predicateKey string, equivalenceHash uint64) (bool, []algorithm.PredicateFailureReason, bool) {
 	if algorithmCache, exist := ec.algorithmCache[nodeName]; exist {
 		if cachePredicate, exist := algorithmCache.predicatesCache.Get(predicateKey); exist {
 			predicateMap := cachePredicate.(PredicateMap)
+			// TODO(harry) In this case, the first pod will use more time
+			// because it does not have ecache item but has to run into here
+			// but invalid operation is more efficient.
+			// TODO(harry) Is it possible for cache is not updated immediately?
 			if hostPredicate, ok := predicateMap[equivalenceHash]; ok {
 				if hostPredicate.IsInvalid {
 					return false, []algorithm.PredicateFailureReason{}, true
@@ -151,8 +151,8 @@ func (ec *EquivalenceCache) InvalidCachedPredicateItemOfAllNodes(predicateKeys s
 	glog.V(5).Infof("Invalidate cached predicates: %v on all node", predicateKeys)
 }
 
-// InvalidCachedPredicateItemOfNode marks all cached items on given node as invalid
-func (ec *EquivalenceCache) InvalidCachedPredicateItemOfNode(nodeName string) {
+// InvalidAllCachedPredicateItemOfNode marks all cached items on given node as invalid
+func (ec *EquivalenceCache) InvalidAllCachedPredicateItemOfNode(nodeName string) {
 	ec.Lock()
 	defer ec.Unlock()
 	delete(ec.algorithmCache, nodeName)
@@ -160,7 +160,7 @@ func (ec *EquivalenceCache) InvalidCachedPredicateItemOfNode(nodeName string) {
 }
 
 // InvalidCachedPredicateItemForPod marks item of given predicateKeys, of given pod, on the given node as invalid
-func (ec *EquivalenceCache) InvalidCachedPredicateItemForPod(nodeName string, predicateKeys sets.String, pod *api.Pod) {
+func (ec *EquivalenceCache) InvalidCachedPredicateItemForPod(nodeName string, predicateKeys sets.String, pod *v1.Pod) {
 	if len(predicateKeys) == 0 {
 		return
 	}
@@ -189,11 +189,10 @@ func (ec *EquivalenceCache) InvalidCachedPredicateItemForPod(nodeName string, pr
 }
 
 // InvalidCachedPredicateItemForPodAdd is a wrapper of InvalidCachedPredicateItem for pod add case
-func (ec *EquivalenceCache) InvalidCachedPredicateItemForPodAdd(pod *api.Pod, nodeName string) {
+func (ec *EquivalenceCache) InvalidCachedPredicateItemForPodAdd(pod *v1.Pod, nodeName string) {
 	invalidPredicates := sets.NewString("GeneralPredicates")
 
-	// Invalid PodFitsHostPorts for all pods because we don't know if other pods require same HostPort
-	// `if len(predicates.GetUsedPorts(pod)) != 0` we should also invalidate "PodFitsHostPorts", but it has been
+	// if len(predicates.GetUsedPorts(pod)) != 0 we should also invalidate "PodFitsHostPorts", but it has been
 	// included in "GeneralPredicates"
 
 	// If a pod scheduled to a node with these PV, it may cause disk conflict.
@@ -204,19 +203,15 @@ func (ec *EquivalenceCache) InvalidCachedPredicateItemForPodAdd(pod *api.Pod, no
 	}
 	ec.InvalidCachedPredicateItem(nodeName, invalidPredicates)
 
-	// MatchInterPodAffinity, this case is complicated, we'll invalid equivalence cache of all nodes
-	affinity, err := api.GetAffinityFromPodAnnotations(pod.Annotations)
-	if err != nil {
-		glog.Errorf("Failed to get affinity from pod annotation for equivalence cache")
-	}
-	if affinity != nil {
-		ec.InvalidCachedPredicateItemOfAllNodes(sets.NewString("MatchInterPodAffinity"))
-	}
+	// MatchInterPodAffinity, we assume scheduler can make sure newly binded pod will not break the existing
+	// inter pod affinity. So we does not need to invalidate anything when pod added.
+	// But when a pod is deleted, existing inter pod affinity may be become invalid. (e.g. this pod is preferred or vice versa)
+	// NOTE: assumptions above will not stand when we implemented features like RequiredDuringSchedulingRequiredDuringExecution.
 }
 
 // getHashEquivalencePod returns the hash of equivalence pod.
-// if no equivalence pod found, return false
-func (ec *EquivalenceCache) getHashEquivalencePod(pod *api.Pod) uint64 {
+// if no equivalence pod found, return 0
+func (ec *EquivalenceCache) getHashEquivalencePod(pod *v1.Pod) uint64 {
 	equivalencePod := ec.getEquivalencePod(pod)
 	if equivalencePod != nil {
 		hash := adler32.New()
