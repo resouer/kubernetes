@@ -1610,7 +1610,7 @@ func LogSymlink(containerLogsDir, podFullName, containerName, containerID string
 	return path.Join(containerLogsDir, fmt.Sprintf("%s_%s-%s.log", podFullName, containerName, containerID))
 }
 
-// CleanupNetwork cleanups networks for stopped pods.
+// CleanupNetwork cleanups networks for exited pods.
 func (r *runtime) CleanupNetwork() {
 	podInfos, err := r.hyperClient.ListPods()
 	if err != nil {
@@ -1625,8 +1625,10 @@ func (r *runtime) CleanupNetwork() {
 			continue
 		}
 
-		// omit running pods
-		if pod.Status == StatusRunning {
+		// omit running and pending (just created) pods
+		// Note that if hyperd is restarted, original exited pod will also change
+		// their state to pending, which results in network not cleaned up instantly.
+		if pod.Status == StatusRunning || pod.Status == StatusPending {
 			continue
 		}
 
@@ -1634,7 +1636,7 @@ func (r *runtime) CleanupNetwork() {
 		if err != nil {
 			glog.Warningf("[CleanupNetwork] TearDownPod failed for pod %s_%s, error: %v", podName, podNamespace, err)
 		} else {
-			glog.V(3).Infof("[CleanupNetwork] teardown network for pod %s_%s success", podName, podNamespace)
+			glog.V(5).Infof("[CleanupNetwork] teardown network for pod %s_%s success", podName, podNamespace)
 		}
 	}
 }
