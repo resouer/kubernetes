@@ -48,6 +48,7 @@ import (
 	"k8s.io/kubernetes/pkg/util"
 	utilexec "k8s.io/kubernetes/pkg/util/exec"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
+	"k8s.io/kubernetes/pkg/util/wait"
 )
 
 const (
@@ -152,6 +153,9 @@ func New(runtimeHelper kubecontainer.RuntimeHelper,
 	hyper.version = hyperVersion
 
 	hyper.runner = lifecycle.NewHandlerRunner(httpClient, hyper, hyper)
+
+	// CleanupNetwork every second for stopped pods.
+	go wait.Until(hyper.CleanupNetwork, time.Second, wait.NeverStop)
 
 	return hyper, nil
 }
@@ -1604,4 +1608,33 @@ func (r *runtime) APIVersion() (kubecontainer.Version, error) {
 // LogSymlink generates symlink file path for specified container
 func LogSymlink(containerLogsDir, podFullName, containerName, containerID string) string {
 	return path.Join(containerLogsDir, fmt.Sprintf("%s_%s-%s.log", podFullName, containerName, containerID))
+}
+
+// CleanupNetwork cleanups networks for stopped pods.
+func (r *runtime) CleanupNetwork() {
+	podInfos, err := r.hyperClient.ListPods()
+	if err != nil {
+		glog.Warningf("[CleanupNetwork] ListPods failed: %v", err)
+		return
+	}
+
+	for _, pod := range podInfos {
+		// omit not managed pods
+		podName, podNamespace, err := kubecontainer.ParsePodFullName(pod.PodName)
+		if err != nil {
+			continue
+		}
+
+		// omit running pods
+		if pod.Status == StatusRunning {
+			continue
+		}
+
+		err = r.networkPlugin.TearDownPod(podNamespace, podName, "", "hyper")
+		if err != nil {
+			glog.Warningf("[CleanupNetwork] TearDownPod failed for pod %s_%s, error: %v", podName, podNamespace, err)
+		} else {
+			glog.V(3).Infof("[CleanupNetwork] teardown network for pod %s_%s success", podName, podNamespace)
+		}
+	}
 }
