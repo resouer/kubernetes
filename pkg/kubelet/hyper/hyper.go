@@ -613,44 +613,43 @@ func (r *runtime) buildHyperPod(pod *api.Pod, restartCount int, pullSecrets []ap
 	// build hyper volume spec
 	specMap := make(map[string]interface{})
 
-	// process rbd volume globally
-	volumeMap, ok := r.runtimeHelper.ListVolumesForPod(pod.UID)
-	if !ok {
-		return nil, fmt.Errorf("cannot get the volumes for pod %q", kubecontainer.GetPodFullName(pod))
-	}
 	volumes := make([]map[string]interface{}, 0, 1)
-	for name, mounter := range volumeMap {
-		glog.V(4).Infof("Hyper: volume %s, path %s, meta %s", name, mounter.GetPath(), mounter.GetMetaData())
-		v := make(map[string]interface{})
-		v[KEY_NAME] = name
+	volumeMap, found := r.runtimeHelper.ListVolumesForPod(pod.UID)
+	if found {
+		// process rbd volume globally
+		for name, mounter := range volumeMap {
+			glog.V(4).Infof("Hyper: volume %s, path %s, meta %s", name, mounter.GetPath(), mounter.GetMetaData())
+			v := make(map[string]interface{})
+			v[KEY_NAME] = name
 
-		// Process rbd volume
-		metadata := mounter.GetMetaData()
-		if metadata != nil && metadata["volume_type"].(string) == "rbd" {
-			v[KEY_VOLUME_DRIVE] = metadata["volume_type"]
-			v["source"] = "rbd:" + metadata["name"].(string)
-			monitors := make([]string, 0, 1)
-			for _, host := range metadata["hosts"].([]interface{}) {
-				for _, port := range metadata["ports"].([]interface{}) {
-					monitors = append(monitors, fmt.Sprintf("%s:%s", host.(string), port.(string)))
+			// Process rbd volume
+			metadata := mounter.GetMetaData()
+			if metadata != nil && metadata["volume_type"].(string) == "rbd" {
+				v[KEY_VOLUME_DRIVE] = metadata["volume_type"]
+				v["source"] = "rbd:" + metadata["name"].(string)
+				monitors := make([]string, 0, 1)
+				for _, host := range metadata["hosts"].([]interface{}) {
+					for _, port := range metadata["ports"].([]interface{}) {
+						monitors = append(monitors, fmt.Sprintf("%s:%s", host.(string), port.(string)))
+					}
 				}
-			}
-			v["option"] = map[string]interface{}{
-				"user":     metadata["auth_username"],
-				"keyring":  metadata["keyring"],
-				"monitors": monitors,
-			}
-		} else {
-			glog.V(4).Infof("Hyper: volume %s %s", name, mounter.GetPath())
+				v["option"] = map[string]interface{}{
+					"user":     metadata["auth_username"],
+					"keyring":  metadata["keyring"],
+					"monitors": monitors,
+				}
+			} else {
+				glog.V(4).Infof("Hyper: volume %s %s", name, mounter.GetPath())
 
-			v[KEY_VOLUME_DRIVE] = VOLUME_TYPE_VFS
-			v[KEY_VOLUME_SOURCE] = mounter.GetPath()
+				v[KEY_VOLUME_DRIVE] = VOLUME_TYPE_VFS
+				v[KEY_VOLUME_SOURCE] = mounter.GetPath()
+			}
+
+			volumes = append(volumes, v)
 		}
 
-		volumes = append(volumes, v)
+		glog.V(4).Infof("Hyper volumes: %v", volumes)
 	}
-
-	glog.V(4).Infof("Hyper volumes: %v", volumes)
 
 	if !r.disableHyperInternalService {
 		services := r.buildHyperPodServices(pod)
