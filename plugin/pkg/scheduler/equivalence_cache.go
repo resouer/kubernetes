@@ -35,7 +35,6 @@ const maxCacheEntries = 100
 type HostPredicate struct {
 	Fit         bool
 	FailReasons []algorithm.PredicateFailureReason
-	IsInvalid   bool
 }
 
 type AlgorithmCache struct {
@@ -67,24 +66,24 @@ func NewEquivalenceCache(getEquivalencePodFunc algorithm.GetEquivalencePodFunc) 
 }
 
 func (ec *EquivalenceCache) UpdateCachedPredicateItem(pod *v1.Pod, nodeName, predicateKey string, fit bool, reasons []algorithm.PredicateFailureReason, equivalenceHash uint64) {
+	ec.Lock()
+	defer ec.Unlock()
 	if _, exist := ec.algorithmCache[nodeName]; !exist {
 		ec.algorithmCache[nodeName] = newAlgorithmCache()
 	}
 	predicateItem := HostPredicate{
 		Fit:         fit,
 		FailReasons: reasons,
-		IsInvalid:   false,
 	}
-	// if cached predicate map already exists, just update the predicate by key
-	// TODO(harry) when update, we need to get the item first, is it expected? Or should re-design AlgorithmCache structure to avoid this.
-	if v, ok := ec.algorithmCache[nodeName].predicatesCache.Get(predicateKey); ok {
-		predicateMap := v.(PredicateMap)
-		predicateMap[equivalenceHash] = predicateItem
-		ec.algorithmCache[nodeName].predicatesCache.Add(predicateKey, predicateMap)
 
+	if v, ok := ec.algorithmCache[nodeName].predicatesCache.Get(predicateKey); ok {
+		// if cached predicate map already exists, just update the predicate by key
+		// NOTE: we are caching address of predicateMap, so we don't need to add it back after update
+		predicateMap := *v.(*PredicateMap)
+		predicateMap[equivalenceHash] = predicateItem
 	} else {
 		ec.algorithmCache[nodeName].predicatesCache.Add(predicateKey,
-			PredicateMap{
+			&PredicateMap{
 				equivalenceHash: predicateItem,
 			})
 	}
@@ -96,23 +95,21 @@ func (ec *EquivalenceCache) UpdateCachedPredicateItem(pod *v1.Pod, nodeName, pre
 // 2. reasons if not fit
 // 3. if this cache is invalid
 // based on cached predicate results
+// TODO(harry) Is it possible that ecache is not updated immediately?
 func (ec *EquivalenceCache) PredicateWithECache(pod *v1.Pod, nodeName, predicateKey string, equivalenceHash uint64) (bool, []algorithm.PredicateFailureReason, bool) {
+	ec.RLock()
+	defer ec.RUnlock()
 	if algorithmCache, exist := ec.algorithmCache[nodeName]; exist {
 		if cachePredicate, exist := algorithmCache.predicatesCache.Get(predicateKey); exist {
-			predicateMap := cachePredicate.(PredicateMap)
-			// TODO(harry) In this case, the first pod will use more time
-			// because it does not have ecache item but has to run into here
-			// but invalid operation is more efficient.
-			// TODO(harry) Is it possible for cache is not updated immediately?
+			predicateMap := *cachePredicate.(*PredicateMap)
 			if hostPredicate, ok := predicateMap[equivalenceHash]; ok {
-				if hostPredicate.IsInvalid {
-					return false, []algorithm.PredicateFailureReason{}, true
-				}
 				if hostPredicate.Fit {
 					return true, []algorithm.PredicateFailureReason{}, false
 				} else {
 					return false, hostPredicate.FailReasons, false
 				}
+			} else {
+				return false, []algorithm.PredicateFailureReason{}, true
 			}
 		}
 	}
@@ -175,12 +172,11 @@ func (ec *EquivalenceCache) InvalidCachedPredicateItemForPod(nodeName string, pr
 		if algorithmCache, exist := ec.algorithmCache[nodeName]; exist {
 			if cachePredicate, exist := algorithmCache.predicatesCache.Get(predicateKey); exist {
 				// got the cached item of by predicateKey & pod
-				predicateMap := cachePredicate.(PredicateMap)
-				if hostPredicate, ok := predicateMap[equivalenceHash]; ok {
+				predicateMap := *cachePredicate.(*PredicateMap)
+				if _, ok := predicateMap[equivalenceHash]; ok {
 					// set the pod's item in predicateMap as invalid
-					hostPredicate.IsInvalid = true
-					// and add the predicateMap back to the cache
-					ec.algorithmCache[nodeName].predicatesCache.Add(predicateKey, predicateMap)
+					// NOTE: we are caching address of predicateMap, so we don't need to add it back after update
+					delete(predicateMap, equivalenceHash)
 				}
 			}
 		}
