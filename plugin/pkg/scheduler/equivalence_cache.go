@@ -67,6 +67,8 @@ func NewEquivalenceCache(getEquivalencePodFunc algorithm.GetEquivalencePodFunc) 
 }
 
 func (ec *EquivalenceCache) UpdateCachedPredicateItem(pod *v1.Pod, nodeName, predicateKey string, fit bool, reasons []algorithm.PredicateFailureReason, equivalenceHash uint64) {
+	ec.Lock()
+	defer ec.Unlock()
 	if _, exist := ec.algorithmCache[nodeName]; !exist {
 		ec.algorithmCache[nodeName] = newAlgorithmCache()
 	}
@@ -97,6 +99,8 @@ func (ec *EquivalenceCache) UpdateCachedPredicateItem(pod *v1.Pod, nodeName, pre
 // 3. if this cache is invalid
 // based on cached predicate results
 func (ec *EquivalenceCache) PredicateWithECache(pod *v1.Pod, nodeName, predicateKey string, equivalenceHash uint64) (bool, []algorithm.PredicateFailureReason, bool) {
+	ec.RLock()
+	defer ec.RUnlock()
 	if algorithmCache, exist := ec.algorithmCache[nodeName]; exist {
 		if cachePredicate, exist := algorithmCache.predicatesCache.Get(predicateKey); exist {
 			predicateMap := cachePredicate.(PredicateMap)
