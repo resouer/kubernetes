@@ -418,6 +418,13 @@ func (c *cinderVolumeUnmounter) TearDown() error {
 // resource was the last reference to that disk on the kubelet.
 func (c *cinderVolumeUnmounter) TearDownAt(dir string) error {
 	glog.V(5).Infof("Cinder TearDown of %s", dir)
+
+	if _, err := os.Stat(dir); os.IsNotExist(err) {
+		// non-exist dir for TearDown is meaningless and it is possible that this dir has been cleaned up, just omit the error for now
+		glog.Warningf("Volume directory: %v does not exists, it may have been cleaned up by previous tear down task", dir)
+		return nil
+	}
+
 	notmnt, err := c.mounter.IsLikelyNotMountPoint(dir)
 	if err != nil {
 		glog.V(4).Infof("IsLikelyNotMountPoint check failed: %v", err)
