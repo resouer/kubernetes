@@ -50,6 +50,7 @@ import (
 	utilexec "k8s.io/kubernetes/pkg/util/exec"
 	"k8s.io/kubernetes/pkg/util/flowcontrol"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
+	"k8s.io/kubernetes/pkg/util/wait"
 )
 
 const (
@@ -153,6 +154,9 @@ func New(runtimeHelper kubecontainer.RuntimeHelper,
 	hyper.version = hyperVersion
 
 	hyper.runner = lifecycle.NewHandlerRunner(httpClient, hyper, hyper)
+
+	// CleanupNetwork every second for stopped pods.
+	go wait.Until(hyper.CleanupNetwork, time.Second, wait.NeverStop)
 
 	return hyper, nil
 }
@@ -1688,4 +1692,35 @@ func LogSymlink(containerLogsDir, podFullName, containerName, containerID string
 // GetNetNS does not make sense in hyper runtime
 func (r *runtime) GetNetNS(containerID kubecontainer.ContainerID) (string, error) {
 	return "", nil
+}
+
+// CleanupNetwork cleanups networks for exited pods.
+func (r *runtime) CleanupNetwork() {
+	podInfos, err := r.hyperClient.ListPods()
+	if err != nil {
+		glog.Warningf("[CleanupNetwork] ListPods failed: %v", err)
+		return
+	}
+
+	for _, pod := range podInfos {
+		// omit not managed pods
+		podName, podNamespace, err := kubecontainer.ParsePodFullName(pod.PodName)
+		if err != nil {
+			continue
+		}
+
+		// omit running and pending (just created) pods
+		// Note that if hyperd is restarted, original exited pod will also change
+		// their state to pending, which results in network not cleaned up instantly.
+		if pod.Status == StatusRunning || pod.Status == StatusPending {
+			continue
+		}
+
+		err = r.networkPlugin.TearDownPod(podNamespace, podName, "", "hyper")
+		if err != nil {
+			glog.Warningf("[CleanupNetwork] TearDownPod failed for pod %s_%s, error: %v", podName, podNamespace, err)
+		} else {
+			glog.V(5).Infof("[CleanupNetwork] teardown network for pod %s_%s success", podName, podNamespace)
+		}
+	}
 }
