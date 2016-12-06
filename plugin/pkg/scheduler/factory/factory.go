@@ -28,8 +28,8 @@ import (
 
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/api/v1"
+	metav1 "k8s.io/kubernetes/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/pkg/client/cache"
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/release_1_5"
 	"k8s.io/kubernetes/pkg/controller/informers"
@@ -173,22 +173,22 @@ func NewConfigFactory(client clientset.Interface, schedulerName string, hardPodA
 			// MaxPDVolumeCountPredicate: since it relies on the counts of PV.
 			AddFunc: func(obj interface{}) {
 				invalidPredicates := sets.NewString("MaxPDVolumeCountPredicate")
-				pv := obj.(v1.Volume)
-				if pv.AWSElasticBlockStore != nil {
+				pv := obj.(*v1.PersistentVolume)
+				if pv.Spec.AWSElasticBlockStore != nil {
 					invalidPredicates.Insert("MaxEBSVolumeCount")
 				}
-				if pv.GCEPersistentDisk != nil {
+				if pv.Spec.GCEPersistentDisk != nil {
 					invalidPredicates.Insert("MaxGCEPDVolumeCount")
 				}
 				c.EquivalencePodCache.InvalidCachedPredicateItemOfAllNodes(invalidPredicates)
 			},
 			DeleteFunc: func(obj interface{}) {
 				invalidPredicates := sets.NewString("MaxPDVolumeCountPredicate")
-				pv := obj.(v1.Volume)
-				if pv.AWSElasticBlockStore != nil {
+				pv := obj.(*v1.PersistentVolume)
+				if pv.Spec.AWSElasticBlockStore != nil {
 					invalidPredicates.Insert("MaxEBSVolumeCount")
 				}
-				if pv.GCEPersistentDisk != nil {
+				if pv.Spec.GCEPersistentDisk != nil {
 					invalidPredicates.Insert("MaxGCEPDVolumeCount")
 				}
 				c.EquivalencePodCache.InvalidCachedPredicateItemOfAllNodes(invalidPredicates)
@@ -203,13 +203,13 @@ func NewConfigFactory(client clientset.Interface, schedulerName string, hardPodA
 		cache.ResourceEventHandlerFuncs{
 			// MaxPDVolumeCountPredicate: add/delete PVC will affect counts of PV when it is bound.
 			AddFunc: func(obj interface{}) {
-				pvc := obj.(v1.PersistentVolumeClaim)
+				pvc := obj.(*v1.PersistentVolumeClaim)
 				if pvc.Spec.VolumeName != "" {
 					c.EquivalencePodCache.InvalidCachedPredicateItemOfAllNodes(sets.NewString("MaxPDVolumeCountPredicate"))
 				}
 			},
 			DeleteFunc: func(obj interface{}) {
-				pvc := obj.(v1.PersistentVolumeClaim)
+				pvc := obj.(*v1.PersistentVolumeClaim)
 				if pvc.Spec.VolumeName != "" {
 					c.EquivalencePodCache.InvalidCachedPredicateItemOfAllNodes(sets.NewString("MaxPDVolumeCountPredicate"))
 				}
@@ -226,8 +226,8 @@ func NewConfigFactory(client clientset.Interface, schedulerName string, hardPodA
 			// ServiceAffinity: it will not be affected by svc add/delete, except that the selector of the service is updated.
 			// TODO(harry) We may need to invalid this for specified pod (equivalence class)?
 			UpdateFunc: func(oldObj, newObj interface{}) {
-				oldService := oldObj.(v1.Service)
-				newService := newObj.(v1.Service)
+				oldService := oldObj.(*v1.Service)
+				newService := newObj.(*v1.Service)
 				if !reflect.DeepEqual(oldService.Spec.Selector, newService.Spec.Selector) {
 					c.EquivalencePodCache.InvalidCachedPredicateItemOfAllNodes(sets.NewString("ServiceAffinity"))
 				}
@@ -236,13 +236,13 @@ func NewConfigFactory(client clientset.Interface, schedulerName string, hardPodA
 		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
 	)
 
+	// TODO(harryz) Delete this part, existing equivalence cache should not be affected by add/delete RC/Deployment etc, it only make sense when
+	// pod is scheduled or deleted
 	c.ControllerLister.Indexer, c.controllerPopulator = cache.NewIndexerInformer(
 		c.createControllerLW(),
 		&v1.ReplicationController{},
 		0,
-		cache.ResourceEventHandlerFuncs{
-		// NOTE(harryz) Existing equivalence cache should not be affected by add/delete RC
-		},
+		cache.ResourceEventHandlerFuncs{},
 		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
 	)
 
@@ -259,8 +259,7 @@ func (c *ConfigFactory) addPodToCache(obj interface{}) {
 	if err := c.schedulerCache.AddPod(pod); err != nil {
 		glog.Errorf("scheduler cache AddPod failed: %v", err)
 	}
-
-	// NOTE: Updating equivalence cache of this pod has been handled optimistically in scheduler.
+	// NOTE: Updating equivalence cache of addPodToCache has been handled optimistically in InvalidCachedPredicateItemForPodAdd.
 }
 
 func (c *ConfigFactory) updatePodInCache(oldObj, newObj interface{}) {
@@ -278,8 +277,22 @@ func (c *ConfigFactory) updatePodInCache(oldObj, newObj interface{}) {
 	if err := c.schedulerCache.UpdatePod(oldPod, newPod); err != nil {
 		glog.Errorf("scheduler cache UpdatePod failed: %v", err)
 	}
-	// NOTE(harryz) the only fields allowed to be update of Pod are `image` and `activeDeadlineSeconds`,
-	// they should not affect predicate results.
+
+	// if the pod does not have binded node, updating equivalence cache is meaningless;
+	// if pod's binded node has been changed, that case should be handled by pod add & delete.
+	if len(newPod.Spec.NodeName) != 0 && newPod.Spec.NodeName == oldPod.Spec.NodeName {
+		if !reflect.DeepEqual(oldPod.GetLabels(), newPod.GetLabels()) {
+			// MatchInterPodAffinity need to be reconsidered for this node, as well as all nodes in its same failure domain.
+			// TODO(harryz) can we just do this for nodes in the same failure domain
+			c.EquivalencePodCache.InvalidCachedPredicateItemOfAllNodes(sets.NewString("MatchInterPodAffinity"))
+		}
+		invalidPredicates := sets.NewString()
+		// if requested container resource changed, invalidate GeneralPredicates of this node
+		if !reflect.DeepEqual(predicates.GetResourceRequest(newPod), predicates.GetResourceRequest(oldPod)) {
+			invalidPredicates.Insert("GeneralPredicates")
+		}
+		c.EquivalencePodCache.InvalidCachedPredicateItem(newPod.Spec.NodeName, invalidPredicates)
+	}
 }
 
 func (c *ConfigFactory) deletePodFromCache(obj interface{}) {
@@ -302,11 +315,20 @@ func (c *ConfigFactory) deletePodFromCache(obj interface{}) {
 		glog.Errorf("scheduler cache RemovePod failed: %v", err)
 	}
 
-	// this case is the same as pod add.
+	// part of this case is the same as pod add.
 	c.EquivalencePodCache.InvalidCachedPredicateItemForPodAdd(pod, pod.Spec.NodeName)
 	// MatchInterPodAffinity need to be reconsidered for this node, as well as all nodes in its same failure domain.
 	// TODO(harryz) can we just do this for nodes in the same failure domain
 	c.EquivalencePodCache.InvalidCachedPredicateItemOfAllNodes(sets.NewString("MatchInterPodAffinity"))
+
+	invalidPredicates := sets.NewString()
+	// if this pod have these PV, cached result of disk conflict will become invalid.
+	for _, volume := range pod.Spec.Volumes {
+		if volume.GCEPersistentDisk != nil || volume.AWSElasticBlockStore != nil || volume.RBD != nil {
+			invalidPredicates.Insert("NoDiskConflict")
+		}
+	}
+	c.EquivalencePodCache.InvalidCachedPredicateItem(pod.Spec.NodeName, invalidPredicates)
 }
 
 func (c *ConfigFactory) addNodeToCache(obj interface{}) {
@@ -355,7 +377,7 @@ func (c *ConfigFactory) updateNodeInCache(oldObj, newObj interface{}) {
 		invalidPredicates.Insert("GeneralPredicates", "ServiceAffinity") // "PodSelectorMatches"
 		for k, v := range oldNode.GetLabels() {
 			switch {
-			case k == unversioned.LabelZoneFailureDomain || k == unversioned.LabelZoneRegion:
+			case k == metav1.LabelZoneFailureDomain || k == metav1.LabelZoneRegion:
 				if v != newNode.GetLabels()[k] {
 					invalidPredicates.Insert("NoVolumeZoneConflict")
 				}
@@ -600,13 +622,21 @@ func (f *ConfigFactory) Run() {
 	// Begin populating nodes.
 	go f.nodePopulator.Run(f.StopEverything)
 
+	// Watch PVs & PVCs
+	// They may be listed frequently for scheduling constraints, so provide a local up-to-date cache.
 	// Begin populating pv & pvc
 	go f.pvPopulator.Run(f.StopEverything)
 	go f.pvcPopulator.Run(f.StopEverything)
 
+	// Watch and cache all service objects. Scheduler needs to find all pods
+	// created by the same services or ReplicationControllers/ReplicaSets, so that it can spread them correctly.
+	// Cache this locally.
 	// Begin populating services
 	go f.servicePopulator.Run(f.StopEverything)
 
+	// Watch and cache all ReplicationController objects. Scheduler needs to find all pods
+	// created by the same services or ReplicationControllers/ReplicaSets, so that it can spread them correctly.
+	// Cache this locally.
 	// Begin populating controllers
 	go f.controllerPopulator.Run(f.StopEverything)
 

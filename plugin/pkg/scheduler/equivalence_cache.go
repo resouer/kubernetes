@@ -105,8 +105,8 @@ func (ec *EquivalenceCache) PredicateWithECache(pod *v1.Pod, nodeName, predicate
 		if cachePredicate, exist := algorithmCache.predicatesCache.Get(predicateKey); exist {
 			predicateMap := cachePredicate.(PredicateMap)
 			// TODO(harry) In this case, the first pod will use more time
-			// because it does not have ecache item but has to run into here
-			// but invalid operation is more efficient.
+			// because it does not have ecache item but has to run into here,
+			// but in this case invalidate functions are more efficient.
 			// TODO(harry) Is it possible for cache is not updated immediately?
 			if hostPredicate, ok := predicateMap[equivalenceHash]; ok {
 				if hostPredicate.IsInvalid {
@@ -194,23 +194,16 @@ func (ec *EquivalenceCache) InvalidCachedPredicateItemForPod(nodeName string, pr
 
 // InvalidCachedPredicateItemForPodAdd is a wrapper of InvalidCachedPredicateItem for pod add case
 func (ec *EquivalenceCache) InvalidCachedPredicateItemForPodAdd(pod *v1.Pod, nodeName string) {
-	invalidPredicates := sets.NewString("GeneralPredicates")
-
-	// if len(predicates.GetUsedPorts(pod)) != 0 we should also invalidate "PodFitsHostPorts", but it has been
-	// included in "GeneralPredicates"
-
-	// If a pod scheduled to a node with these PV, it may cause disk conflict.
-	for _, volume := range pod.Spec.Volumes {
-		if volume.GCEPersistentDisk != nil || volume.AWSElasticBlockStore != nil || volume.RBD != nil {
-			invalidPredicates.Insert("NoDiskConflict")
-		}
-	}
-	ec.InvalidCachedPredicateItem(nodeName, invalidPredicates)
-
-	// MatchInterPodAffinity, we assume scheduler can make sure newly binded pod will not break the existing
-	// inter pod affinity. So we does not need to invalidate anything when pod added.
-	// But when a pod is deleted, existing inter pod affinity may be become invalid. (e.g. this pod is preferred or vice versa)
+	// MatchInterPodAffinity: we assume scheduler can make sure newly binded pod will not break the existing
+	// inter pod affinity. So we does not need to invalidate MatchInterPodAffinity when pod added.
+	// But when a pod is deleted, existing inter pod affinity may become invalid. (e.g. this pod was preferred by some else, or vice versa)
 	// NOTE: assumptions above will not stand when we implemented features like RequiredDuringSchedulingRequiredDuringExecution.
+
+	// NoDiskConflict: the newly scheduled pod fits to existing pods on this node, it will also fits to equivalence class of existing pods
+
+	// GeneralPredicates: will always be affected by adding a new pod
+	invalidPredicates := sets.NewString("GeneralPredicates")
+	ec.InvalidCachedPredicateItem(nodeName, invalidPredicates)
 }
 
 // getHashEquivalencePod returns the hash of equivalence pod.
