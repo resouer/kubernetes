@@ -17,7 +17,9 @@ limitations under the License.
 package hyper
 
 import (
+	"golang.org/x/net/context"
 	"io"
+	"time"
 )
 
 type nopCloser struct {
@@ -26,4 +28,24 @@ type nopCloser struct {
 
 func (nopCloser) Close() error {
 	return nil
+}
+
+// getReturnValue wraps calls a function in a goroutine,
+// and returns a channel which will later return the function's return value.
+func getReturnValue(f func() error) chan error {
+	ch := make(chan error, 1)
+	go func() {
+		ch <- f()
+	}()
+	return ch
+}
+
+// getContextWithTimeout returns a context with timeout.
+func getContextWithTimeout(timeout time.Duration) (context.Context, context.CancelFunc) {
+	return context.WithTimeout(context.Background(), timeout)
+}
+
+// getContextWithCancel returns a context and cancel func
+func getContextWithCancel() (context.Context, context.CancelFunc) {
+	return context.WithCancel(context.Background())
 }

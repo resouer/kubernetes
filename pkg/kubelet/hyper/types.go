@@ -16,12 +16,52 @@ limitations under the License.
 
 package hyper
 
+import (
+	"io"
+	grpctypes "k8s.io/kubernetes/pkg/kubelet/hyper/types"
+)
+
 const (
 	StatusRunning = "running"
 	StatusPending = "pending"
 	StatusFailed  = "failed"
 	StatusSuccess = "succeeded"
 )
+
+type HyperContainer struct {
+	containerID string
+	name        string
+	podID       string
+	status      string
+}
+
+type AttachToContainerOptions struct {
+	Container    string
+	InputStream  io.Reader
+	OutputStream io.Writer
+	ErrorStream  io.Writer
+	TTY          bool
+}
+
+type ContainerLogsOptions struct {
+	Container    string
+	OutputStream io.Writer
+	ErrorStream  io.Writer
+
+	Follow     bool
+	Since      int64
+	Timestamps bool
+	TailLines  int64
+}
+
+type ExecInContainerOptions struct {
+	Container    string
+	InputStream  io.Reader
+	OutputStream io.Writer
+	ErrorStream  io.Writer
+	Commands     []string
+	TTY          bool
+}
 
 type HyperImage struct {
 	repository  string
@@ -31,134 +71,10 @@ type HyperImage struct {
 	virtualSize int64
 }
 
-// Container JSON Data Structure
-type ContainerPort struct {
-	Name          string `json:"name"`
-	HostPort      int    `json:"hostPort"`
-	ContainerPort int    `json:"containerPort"`
-	Protocol      string `json:"protocol"`
-	HostIP        string `json:"hostIP"`
-}
-
-type EnvironmentVar struct {
-	Env   string `json:"env"`
-	Value string `json:"value"`
-}
-
-type VolumeMount struct {
-	Name      string `json:"name"`
-	ReadOnly  bool   `json:"readOnly"`
-	MountPath string `json:"mountPath"`
-}
-
-type WaitingStatus struct {
-	Reason string `json:"reason"`
-}
-
-type RunningStatus struct {
-	StartedAt string `json:"startedAt"`
-}
-
-type TermStatus struct {
-	ExitCode   int    `json:"exitCode"`
-	Reason     string `json:"reason"`
-	Message    string `json:"message"`
-	StartedAt  string `json:"startedAt"`
-	FinishedAt string `json:"finishedAt"`
-}
-
-type ContainerStatus struct {
-	Name        string        `json:"name"`
-	ContainerID string        `json:"containerID"`
-	Phase       string        `json:"phase"`
-	Waiting     WaitingStatus `json:"waiting"`
-	Running     RunningStatus `json:"running"`
-	Terminated  TermStatus    `json:"terminated"`
-}
-
-// Pod JSON Data Structure
-type Container struct {
-	Name            string           `json:"name"`
-	ContainerID     string           `json:"containerID"`
-	PodID           string           `json:"podID"`
-	Image           string           `json:"image"`
-	ImageID         string           `json:"imageID"`
-	Commands        []string         `json:"commands"`
-	Args            []string         `json:"args"`
-	Workdir         string           `json:"workingDir"`
-	Ports           []ContainerPort  `json:"ports"`
-	Environment     []EnvironmentVar `json:"env"`
-	Volume          []VolumeMount    `json:"volumeMounts"`
-	ImagePullPolicy string           `json:"imagePullPolicy"`
-}
-
-type RBDVolumeSource struct {
-	Monitors []string `json:"monitors"`
-	Image    string   `json:"image"`
-	FsType   string   `json:"fsType"`
-	Pool     string   `json:"pool"`
-	User     string   `json:"user"`
-	Keyring  string   `json:"keyring"`
-	ReadOnly bool     `json:"readOnly"`
-}
-
-type PodVolume struct {
-	Name     string          `json:"name"`
-	HostPath string          `json:"source"`
-	Driver   string          `json:"driver"`
-	Rbd      RBDVolumeSource `json:"rbd"`
-}
-
-type PodSpec struct {
-	Volumes    []PodVolume       `json:"volumes"`
-	Containers []Container       `json:"containers"`
-	Labels     map[string]string `json:"labels"`
-	Vcpu       int               `json:"vcpu"`
-	Memory     int               `json:"memory"`
-}
-
-type PodStatus struct {
-	Phase      string            `json:"phase"`
-	Message    string            `json:"message"`
-	Reason     string            `json:"reason"`
-	HostIP     string            `json:"hostIP"`
-	PodIP      []string          `json:"podIP"`
-	StartTime  string            `json:"startTime"`
-	FinishTime string            `json:"finishTime"`
-	Status     []ContainerStatus `json:"containerStatus"`
-}
-
-type PodInfo struct {
-	Kind       string    `json:"kind"`
-	ApiVersion string    `json:"apiVersion"`
-	Vm         string    `json:"vm"`
-	Spec       PodSpec   `json:"spec"`
-	Status     PodStatus `json:"status"`
-}
-
 type HyperPod struct {
 	PodID   string
 	PodName string
 	VmName  string
 	Status  string
-	PodInfo PodInfo
-}
-
-type HyperContainer struct {
-	containerID string
-	name        string
-	podID       string
-	status      string
-}
-
-type HyperServiceBackend struct {
-	HostIP   string `json:"hostip"`
-	HostPort int    `json:"hostport"`
-}
-
-type HyperService struct {
-	ServiceIP   string                `json:"serviceip"`
-	ServicePort int                   `json:"serviceport"`
-	Protocol    string                `json:"protocol"`
-	Hosts       []HyperServiceBackend `json:"hosts"`
+	PodInfo *grpctypes.PodInfo
 }

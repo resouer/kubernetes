@@ -26,6 +26,7 @@ import (
 type Interface interface {
 	Start() error
 	DockerContainer(name string, req *cadvisorapi.ContainerInfoRequest) (cadvisorapi.ContainerInfo, error)
+	HyperContainer(name string, req *cadvisorapi.ContainerInfoRequest) (cadvisorapi.ContainerInfo, error)
 	ContainerInfo(name string, req *cadvisorapi.ContainerInfoRequest) (*cadvisorapi.ContainerInfo, error)
 	ContainerInfoV2(name string, options cadvisorapiv2.RequestOptions) (map[string]cadvisorapiv2.ContainerInfo, error)
 	SubcontainerInfo(name string, req *cadvisorapi.ContainerInfoRequest) (map[string]*cadvisorapi.ContainerInfo, error)
@@ -34,7 +35,7 @@ type Interface interface {
 	VersionInfo() (*cadvisorapi.VersionInfo, error)
 
 	// Returns usage information about the filesystem holding Docker images.
-	DockerImagesFsInfo() (cadvisorapiv2.FsInfo, error)
+	ImagesFsInfo() (cadvisorapiv2.FsInfo, error)
 
 	// Returns usage information about the root filesystem.
 	RootFsInfo() (cadvisorapiv2.FsInfo, error)
