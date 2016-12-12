@@ -1716,7 +1716,7 @@ func (r *runtime) CleanupNetwork() {
 			continue
 		}
 
-		err = r.networkPlugin.TearDownPod(podNamespace, podName, "", "hyper")
+		err = r.networkPlugin.TearDownPod(podNamespace, podName, kubecontainer.ContainerID{}, "hyper")
 		if err != nil {
 			glog.Warningf("[CleanupNetwork] TearDownPod failed for pod %s_%s, error: %v", podName, podNamespace, err)
 		} else {
