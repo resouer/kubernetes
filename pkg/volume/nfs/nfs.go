@@ -97,6 +97,10 @@ func (plugin *nfsPlugin) GetAccessModes() []api.PersistentVolumeAccessMode {
 }
 
 func (plugin *nfsPlugin) NewMounter(spec *volume.Spec, pod *api.Pod, _ volume.VolumeOptions) (volume.Mounter, error) {
+	// bypass hyper cloud nfs mount
+	if pod.ObjectMeta.Labels["extra.sh.hyper.cloud"] == "true" {
+		return plugin.newMounterInternal(spec, pod, NewDummyMounter())
+	}
 	return plugin.newMounterInternal(spec, pod, plugin.host.GetMounter())
 }
 
@@ -120,6 +124,9 @@ func (plugin *nfsPlugin) newMounterInternal(spec *volume.Spec, pod *api.Pod, mou
 }
 
 func (plugin *nfsPlugin) NewUnmounter(volName string, podUID types.UID) (volume.Unmounter, error) {
+	// We want to bypass hyper cloud nfs unmount but cannot check whether it is hyper cloud here
+	// So we rely on IsLikelyNotMountPoint() of host mounter to always return true for a hyper cloud
+	// nfs volume host mountpoint, because we never mount it in the first place.
 	return plugin.newUnmounterInternal(volName, podUID, plugin.host.GetMounter())
 }
 
@@ -145,6 +152,7 @@ type nfs struct {
 	// decouple creating recyclers by deferring to a function.  Allows for easier testing.
 	newRecyclerFunc func(spec *volume.Spec, host volume.VolumeHost, volumeConfig volume.VolumeConfig) (volume.Recycler, error)
 	volume.MetricsNil
+	metadata map[string]interface{}
 }
 
 func (nfsVolume *nfs) GetPath() string {
@@ -153,7 +161,7 @@ func (nfsVolume *nfs) GetPath() string {
 }
 
 func (nfsVolume *nfs) GetMetaData() map[string]interface{} {
-	return nil
+	return nfsVolume.metadata
 }
 
 type nfsMounter struct {
@@ -219,6 +227,10 @@ func (b *nfsMounter) SetUpAt(dir string, fsGroup *int64) error {
 		os.Remove(dir)
 		return err
 	}
+	data := make(map[string]interface{})
+	data["volume_type"] = "nfs"
+	data["source"] = source
+	b.nfs.metadata = data
 	return nil
 }
 

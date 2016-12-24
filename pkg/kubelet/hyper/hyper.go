@@ -628,19 +628,24 @@ func (r *runtime) buildHyperPod(pod *api.Pod, restartCount int, pullSecrets []ap
 
 			// Process rbd volume
 			metadata := mounter.GetMetaData()
-			if metadata != nil && metadata["volume_type"].(string) == "rbd" {
-				v[KEY_VOLUME_DRIVE] = metadata["volume_type"]
-				v["source"] = "rbd:" + metadata["name"].(string)
-				monitors := make([]string, 0, 1)
-				for _, host := range metadata["hosts"].([]interface{}) {
-					for _, port := range metadata["ports"].([]interface{}) {
-						monitors = append(monitors, fmt.Sprintf("%s:%s", host.(string), port.(string)))
+			if metadata != nil {
+				if metadata["volume_type"].(string) == "rbd" {
+					v[KEY_VOLUME_DRIVE] = metadata["volume_type"]
+					v[KEY_VOLUME_SOURCE] = "rbd:" + metadata["name"].(string)
+					monitors := make([]string, 0, 1)
+					for _, host := range metadata["hosts"].([]interface{}) {
+						for _, port := range metadata["ports"].([]interface{}) {
+							monitors = append(monitors, fmt.Sprintf("%s:%s", host.(string), port.(string)))
+						}
 					}
-				}
-				v["option"] = map[string]interface{}{
-					"user":     metadata["auth_username"],
-					"keyring":  metadata["keyring"],
-					"monitors": monitors,
+					v["option"] = map[string]interface{}{
+						"user":     metadata["auth_username"],
+						"keyring":  metadata["keyring"],
+						"monitors": monitors,
+					}
+				} else if metadata["volume_type"].(string) == "nfs" {
+					v[KEY_VOLUME_DRIVE] = metadata["volume_type"]
+					v[KEY_VOLUME_SOURCE] = metadata["source"].(string)
 				}
 			} else {
 				glog.V(4).Infof("Hyper: volume %s %s", name, mounter.GetPath())
