@@ -30,6 +30,7 @@ import (
 	"sort"
 	"strings"
 	"time"
+    "strconv"
 
 	"github.com/golang/glog"
 	"k8s.io/kubernetes/pkg/api"
@@ -54,6 +55,7 @@ import (
 	"k8s.io/kubernetes/pkg/volume"
 	"k8s.io/kubernetes/pkg/volume/util/volumehelper"
 	"k8s.io/kubernetes/third_party/forked/golang/expansion"
+	"k8s.io/kubernetes/pkg/kubelet/nvidiagpu"
 )
 
 // Get a list of pods that have data directories.
@@ -82,13 +84,20 @@ func (kl *Kubelet) getActivePods() []*api.Pod {
 // Experimental. For now, we hardcode /dev/nvidia0 no matter what the user asks for
 // (we only support one device per node).
 // TODO: add support for more than 1 GPU after #28216.
-func makeDevices(container *api.Container) []kubecontainer.DeviceInfo {
+func (kl *Kubelet) makeDevices(container *v1.Container) []kubecontainer.DeviceInfo {
 	nvidiaGPULimit := container.Resources.Limits.NvidiaGPU()
+
 	if nvidiaGPULimit.Value() != 0 {
-		return []kubecontainer.DeviceInfo{
-			{PathOnHost: "/dev/nvidia0", PathInContainer: "/dev/nvidia0", Permissions: "mrw"},
-			{PathOnHost: "/dev/nvidiactl", PathInContainer: "/dev/nvidiactl", Permissions: "mrw"},
-			{PathOnHost: "/dev/nvidia-uvm", PathInContainer: "/dev/nvidia-uvm", Permissions: "mrw"},
+		if nvidiaGPUPaths, err := kl.nvidiaGPUManager.AllocateGPUs(int(nvidiaGPULimit.Value())); err == nil {
+			devices := []kubecontainer.DeviceInfo{{PathOnHost: nvidiagpu.NvidiaCtlDevice, PathInContainer: nvidiagpu.NvidiaCtlDevice, Permissions: "mrw"},
+				{PathOnHost: nvidiagpu.NvidiaUVMDevice, PathInContainer: nvidiagpu.NvidiaUVMDevice, Permissions: "mrw"}}
+
+			for i, path := range nvidiaGPUPaths {
+				devices = append(devices, kubecontainer.DeviceInfo{PathOnHost: path, PathInContainer: "/dev/nvidia" + strconv.Itoa(i), Permissions: "mrw"})
+			}
+
+			return devices
+
 		}
 	}
 
@@ -304,7 +313,7 @@ func (kl *Kubelet) GenerateRunContainerOptions(pod *api.Pod, container *api.Cont
 	volumes := kl.volumeManager.GetMountedVolumesForPod(podName)
 
 	opts.PortMappings = makePortMappings(container)
-	opts.Devices = makeDevices(container)
+	opts.Devices = kl.makeDevices(container)
 
 	opts.Mounts, err = makeMounts(pod, kl.getPodDir(pod.UID), container, hostname, hostDomainName, podIP, volumes)
 	if err != nil {

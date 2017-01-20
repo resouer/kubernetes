@@ -469,7 +469,7 @@ func (kl *Kubelet) setNodeStatusMachineInfo(node *api.Node) {
 		node.Status.Capacity[api.ResourceCPU] = *resource.NewMilliQuantity(0, resource.DecimalSI)
 		node.Status.Capacity[api.ResourceMemory] = resource.MustParse("0Gi")
 		node.Status.Capacity[api.ResourcePods] = *resource.NewQuantity(int64(kl.maxPods), resource.DecimalSI)
-		node.Status.Capacity[api.ResourceNvidiaGPU] = *resource.NewQuantity(int64(kl.nvidiaGPUs), resource.DecimalSI)
+		node.Status.Capacity[api.ResourceNvidiaGPU] = *resource.NewQuantity(int64(nvidiaGPUCapacity), resource.DecimalSI)
 
 		glog.Errorf("Error getting machine info: %v", err)
 	} else {
@@ -488,7 +488,7 @@ func (kl *Kubelet) setNodeStatusMachineInfo(node *api.Node) {
 				int64(kl.maxPods), resource.DecimalSI)
 		}
 		node.Status.Capacity[api.ResourceNvidiaGPU] = *resource.NewQuantity(
-			int64(kl.nvidiaGPUs), resource.DecimalSI)
+			int64(kl.nvidiaGPUCapacity), resource.DecimalSI)
 		if node.Status.NodeInfo.BootID != "" &&
 			node.Status.NodeInfo.BootID != info.BootID {
 			// TODO: This requires a transaction, either both node status is updated
