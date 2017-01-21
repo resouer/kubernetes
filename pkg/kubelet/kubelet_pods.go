@@ -81,10 +81,7 @@ func (kl *Kubelet) getActivePods() []*api.Pod {
 }
 
 // makeDevices determines the devices for the given container.
-// Experimental. For now, we hardcode /dev/nvidia0 no matter what the user asks for
-// (we only support one device per node).
-// TODO: add support for more than 1 GPU after #28216.
-func (kl *Kubelet) makeDevices(container *v1.Container) []kubecontainer.DeviceInfo {
+func (kl *Kubelet) makeDevices(container *api.Container) []kubecontainer.DeviceInfo {
 	nvidiaGPULimit := container.Resources.Limits.NvidiaGPU()
 
 	if nvidiaGPULimit.Value() != 0 {

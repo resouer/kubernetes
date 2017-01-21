@@ -460,6 +460,8 @@ func (kl *Kubelet) setNodeStatusMachineInfo(node *api.Node) {
 		node.Status.Capacity = api.ResourceList{}
 	}
 
+	nvidiaGPUCapacity := kl.nvidiaGPUManager.Capacity()
+
 	// TODO: Post NotReady if we cannot get MachineInfo from cAdvisor. This needs to start
 	// cAdvisor locally, e.g. for test-cmd.sh, and in integration test.
 	info, err := kl.GetCachedMachineInfo()
@@ -488,7 +490,7 @@ func (kl *Kubelet) setNodeStatusMachineInfo(node *api.Node) {
 				int64(kl.maxPods), resource.DecimalSI)
 		}
 		node.Status.Capacity[api.ResourceNvidiaGPU] = *resource.NewQuantity(
-			int64(kl.nvidiaGPUCapacity), resource.DecimalSI)
+			int64(nvidiaGPUCapacity), resource.DecimalSI)
 		if node.Status.NodeInfo.BootID != "" &&
 			node.Status.NodeInfo.BootID != info.BootID {
 			// TODO: This requires a transaction, either both node status is updated
