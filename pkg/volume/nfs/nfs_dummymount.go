@@ -52,5 +52,5 @@ func (dm *DummyMounter) List() ([]mount.MountPoint, error) {
 // IsLikelyNotMountPoint determines if a directory is a mountpoint.
 // It should return ErrNotExist when the directory does not exist.
 func (dm *DummyMounter) IsLikelyNotMountPoint(file string) (bool, error) {
-	return true, nil
+	return false, nil
 }

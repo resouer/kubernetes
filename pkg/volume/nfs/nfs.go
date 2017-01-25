@@ -194,11 +194,18 @@ func (b *nfsMounter) SetUpAt(dir string, fsGroup *int64) error {
 	if err != nil && !os.IsNotExist(err) {
 		return err
 	}
+
+	// nfs dummy mounter does not create dir, but still need metadata
+	source := fmt.Sprintf("%s:%s", b.server, b.exportPath)
+	data := make(map[string]interface{})
+	data["volume_type"] = "nfs"
+	data["source"] = source
+	b.nfs.metadata = data
+
 	if !notMnt {
 		return nil
 	}
 	os.MkdirAll(dir, 0750)
-	source := fmt.Sprintf("%s:%s", b.server, b.exportPath)
 	options := []string{}
 	if b.readOnly {
 		options = append(options, "ro")
@@ -229,10 +236,6 @@ func (b *nfsMounter) SetUpAt(dir string, fsGroup *int64) error {
 		os.Remove(dir)
 		return err
 	}
-	data := make(map[string]interface{})
-	data["volume_type"] = "nfs"
-	data["source"] = source
-	b.nfs.metadata = data
 	return nil
 }
 
@@ -255,6 +258,9 @@ func (c *nfsUnmounter) TearDown() error {
 func (c *nfsUnmounter) TearDownAt(dir string) error {
 	notMnt, err := c.mounter.IsLikelyNotMountPoint(dir)
 	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
 		glog.Errorf("Error checking IsLikelyNotMountPoint: %v", err)
 		return err
 	}
