@@ -21,6 +21,7 @@ import (
 	"os"
 
 	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/kubelet/util/format"
 	"k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/util/mount"
 	"k8s.io/kubernetes/pkg/util/strings"
@@ -98,6 +99,7 @@ func (plugin *nfsPlugin) GetAccessModes() []api.PersistentVolumeAccessMode {
 
 func (plugin *nfsPlugin) NewMounter(spec *volume.Spec, pod *api.Pod, _ volume.VolumeOptions) (volume.Mounter, error) {
 	// bypass hyper cloud nfs mount
+	glog.V(3).Infof("NFS new mounter hyper cloud %v for pod %q", pod.ObjectMeta.Labels["extra.sh.hyper.cloud"], format.Pod(pod))
 	if pod.ObjectMeta.Labels["extra.sh.hyper.cloud"] == "true" {
 		return plugin.newMounterInternal(spec, pod, NewDummyMounter())
 	}
