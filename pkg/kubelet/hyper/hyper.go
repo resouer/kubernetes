@@ -629,6 +629,7 @@ func (r *runtime) buildHyperPod(pod *api.Pod, restartCount int, pullSecrets []ap
 			// Process rbd volume
 			metadata := mounter.GetMetaData()
 			if metadata != nil {
+				glog.V(3).Infof("Hyper: volume %s type %v", name, metadata["volume_type"])
 				if metadata["volume_type"].(string) == "rbd" {
 					v[KEY_VOLUME_DRIVE] = metadata["volume_type"]
 					v[KEY_VOLUME_SOURCE] = "rbd:" + metadata["name"].(string)
