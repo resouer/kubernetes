@@ -363,7 +363,7 @@ func TestSyncPodsStartPod(t *testing.T) {
 		}),
 	}
 	kubelet.podManager.SetPods(pods)
-	kubelet.HandlePodSyncs(pods)
+	kubelet.HandlePodSyncs(pods, nil)
 	fakeRuntime.AssertStartedPods([]string{string(pods[0].UID)})
 }
 
@@ -1339,7 +1339,7 @@ func TestDeletePodDirsForDeletedPods(t *testing.T) {
 
 	kl.podManager.SetPods(pods)
 	// Sync to create pod directories.
-	kl.HandlePodSyncs(kl.podManager.GetPods())
+	kl.HandlePodSyncs(kl.podManager.GetPods(), nil)
 	for i := range pods {
 		assert.True(t, dirExists(kl.getPodDir(pods[i].UID)), "Expected directory to exist for pod %d", i)
 	}
@@ -1355,7 +1355,7 @@ func syncAndVerifyPodDir(t *testing.T, testKubelet *TestKubelet, pods []*v1.Pod,
 	kl := testKubelet.kubelet
 
 	kl.podManager.SetPods(pods)
-	kl.HandlePodSyncs(pods)
+	kl.HandlePodSyncs(pods, nil)
 	kl.HandlePodCleanups()
 	for i, pod := range podsToCheck {
 		exist := dirExists(kl.getPodDir(pod.UID))

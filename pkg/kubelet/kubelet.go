@@ -166,7 +166,7 @@ type SyncHandler interface {
 	HandlePodUpdates(pods []*v1.Pod)
 	HandlePodRemoves(pods []*v1.Pod)
 	HandlePodReconcile(pods []*v1.Pod)
-	HandlePodSyncs(pods []*v1.Pod)
+	HandlePodSyncs(pods []*v1.Pod, event *pleg.PodLifecycleEvent)
 	HandlePodCleanups() error
 }
 
@@ -1810,7 +1810,7 @@ func (kl *Kubelet) syncLoopIteration(configCh <-chan kubetypes.PodUpdate, handle
 			// PLEG event for a pod; sync it.
 			if pod, ok := kl.podManager.GetPodByUID(e.ID); ok {
 				glog.V(2).Infof("SyncLoop (PLEG): %q, event: %#v", format.Pod(pod), e)
-				handler.HandlePodSyncs([]*v1.Pod{pod})
+				handler.HandlePodSyncs([]*v1.Pod{pod}, e)
 			} else {
 				// If the pod no longer exists, ignore the event.
 				glog.V(4).Infof("SyncLoop (PLEG): ignore irrelevant event: %#v", e)
@@ -1829,7 +1829,7 @@ func (kl *Kubelet) syncLoopIteration(configCh <-chan kubetypes.PodUpdate, handle
 			break
 		}
 		glog.V(4).Infof("SyncLoop (SYNC): %d pods; %s", len(podsToSync), format.Pods(podsToSync))
-		kl.HandlePodSyncs(podsToSync)
+		kl.HandlePodSyncs(podsToSync, nil)
 	case update := <-kl.livenessManager.Updates():
 		if update.Result == proberesults.Failure {
 			// The liveness manager detected a failure; sync the pod.
@@ -1843,7 +1843,7 @@ func (kl *Kubelet) syncLoopIteration(configCh <-chan kubetypes.PodUpdate, handle
 				break
 			}
 			glog.V(1).Infof("SyncLoop (container unhealthy): %q", format.Pod(pod))
-			handler.HandlePodSyncs([]*v1.Pod{pod})
+			handler.HandlePodSyncs([]*v1.Pod{pod}, nil)
 		}
 	case <-housekeepingCh:
 		if !kl.sourcesReady.AllReady() {
@@ -1863,7 +1863,7 @@ func (kl *Kubelet) syncLoopIteration(configCh <-chan kubetypes.PodUpdate, handle
 
 // dispatchWork starts the asynchronous sync of the pod in a pod worker.
 // If the pod is terminated, dispatchWork
-func (kl *Kubelet) dispatchWork(pod *v1.Pod, syncType kubetypes.SyncPodType, mirrorPod *v1.Pod, start time.Time) {
+func (kl *Kubelet) dispatchWork(pod *v1.Pod, syncType kubetypes.SyncPodType, mirrorPod *v1.Pod, start time.Time, event *pleg.PodLifecycleEvent) {
 	if kl.podIsTerminated(pod) {
 		if pod.DeletionTimestamp != nil {
 			// If the pod is in a terminated state, there is no pod worker to
@@ -1883,6 +1883,9 @@ func (kl *Kubelet) dispatchWork(pod *v1.Pod, syncType kubetypes.SyncPodType, mir
 			if err != nil {
 				metrics.PodWorkerLatency.WithLabelValues(syncType.String()).Observe(metrics.SinceInMicroseconds(start))
 			}
+			if event != nil {
+				kl.recorder.Eventf(pod, v1.EventTypeNormal, events.ContainerChanged, "%v happened to %v", event.Type, event.Data)
+			}
 		},
 	})
 	// Note the number of containers for new pods.
@@ -1897,7 +1900,7 @@ func (kl *Kubelet) handleMirrorPod(mirrorPod *v1.Pod, start time.Time) {
 	// corresponding static pod. Send update to the pod worker if the static
 	// pod exists.
 	if pod, ok := kl.podManager.GetPodByMirrorPod(mirrorPod); ok {
-		kl.dispatchWork(pod, kubetypes.SyncPodUpdate, mirrorPod, start)
+		kl.dispatchWork(pod, kubetypes.SyncPodUpdate, mirrorPod, start, nil)
 	}
 }
 
@@ -1934,7 +1937,7 @@ func (kl *Kubelet) HandlePodAdditions(pods []*v1.Pod) {
 			}
 		}
 		mirrorPod, _ := kl.podManager.GetMirrorPodByPod(pod)
-		kl.dispatchWork(pod, kubetypes.SyncPodCreate, mirrorPod, start)
+		kl.dispatchWork(pod, kubetypes.SyncPodCreate, mirrorPod, start, nil)
 		kl.probeManager.AddPod(pod)
 	}
 }
@@ -1952,7 +1955,7 @@ func (kl *Kubelet) HandlePodUpdates(pods []*v1.Pod) {
 		// TODO: Evaluate if we need to validate and reject updates.
 
 		mirrorPod, _ := kl.podManager.GetMirrorPodByPod(pod)
-		kl.dispatchWork(pod, kubetypes.SyncPodUpdate, mirrorPod, start)
+		kl.dispatchWork(pod, kubetypes.SyncPodUpdate, mirrorPod, start, nil)
 	}
 }
 
@@ -1994,11 +1997,12 @@ func (kl *Kubelet) HandlePodReconcile(pods []*v1.Pod) {
 
 // HandlePodSyncs is the callback in the syncHandler interface for pods
 // that should be dispatched to pod workers for sync.
-func (kl *Kubelet) HandlePodSyncs(pods []*v1.Pod) {
+func (kl *Kubelet) HandlePodSyncs(pods []*v1.Pod, event *pleg.PodLifecycleEvent) {
 	start := kl.clock.Now()
 	for _, pod := range pods {
 		mirrorPod, _ := kl.podManager.GetMirrorPodByPod(pod)
-		kl.dispatchWork(pod, kubetypes.SyncPodSync, mirrorPod, start)
+		// event is the pleg event drives this pod sync (if any)
+		kl.dispatchWork(pod, kubetypes.SyncPodSync, mirrorPod, start, event)
 	}
 }
 
