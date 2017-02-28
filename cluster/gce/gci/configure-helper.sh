@@ -68,7 +68,7 @@ function safe-format-and-mount() {
   # Format only if the disk is not already formatted.
   if ! tune2fs -l "${device}" ; then
     echo "Formatting '${device}'"
-    mkfs.ext4 -F -E lazy_itable_init=0,lazy_journal_init=0,discard "${device}"
+    mkfs.ext4 -F "${device}"
   fi
 
   mkdir -p "${mountpoint}"
@@ -631,6 +631,9 @@ function prepare-etcd-manifest {
   local etcd_protocol="http"
   local etcd_creds=""
 
+  if [[ -n "${INITIAL_ETCD_CLUSTER_STATE:-}" ]]; then
+    cluster_state="${INITIAL_ETCD_CLUSTER_STATE}"
+  fi
   if [[ -n "${ETCD_CA_KEY:-}" && -n "${ETCD_CA_CERT:-}" && -n "${ETCD_PEER_KEY:-}" && -n "${ETCD_PEER_CERT:-}" ]]; then
     etcd_creds=" --peer-trusted-ca-file /etc/srv/kubernetes/etcd-ca.crt --peer-cert-file /etc/srv/kubernetes/etcd-peer.crt --peer-key-file /etc/srv/kubernetes/etcd-peer.key -peer-client-cert-auth "
     etcd_protocol="https"
@@ -640,7 +643,6 @@ function prepare-etcd-manifest {
     etcd_host="etcd-${host}=${etcd_protocol}://${host}:$3"
     if [[ -n "${etcd_cluster}" ]]; then
       etcd_cluster+=","
-      cluster_state="existing"
     fi
     etcd_cluster+="${etcd_host}"
   done
@@ -751,6 +753,7 @@ function remove-salt-config-comments {
 function start-kube-apiserver {
   echo "Start kubernetes api-server"
   prepare-log-file /var/log/kube-apiserver.log
+  prepare-log-file /var/log/kube-apiserver-audit.log
 
   # Calculate variables and assemble the command line.
   local params="${API_SERVER_TEST_LOG_LEVEL:-"--v=2"} ${APISERVER_TEST_ARGS:-} ${CLOUD_CONFIG_OPT}"
@@ -787,6 +790,21 @@ function start-kube-apiserver {
   fi
   if [[ -n "${ETCD_QUORUM_READ:-}" ]]; then
     params+=" --etcd-quorum-read=${ETCD_QUORUM_READ}"
+  fi
+
+  if [[ "${ENABLE_APISERVER_BASIC_AUDIT:-}" == "true" ]]; then
+    # We currently only support enabling with a fixed path and with built-in log
+    # rotation "disabled" (large value) so it behaves like kube-apiserver.log.
+    # External log rotation should be set up the same as for kube-apiserver.log.
+    params+=" --audit-log-path=/var/log/kube-apiserver-audit.log"
+    params+=" --audit-log-maxage=0"
+    params+=" --audit-log-maxbackup=0"
+    # Lumberjack doesn't offer any way to disable size-based rotation. It also
+    # has an in-memory counter that doesn't notice if you truncate the file.
+    # 2000000000 (in MiB) is a large number that fits in 31 bits. If the log
+    # grows at 10MiB/s (~30K QPS), it will rotate after ~6 years if apiserver
+    # never restarts. Please manually restart apiserver before this time.
+    params+=" --audit-log-maxsize=2000000000"
   fi
 
   local admission_controller_config_mount=""
