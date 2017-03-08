@@ -6503,6 +6503,20 @@ var OpenAPIDefinitions *common.OpenAPIDefinitions = &common.OpenAPIDefinitions{
 							Type:        []string{"string"},
 							Format:      "",
 						},
+						"allocatefrom": {
+							SchemaProps: spec.SchemaProps{
+								Description: "AllocateFrom describes the location of compute resources being used on the node",
+								Type:        []string{"object"},
+								AdditionalProperties: &spec.SchemaOrBool{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Type:   []string{"string"},
+											Format: "",
+										},
+									},
+								},
+							},
+						},
 					},
 				},
 				Required: []string{"name", "namespaced", "kind"},
