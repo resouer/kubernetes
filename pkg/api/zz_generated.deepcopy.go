@@ -3199,6 +3199,15 @@ func DeepCopy_api_ResourceRequirements(in interface{}, out interface{}, c *conve
 		} else {
 			out.Requests = nil
 		}
+		if in.AllocateFrom != nil {
+			in, out := &in.AllocateFrom, &out.AllocateFrom
+			*out = make(ResourceLocation)
+			for key, val := range *in {
+				(*out)[key] = val
+			}
+		} else {
+			out.AllocateFrom = nil
+		}
 		return nil
 	}
 }

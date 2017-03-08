@@ -3742,6 +3742,7 @@ func Convert_api_ResourceQuotaStatus_To_v1_ResourceQuotaStatus(in *api.ResourceQ
 func autoConvert_v1_ResourceRequirements_To_api_ResourceRequirements(in *ResourceRequirements, out *api.ResourceRequirements, s conversion.Scope) error {
 	out.Limits = *(*api.ResourceList)(unsafe.Pointer(&in.Limits))
 	out.Requests = *(*api.ResourceList)(unsafe.Pointer(&in.Requests))
+	out.AllocateFrom = *(*api.ResourceLocation)(unsafe.Pointer(&in.AllocateFrom))
 	return nil
 }
 
@@ -3752,6 +3753,7 @@ func Convert_v1_ResourceRequirements_To_api_ResourceRequirements(in *ResourceReq
 func autoConvert_api_ResourceRequirements_To_v1_ResourceRequirements(in *api.ResourceRequirements, out *ResourceRequirements, s conversion.Scope) error {
 	out.Limits = *(*ResourceList)(unsafe.Pointer(&in.Limits))
 	out.Requests = *(*ResourceList)(unsafe.Pointer(&in.Requests))
+	out.AllocateFrom = *(*ResourceLocation)(unsafe.Pointer(&in.AllocateFrom))
 	return nil
 }
 

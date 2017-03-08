@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"regexp"
 	"strings"
 	"time"
 
@@ -124,6 +125,21 @@ func IsStandardContainerResourceName(str string) bool {
 // integer resource prefix.
 func IsOpaqueIntResourceName(name ResourceName) bool {
 	return strings.HasPrefix(string(name), ResourceOpaqueIntPrefix)
+}
+
+// IsGroupResourceName returns true if the resource name has the group resource prefix
+func IsGroupResourceName(name ResourceName) bool {
+	return strings.HasPrefix(string(name), ResourceGroupPrefix)
+}
+
+// IsEnumResource returns true if resource name is an "enum" resource
+func IsEnumResource(res string) bool {
+	re := regexp.MustCompile(`\S*/(\S*)`)
+	matches := re.FindStringSubmatch(res)
+	if len(matches) >= 2 {
+		return strings.HasPrefix(strings.ToLower(matches[1]), "enum")
+	}
+	return false
 }
 
 // OpaqueIntResourceName returns a ResourceName with the canonical opaque

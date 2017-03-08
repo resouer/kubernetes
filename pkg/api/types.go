@@ -1246,6 +1246,9 @@ type ResourceRequirements struct {
 	// otherwise to an implementation-defined value
 	// +optional
 	Requests ResourceList `json:"requests,omitempty"`
+	// AllocateFrom describes the location of compute resources being used on the node
+	// +optional
+	AllocateFrom ResourceLocation `json:"allocatefrom,omitempty`
 }
 
 // Container represents a single container that is expected to be run on the host.
@@ -2655,10 +2658,15 @@ const (
 const (
 	// Namespace prefix for opaque counted resources (alpha).
 	ResourceOpaqueIntPrefix = "pod.alpha.kubernetes.io/opaque-int-resource-"
+	// Namespace prefix for group resources (alpha).
+	ResourceGroupPrefix = "alpha.kubernetes.io/group-resource"
 )
 
 // ResourceList is a set of (resource name, quantity) pairs.
 type ResourceList map[ResourceName]resource.Quantity
+
+// ResourceLocation is a set of (resource name, resource location on node) pairs.
+type ResourceLocation map[ResourceName]ResourceName
 
 // +genclient=true
 // +nonNamespaced=true
