@@ -3153,6 +3153,8 @@ func DeepCopy_v1_ResourceRequirements(in interface{}, out interface{}, c *conver
 			for key, val := range *in {
 				(*out)[key] = val
 			}
+		} else {
+			out.AllocateFrom = nil
 		}
 		return nil
 	}

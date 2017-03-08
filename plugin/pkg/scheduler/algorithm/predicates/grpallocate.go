@@ -7,7 +7,7 @@ import (
 
 	"github.com/golang/glog"
 
-	"k8s.io/kubernetes/pkg/api/v1"
+	v1 "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/plugin/pkg/scheduler/algorithm"
 	"k8s.io/kubernetes/plugin/pkg/scheduler/schedulercache"
 )
@@ -77,7 +77,7 @@ func getMap(x interface{}, keys interface{}) interface{} {
 }
 
 func prechecked(constraint string) bool {
-	return !(strings.HasPrefix(constraint, v1.ResourceGroupPrefix))
+	return !v1.IsGroupResourceName(v1.ResourceName(constraint))
 }
 
 func findSubGroups(baseGroup string, grp map[string]string) (map[string](map[string](map[string]string)), map[string]bool) {
@@ -167,7 +167,7 @@ func resourceAvailable(
 			globalName, available := grpAllocRes[grpReqKey]
 			if !available {
 				found = false
-				predicateFails = append(predicateFails, NewInsufficientResourceError(contName+"/"+grpReqElem, required, int64(0), int64(0)))
+				predicateFails = append(predicateFails, NewInsufficientResourceError(v1.ResourceName(contName+"/"+grpReqElem), required, int64(0), int64(0)))
 				continue
 			}
 			allocatable := allocRes[globalName]
@@ -175,13 +175,13 @@ func resourceAvailable(
 			if strings.HasPrefix(strings.ToLower(grpReqKey), "enum") {
 				if (uint64(allocatable) & uint64(required)) == uint64(0) {
 					found = false
-					predicateFails = append(predicateFails, NewInsufficientResourceError(contName+"/"+grpReqElem, required, used, allocatable))
+					predicateFails = append(predicateFails, NewInsufficientResourceError(v1.ResourceName(contName+"/"+grpReqElem), required, used, allocatable))
 					continue
 				}
 			} else {
 				if allocatable-used < required {
 					found = false
-					predicateFails = append(predicateFails, NewInsufficientResourceError(contName+"/"+grpReqElem, required, used, allocatable))
+					predicateFails = append(predicateFails, NewInsufficientResourceError(v1.ResourceName(contName+"/"+grpReqElem), required, used, allocatable))
 					continue
 				}
 			}
@@ -233,7 +233,7 @@ func allocateSubGroups(
 			if !foundSubGrp {
 				found = false
 				searchGroup := baseGroup + "/" + subgrpsKey + "/" + subgrpsElemIndex
-				predicateFails = append(predicateFails, NewInsufficientResourceError(contName+"/"+searchGroup, 0, 0, 0))
+				predicateFails = append(predicateFails, NewInsufficientResourceError(v1.ResourceName(contName+"/"+searchGroup), 0, 0, 0))
 				predicateFails = append(predicateFails, reasons...)
 				continue
 			}
@@ -267,6 +267,10 @@ func allocateGroup(
 	allocRes map[string]int64, grpsAllocRes map[string](map[string]string), scorer map[string]scoreFunc,
 	usedResource map[string]int64, allocated map[string]string,
 	usedGroups map[string]bool, bPreferUsed bool, baseGroup string) (bool, []algorithm.PredicateFailureReason, float64) {
+
+	if len(grpReq) == 0 {
+		return true, nil, 0.0
+	}
 
 	maxScore := -1.0
 	maxScoreKey := ""
@@ -336,7 +340,7 @@ func allocateGroup(
 			} else {
 				allocated[grpReqValue] = grpsAllocRes[maxScoreKey][grpReqKey]
 			}
-			if isEnumResource(grpReqKey) {
+			if v1.IsEnumResource(grpReqKey) {
 				usedResource[allocated[grpReqValue]] |= (req[grpReqValue] & allocRes[allocated[grpReqValue]])
 			} else {
 				usedResource[allocated[grpReqValue]] += req[grpReqValue]
@@ -354,31 +358,39 @@ func containerFitsGroupConstraints(contReq *v1.Container, allocatable *scheduler
 	usedGroups map[string]bool, bPreferUsed bool) (bool, []algorithm.PredicateFailureReason, float64) {
 
 	// Required resources
-	req := make(map[string]string)
+	reqName := make(map[string]string)
+	req := make(map[string]int64)
 	// Quantitites available on NodeInfo
-	alloc := make(map[string](map[string]string))
+	allocName := make(map[string](map[string]string))
+	alloc := make(map[string]int64)
 	// where are resources coming from for given constraint
-	allocatedLoc = make(map[string]string)
-	for reqRes := range contReq.Resources.Requests {
-		if !prechecked(reqRes) {
-			req[reqRes] = reqRes.Value()
+	allocatedLoc := make(map[string]string)
+	glog.V(7).Infoln("Requests", contReq.Resources.Requests)
+	glog.V(7).Infoln("AllocatableRes", allocatable.OpaqueIntResources)
+	for reqRes, reqVal := range contReq.Resources.Requests {
+		if !prechecked(string(reqRes)) {
+			reqName[string(reqRes)] = string(reqRes)
+			req[string(reqRes)] = reqVal.Value()
 		}
 	}
-	for allocRes := range allocatable.OpaqueIntResources {
-		if !prechecked(allocRes) {
-			assignMap(alloc, []string{"0", allocRes}, allocRes)
+	for allocRes, allocVal := range allocatable.OpaqueIntResources {
+		if !prechecked(string(allocRes)) {
+			assignMap(allocName, []string{"0", string(allocRes)}, string(allocRes))
+			alloc[string(allocRes)] = allocVal
 		}
 	}
+	glog.V(7).Infoln("Required", reqName, req)
+	glog.V(7).Infoln("Allocatable", allocName, alloc)
 
-	found, reasons, score := allocateGroup(contReq.Name, contReq.Resources.Requests, req, allocatable.OpaqueIntResources, alloc,
+	found, reasons, score := allocateGroup(contReq.Name, req, reqName, alloc, allocName,
 		scorer, usedResource, allocatedLoc,
-		usedGroups, bPreferUsed, GroupResourcePrefix)
+		usedGroups, bPreferUsed, v1.ResourceGroupPrefix)
 
-	if !contReq.Resources.AllocateFrom == nil {
-		contReq.Resources.AllocateFrom = make(ResourceLocation)
+	if contReq.Resources.AllocateFrom == nil {
+		contReq.Resources.AllocateFrom = make(v1.ResourceLocation)
 	}
 	for allocatedKey, allocatedLocVal := range allocatedLoc {
-		contReq.Resources.AllocateFrom[ResourceName(allocatedKey)] = ResourceName(allocatedLocVal)
+		contReq.Resources.AllocateFrom[v1.ResourceName(allocatedKey)] = v1.ResourceName(allocatedLocVal)
 	}
 
 	glog.V(5).Infoln("Allocated", allocatedLoc)
@@ -389,24 +401,44 @@ func containerFitsGroupConstraints(contReq *v1.Container, allocatable *scheduler
 
 func initUsedResource(n *schedulercache.NodeInfo) map[string]int64 {
 	usedResource := make(map[string]int64)
-	for resKey, resVal := range n.requested.OpaqueIntResources {
-		usedResource[resKey] = resVal
+	requested := n.RequestedResource()
+	for resKey, resVal := range requested.OpaqueIntResources {
+		usedResource[string(resKey)] = resVal
 	}
 	return usedResource
 }
 
+func defaultScoreFunc(r *schedulercache.Resource) map[string]scoreFunc {
+	scorer := make(map[string]scoreFunc)
+	for key := range r.OpaqueIntResources {
+		keyS := string(key)
+		if !prechecked(keyS) {
+			if !v1.IsEnumResource(keyS) {
+				scorer[keyS] = leftoverScoreFunc
+			} else {
+				scorer[keyS] = enumScoreFunc
+			}
+		}
+	}
+	return scorer
+}
+
 // PodFitsGroupConstraints tells if pod fits constraints, score returned is score of running containers
-func PodFitsGroupConstraints(n *schedulercache.NodeInfom, spec *v1.PodSpec) (bool, []algorithm.PredicateFailureReason, float64) {
-	usedResource := n.initUsedResource()
+func PodFitsGroupConstraints(n *schedulercache.NodeInfo, spec *v1.PodSpec) (bool, []algorithm.PredicateFailureReason, float64) {
+	usedResource := initUsedResource(n)
 	usedGroups := make(map[string]bool)
 	totalScore := 0.0
 	var predicateFails []algorithm.PredicateFailureReason
 	found := true
 
+	allocatableV := n.AllocatableResource()
+	allocatable := &allocatableV
+	scorer := defaultScoreFunc(allocatable)
+
 	// first go over running containers
 	// now go over all running containers
 	for i := range spec.Containers {
-		if fits, reasons, score := containerFitsGroupConstraints(&spec.Containers[i], n.allocatable, n.scorer, usedResource, usedGroups, true); fits == false {
+		if fits, reasons, score := containerFitsGroupConstraints(&spec.Containers[i], allocatable, scorer, usedResource, usedGroups, true); fits == false {
 			found = false
 			predicateFails = append(predicateFails, reasons...)
 		} else {
@@ -417,10 +449,10 @@ func PodFitsGroupConstraints(n *schedulercache.NodeInfom, spec *v1.PodSpec) (boo
 	// now go over initialization containers, try to reutilize used groups
 	for i := range spec.InitContainers {
 		// clear the used resources
-		usedResource = n.initUsedResource()
+		usedResource = initUsedResource(n)
 		// container.Resources.Requests contains a map, alloctable contains type Resource
 		// prefer groups which are already used by running containers
-		if fits, reasons, _ := containerFitsGroupConstraints(&spec.InitContainers[i], n.allocatable, n.scorer, usedResource, usedGroups, true); fits == false {
+		if fits, reasons, _ := containerFitsGroupConstraints(&spec.InitContainers[i], allocatable, scorer, usedResource, usedGroups, true); fits == false {
 			found = false
 			predicateFails = append(predicateFails, reasons...)
 		}
@@ -429,70 +461,4 @@ func PodFitsGroupConstraints(n *schedulercache.NodeInfom, spec *v1.PodSpec) (boo
 	glog.V(4).Infoln("Used", usedGroups)
 
 	return found, predicateFails, totalScore
-}
-
-func isEnumResource(res string) bool {
-	re := regexp.MustCompile(`\S*/(\S*)`)
-	matches := re.FindStringSubmatch(res)
-	if len(matches) >= 2 {
-		return strings.HasPrefix(strings.ToLower(matches[1]), "enum")
-	}
-	return false
-}
-
-// computePodResources returns resources needed by pod
-func computePodResources(n *schedulercache.NodeInfo, spec *v1.PodSpec) map[string]int64 {
-	usedResources := make(map[string]int64)
-	allocatable := n.allocatable.OpaqueIntResources
-
-	// go over running containers to compute utilized resources
-	for _, cont := range spec.Containers {
-		for resourceReq, allocatedFrom := range cont.Resources.Allocated {
-			if isEnumResource(resourceReq) {
-				usedResources[allocatedFrom] |= (cont.Resources.Requests[resourceReq] & allocatable[allocatedFrom])
-			} else {
-				usedResources[allocatedFrom] += cont.Resources.Requests[resourceReq]
-			}
-		}
-	}
-
-	// now go over init containers to compute resources required
-	for _, cont := range spec.InitContainers {
-		for resourceReq, allocatedFrom := range cont.Resources.Allocated {
-			if isEnumResource(resourceReq) {
-				usedResources[allocatedFrom] |= (cont.Resources.Requests[resourceReq] & allocatable[allocatedFrom])
-			} else {
-				if cont.Resources.Requests[resourceReq] > usedResources[allocatedFrom] {
-					usedResources[allocatedFrom] = cont.Resources.Requests[resourceReq]
-				}
-			}
-		}
-	}
-
-	return usedResources
-}
-
-// TakePodResource takes pod resource from node
-func TakePodGroupResource(n *schedulercache.NodeInfo, spec *v1.PodSpec) map[string]int64 {
-	usedResources := n.computePodResources(spec)
-
-	for usedResourceKey, usedResourceVal := range usedResources {
-		// enum resources can be used, but not taken
-		if !isEnumResource(usedResourceKey) {
-			n.requested.OpaqueIntResources[usedResourceKey] += usedResourceVal
-		}
-	}
-
-	return usedResources
-}
-
-// ReturnPodResource returns pod resource to node
-func ReturnPodGroupResource(n *schedulercache.NodeInfo, spec *v1.PodSpec) {
-	usedResources := n.computePodResources(spec)
-
-	for usedResourceKey, usedResourceVal := range usedResources {
-		if !isEnumResource(usedResourceKey) {
-			n.requested.OpaqueIntResources[usedResourceKey] -= usedResourceVal
-		}
-	}
 }

@@ -74,6 +74,14 @@ func (r *Resource) ResourceList() api.ResourceList {
 	return result
 }
 
+func (r *Resource) AddOpaque(name api.ResourceName, quantity int64) {
+	// Lazily allocate opaque integer resource map.
+	if r.OpaqueIntResources == nil {
+		r.OpaqueIntResources = map[api.ResourceName]int64{}
+	}
+	r.OpaqueIntResources[name] += quantity
+}
+
 // NewNodeInfo returns a ready to use empty NodeInfo object.
 // If any pods are given in arguments, their information will be aggregated in
 // the returned object.
@@ -181,6 +189,69 @@ func hasPodAffinityConstraints(pod *api.Pod) bool {
 	return affinity.PodAffinity != nil || affinity.PodAntiAffinity != nil
 }
 
+// ComputePodGroupResources returns resources needed by pod
+func (n *NodeInfo) ComputePodGroupResources(spec *api.PodSpec) map[api.ResourceName]int64 {
+	usedResources := make(map[api.ResourceName]int64)
+	allocatable := n.allocatableResource.OpaqueIntResources
+
+	// go over running containers to compute utilized resources
+	for _, cont := range spec.Containers {
+		for resourceReq, allocatedFrom := range cont.Resources.AllocateFrom {
+			requestedResourceV := cont.Resources.Requests[resourceReq]
+			requestedResource := &requestedResourceV
+			val := requestedResource.Value()
+			if api.IsEnumResource(string(resourceReq)) {
+				usedResources[allocatedFrom] |= (val & allocatable[allocatedFrom])
+			} else {
+				usedResources[allocatedFrom] += val
+			}
+		}
+	}
+
+	// now go over init containers to compute resources required
+	for _, cont := range spec.InitContainers {
+		for resourceReq, allocatedFrom := range cont.Resources.AllocateFrom {
+			requestedResourceV := cont.Resources.Requests[resourceReq]
+			requestedResource := &requestedResourceV
+			val := requestedResource.Value()
+			if api.IsEnumResource(string(resourceReq)) {
+				usedResources[allocatedFrom] |= (val & allocatable[allocatedFrom])
+			} else {
+				if val > usedResources[allocatedFrom] {
+					usedResources[allocatedFrom] = val
+				}
+			}
+		}
+	}
+
+	return usedResources
+}
+
+// TakePodGroupResource takes pod resource from node
+func (n *NodeInfo) takePodGroupResource(spec *api.PodSpec) {
+	usedResources := n.ComputePodGroupResources(spec)
+	requested := n.requestedResource
+
+	for usedResourceKey, usedResourceVal := range usedResources {
+		// enum resources can be used, but not taken
+		if !api.IsEnumResource(string(usedResourceKey)) {
+			requested.AddOpaque(usedResourceKey, usedResourceVal)
+		}
+	}
+}
+
+// ReturnPodGroupResource returns pod resource to node
+func (n *NodeInfo) returnPodGroupResource(spec *api.PodSpec) {
+	usedResources := n.ComputePodGroupResources(spec)
+	requested := n.requestedResource
+
+	for usedResourceKey, usedResourceVal := range usedResources {
+		if !api.IsEnumResource(string(usedResourceKey)) {
+			requested.AddOpaque(usedResourceKey, -usedResourceVal)
+		}
+	}
+}
+
 // addPod adds pod information to this NodeInfo.
 func (n *NodeInfo) addPod(pod *api.Pod) {
 	// cpu, mem, nvidia_gpu, non0_cpu, non0_mem := calculateResource(pod)
@@ -192,8 +263,12 @@ func (n *NodeInfo) addPod(pod *api.Pod) {
 		n.requestedResource.OpaqueIntResources = map[api.ResourceName]int64{}
 	}
 	for rName, rQuant := range res.OpaqueIntResources {
-		n.requestedResource.OpaqueIntResources[rName] += rQuant
+		if api.IsOpaqueIntResourceName(rName) {
+			n.requestedResource.OpaqueIntResources[rName] += rQuant
+		}
 	}
+	n.takePodGroupResource(&pod.Spec)
+
 	n.nonzeroRequest.MilliCPU += non0_cpu
 	n.nonzeroRequest.Memory += non0_mem
 	n.pods = append(n.pods, pod)
@@ -243,8 +318,12 @@ func (n *NodeInfo) removePod(pod *api.Pod) error {
 				n.requestedResource.OpaqueIntResources = map[api.ResourceName]int64{}
 			}
 			for rName, rQuant := range res.OpaqueIntResources {
-				n.requestedResource.OpaqueIntResources[rName] -= rQuant
+				if api.IsOpaqueIntResourceName(rName) {
+					n.requestedResource.OpaqueIntResources[rName] -= rQuant
+				}
 			}
+			n.returnPodGroupResource(&pod.Spec)
+
 			n.nonzeroRequest.MilliCPU -= non0_cpu
 			n.nonzeroRequest.Memory -= non0_mem
 			n.generation++
@@ -297,7 +376,7 @@ func (n *NodeInfo) SetNode(node *api.Node) error {
 		case api.ResourcePods:
 			n.allowedPodNumber = int(rQuant.Value())
 		default:
-			if api.IsOpaqueIntResourceName(rName) {
+			if api.IsOpaqueIntResourceName(rName) || api.IsGroupResourceName(rName) {
 				// Lazily allocate opaque resource map.
 				if n.allocatableResource.OpaqueIntResources == nil {
 					n.allocatableResource.OpaqueIntResources = map[api.ResourceName]int64{}
