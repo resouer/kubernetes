@@ -1,9 +1,9 @@
 package predicates
 
 import (
+	"math"
 	"reflect"
 	"regexp"
-	"strings"
 
 	"github.com/golang/glog"
 
@@ -11,8 +11,6 @@ import (
 	"k8s.io/kubernetes/plugin/pkg/scheduler/algorithm"
 	"k8s.io/kubernetes/plugin/pkg/scheduler/schedulercache"
 )
-
-type scoreFunc func(alloctable int64, used int64, requested int64) float64
 
 func toInterfaceArray(val interface{}) []interface{} {
 	t := reflect.TypeOf(val)
@@ -76,6 +74,8 @@ func getMap(x interface{}, keys interface{}) interface{} {
 	return getMapK(x, toInterfaceArray(keys))
 }
 
+// ===================================================
+
 func prechecked(constraint string) bool {
 	return !v1.IsGroupResourceName(v1.ResourceName(constraint))
 }
@@ -104,14 +104,46 @@ func printResMap(res map[string]int64, grp map[string]string) {
 	}
 }
 
-func leftoverScoreFunc(allocatable int64, used int64, requested int64) float64 {
-	leftoverI := allocatable - used - requested // >= 0
+// LeftoverScoreFunc provides default scoring function
+func LeftoverScoreFunc(allocatable int64, usedByPod int64, usedByNode int64, requested int64, initContainer bool) (
+	found bool, score float64, usedByContainer int64, newUsedByPod, newUsedByNode int64) {
+
+	usedByContainer = requested
+
+	if !initContainer {
+		newUsedByPod = usedByPod + requested
+	} else {
+		if requested > usedByPod {
+			newUsedByPod = requested
+		} else {
+			newUsedByPod = usedByPod
+		}
+	}
+	newUsedByNode = usedByNode + (newUsedByPod - usedByPod)
+
+	leftoverI := allocatable - newUsedByNode // >= 0 (between -Inf and allocatable if not found)
 	leftoverF := float64(leftoverI)
 	allocatableF := float64(allocatable)
 	if allocatable != 0 {
-		return 1.0 - (leftoverF / allocatableF) // between 0.0 and 1.0
+		score = 1.0 - (leftoverF / allocatableF) // between 0.0 and 1.0 if leftover between 0 and allocatable
+	} else {
+		score = 0.0
 	}
-	return 0.0
+	found = (leftoverI >= 0)
+
+	return found, score, usedByContainer, newUsedByPod, newUsedByNode // score will be between 0.0 and 1.0 if found = true
+}
+
+// AlwaysFoundScoreFunc provides something that always returns true
+// want to make allocatable-used as close to requested
+func AlwaysFoundScoreFunc(allocatable int64, usedByPod int64, usedByNode int64, requested int64, initContainer bool) (
+	found bool, score float64, usedByContainer int64, newUsedByPod, newUsedByNode int64) {
+
+	found, score, usedByContainer, newUsedByPod, newUsedByNode = LeftoverScoreFunc(allocatable, usedByPod, usedByNode, requested, initContainer)
+	diff := 1.0 - score          // between -Inf and 1.0
+	diff = math.Max(-1.0, diff)  // between -1.0 and 1.0
+	score = 1.0 - math.Abs(diff) // between 0.0 and 1.0
+	return found, score, usedByContainer, newUsedByPod, newUsedByNode
 }
 
 // Straight and simple C to Go translation from https://en.wikipedia.org/wiki/Hamming_weight
@@ -128,67 +160,161 @@ func popcount(x uint64) int {
 	return int((x * h01) >> 56)    //returns left 8 bits of x + (x<<8) + (x<<16) + (x<<24) + ...
 }
 
-func enumScoreFunc(allocatable int64, used int64, requested int64) float64 {
-	usedMask := uint64(allocatable & (used | requested))
+// EnumScoreFunc returns bitwise score
+func EnumScoreFunc(allocatable int64, usedByPod int64, usedByNode int64, requested int64, initContainer bool) (
+	found bool, score float64, usedByContainer int64, newUsedByPod, newUsedByNode int64) {
+
+	usedMask := uint64(allocatable & (usedByPod | requested))
 	bitCntAlloc := popcount(uint64(allocatable))
-	bitCntUsed := popcount(uint64(usedMask))
+	bitCntUsed := popcount(usedMask)
 	leftoverI := bitCntAlloc - bitCntUsed
 	leftoverF := float64(leftoverI)
 	allocatableF := float64(bitCntAlloc)
 	if bitCntAlloc != 0 {
-		return 1.0 - (leftoverF / allocatableF)
+		score = 1.0 - (leftoverF / allocatableF)
+	} else {
+		score = 0.0
 	}
-	return 0.0
+	found = ((uint64(allocatable) & uint64(requested)) != 0) // at least one bit true
+	usedByContainer = allocatable & requested
+	newUsedByPod = int64(usedMask)
+	newUsedByNode = 0
+
+	return found, score, usedByContainer, newUsedByPod, newUsedByNode
+}
+
+// =====================================================
+
+// GrpAllocator is the type to perform group allocations
+type GrpAllocator struct {
+	// Global read info for all
+	ContName      string
+	InitContainer bool
+	PreferUsed    bool
+	// required resource and scorer
+	RequiredResource map[string]int64
+	ReqScorer        map[string]v1.ResourceScoreFunc
+	// allocatable resource and scorer
+	AllocResource map[string]int64
+	AllocScorer   map[string]v1.ResourceScoreFunc
+
+	// Global read/write info
+	UsedGroups map[string]bool
+
+	// Per group info, read only
+	// Resource Info - required
+	GrpRequiredResource map[string]string
+	IsReqSubGrp         map[string]bool
+	// Resource Info - allocatable
+	GrpAllocResource map[string](map[string]string)
+	IsAllocSubGrp    map[string]bool
+	// other nodeinfo
+	ReqBaseGroupName     string
+	AllocBaseGroupPrefix string
+
+	// Used Info, write as group is explored
+	Score        float64
+	PodResource  map[string]int64
+	NodeResource map[string]int64
+	AllocateFrom map[string]string
+}
+
+// sub group writes into parent group's AllocateFrom, PodResource, and NodeResource
+func (grp *GrpAllocator) createSubGroup(
+	resourceLocation string,
+	requiredSubGrps map[string](map[string](map[string]string)),
+	allocSubGrps map[string](map[string](map[string]string)),
+	grpName string,
+	grpIndex string) *GrpAllocator {
+
+	subGrp := *grp // shallow copy of struct
+	// overwrite
+	subGrp.GrpRequiredResource = requiredSubGrps[grpName][grpIndex]
+	subGrp.GrpAllocResource = allocSubGrps[grpName]
+	subGrp.ReqBaseGroupName = grp.ReqBaseGroupName + "/" + grpName + "/" + grpIndex
+	subGrp.AllocBaseGroupPrefix = grp.AllocBaseGroupPrefix + "/" + resourceLocation + "/" + grpName
+	subGrp.Score = grp.Score
+
+	return &subGrp
+}
+
+// cloned group takes on new AllocateFrom, PodResource, and NodeResource
+func (grp *GrpAllocator) cloneGroup() *GrpAllocator {
+	newGrp := *grp
+	// overwrite
+	newGrp.AllocateFrom = make(map[string]string)
+	newGrp.PodResource = make(map[string]int64)
+	newGrp.NodeResource = make(map[string]int64)
+	if grp.AllocateFrom != nil {
+		for key, val := range grp.AllocateFrom {
+			newGrp.AllocateFrom[key] = val
+		}
+	}
+	if grp.PodResource != nil {
+		for key, val := range grp.PodResource {
+			newGrp.PodResource[key] = val
+		}
+	}
+	if grp.NodeResource != nil {
+		for key, val := range grp.NodeResource {
+			newGrp.NodeResource[key] = val
+		}
+	}
+	newGrp.Score = grp.Score
+
+	return &newGrp
+}
+
+func (grp *GrpAllocator) takeGroup(grpTake *GrpAllocator) {
+	grp.AllocateFrom = grpTake.AllocateFrom
+	grp.PodResource = grpTake.PodResource
+	grp.NodeResource = grpTake.NodeResource
+	grp.Score = grpTake.Score
 }
 
 // returns whether resource available and score
 // can use hash of scorers for different resources
 // simple leftover for now for score, 0 is low, 1.0 is high score
-func resourceAvailable(
-	contName string,
-	req map[string]int64, grpReq map[string]string,
-	allocRes map[string]int64, grpAllocRes map[string]string, scoreFunc map[string]scoreFunc,
-	usedResource map[string]int64, isSubGrp map[string]bool) (bool, []algorithm.PredicateFailureReason, float64) {
+func (grp *GrpAllocator) resourceAvailable(resourceLocation string) (bool, []algorithm.PredicateFailureReason) {
+	grpAllocRes := grp.GrpAllocResource[resourceLocation]
 
 	glog.V(5).Infoln("Resource requirments")
-	printResMap(req, grpReq)
+	printResMap(grp.RequiredResource, grp.GrpRequiredResource)
 	glog.V(5).Infoln("Available in group")
-	printResMap(allocRes, grpAllocRes)
+	printResMap(grp.AllocResource, grpAllocRes)
 
 	score := 0.0
 	numCnt := 0
 	found := true
 	var predicateFails []algorithm.PredicateFailureReason
-	for grpReqKey, grpReqElem := range grpReq {
-		if !isSubGrp[grpReqKey] {
+	for grpReqKey, grpReqElem := range grp.GrpRequiredResource {
+		if !grp.IsReqSubGrp[grpReqKey] {
 			// see if resource exists
 			glog.V(5).Infoln("Testing for resource", grpReqElem)
-			required := req[grpReqElem]
+			required := grp.RequiredResource[grpReqElem]
 			globalName, available := grpAllocRes[grpReqKey]
 			if !available {
 				found = false
-				predicateFails = append(predicateFails, NewInsufficientResourceError(v1.ResourceName(contName+"/"+grpReqElem), required, int64(0), int64(0)))
+				predicateFails = append(predicateFails, NewInsufficientResourceError(
+					v1.ResourceName(grp.ContName+"/"+grpReqElem), required, int64(0), int64(0)))
 				continue
 			}
-			allocatable := allocRes[globalName]
-			used := usedResource[globalName]
-			if strings.HasPrefix(strings.ToLower(grpReqKey), "enum") {
-				if (uint64(allocatable) & uint64(required)) == uint64(0) {
-					found = false
-					predicateFails = append(predicateFails, NewInsufficientResourceError(v1.ResourceName(contName+"/"+grpReqElem), required, used, allocatable))
-					continue
-				}
-			} else {
-				if allocatable-used < required {
-					found = false
-					predicateFails = append(predicateFails, NewInsufficientResourceError(v1.ResourceName(contName+"/"+grpReqElem), required, used, allocatable))
-					continue
-				}
+			scoreFn := grp.ReqScorer[grpReqElem]
+			allocatable := grp.AllocResource[globalName]
+			usedPod := grp.PodResource[globalName]
+			usedNode := grp.NodeResource[globalName]
+			// alternatively, current score can be passed in, and new score returned if score not additive
+			foundR, scoreR, _, podR, nodeR := scoreFn(allocatable, usedPod, usedNode, required, grp.InitContainer)
+			if !foundR {
+				found = false
+				predicateFails = append(predicateFails, NewInsufficientResourceError(
+					v1.ResourceName(grp.ContName+"/"+grpReqElem), required, usedNode, allocatable))
+				continue
 			}
-			scoreFn := scoreFunc[globalName]
-			if scoreFn != nil {
-				score += scoreFn(allocatable, used, required)
-			}
+			score += scoreR
+			grp.PodResource[globalName] = podR
+			grp.NodeResource[globalName] = nodeR
+			grp.AllocateFrom[grpReqElem] = globalName
 			glog.V(5).Infoln("Resource", grpReqElem, "Available")
 			numCnt++
 		} else {
@@ -197,50 +323,78 @@ func resourceAvailable(
 	}
 	// penalize for unused resources available
 	for grpAllocResKey, grpAllocResElem := range grpAllocRes {
-		_, available := grpReq[grpAllocResKey]
-		if !available {
-			allocatable := allocRes[grpAllocResElem]
-			required := int64(0)
-			used := usedResource[grpAllocResElem]
-			scoreFn := scoreFunc[grpAllocResElem]
-			if scoreFn != nil {
-				score += scoreFn(allocatable, used, required)
+		if !grp.IsAllocSubGrp[grpAllocResKey] {
+			_, available := grp.GrpRequiredResource[grpAllocResKey]
+			if !available {
+				allocatable := grp.AllocResource[grpAllocResElem]
+				required := int64(0)
+				usedPod := grp.PodResource[grpAllocResElem]
+				usedNode := grp.NodeResource[grpAllocResElem]
+				scoreFn := grp.AllocScorer[grpAllocResElem]
+				if scoreFn != nil {
+					_, scoreR, _, podR, nodeR := scoreFn(allocatable, usedPod, usedNode, required, grp.InitContainer)
+					score += scoreR
+					grp.PodResource[grpAllocResElem] = podR
+					grp.NodeResource[grpAllocResElem] = nodeR
+				}
+				numCnt++
 			}
-			numCnt++
 		}
 	}
 	lenGrpF := float64(numCnt)
 	// score is average score for group
-	return found, predicateFails, score / lenGrpF
+	if numCnt > 0 {
+		grp.Score += score / lenGrpF
+	}
+
+	return found, predicateFails
 }
 
 // allocate and return
 // attempt to allocate for group, and then allocate subgroups
-func allocateSubGroups(
-	contName string,
-	req map[string]int64, subgrpsReq map[string](map[string](map[string]string)),
-	allocRes map[string]int64, subgrpsAllocRes map[string](map[string](map[string]string)), scorer map[string]scoreFunc,
-	usedResource map[string]int64, allocated map[string]string,
-	usedGroups map[string]bool, bPreferUsed bool, baseGroup string) (bool, []algorithm.PredicateFailureReason, float64) {
+func (grp *GrpAllocator) allocateSubGroups(
+	allocLocationName string,
+	subgrpsReq map[string](map[string](map[string]string)),
+	subgrpsAllocRes map[string](map[string](map[string]string))) (
+	bool, []algorithm.PredicateFailureReason) {
 
-	score := 0.0
 	found := true
 	var predicateFails []algorithm.PredicateFailureReason
 	for subgrpsKey, subgrpsElemGrp := range subgrpsReq {
-		for subgrpsElemIndex, subgrpsElem := range subgrpsElemGrp {
-			foundSubGrp, reasons, scoreGroup := allocateGroup(contName, req, subgrpsElem, allocRes, subgrpsAllocRes[subgrpsKey], scorer, usedResource, allocated,
-				usedGroups, bPreferUsed, baseGroup+"/"+subgrpsKey)
+		for subgrpsElemIndex := range subgrpsElemGrp {
+			subGrp := grp.createSubGroup(allocLocationName, subgrpsReq, subgrpsAllocRes, subgrpsKey, subgrpsElemIndex)
+			foundSubGrp, reasons := subGrp.allocateGroup()
 			if !foundSubGrp {
 				found = false
-				searchGroup := baseGroup + "/" + subgrpsKey + "/" + subgrpsElemIndex
-				predicateFails = append(predicateFails, NewInsufficientResourceError(v1.ResourceName(contName+"/"+searchGroup), 0, 0, 0))
+				predicateFails = append(predicateFails, NewInsufficientResourceError(
+					v1.ResourceName(grp.ContName+"/"+subGrp.ReqBaseGroupName), 0, 0, 0))
 				predicateFails = append(predicateFails, reasons...)
 				continue
 			}
-			score += scoreGroup
+			grp.takeGroup(subGrp) // update to current
 		}
 	}
-	return found, predicateFails, score
+	return found, predicateFails
+}
+
+func (grp *GrpAllocator) allocateGroupAt(location string,
+	subgrpsReq map[string](map[string](map[string]string))) (bool, []algorithm.PredicateFailureReason) {
+
+	allocLocationName := grp.AllocBaseGroupPrefix + "/" + location
+	grpsAllocResElem := grp.GrpAllocResource[location]
+	subgrpsAllocRes, isSubGrp := findSubGroups(allocLocationName, grpsAllocResElem)
+	grp.IsAllocSubGrp = isSubGrp
+
+	foundRes, reasons := grp.resourceAvailable(location)
+
+	if foundRes == true {
+		glog.V(5).Infoln("group", location, "base resource available with score", grp.Score)
+	}
+
+	// next allocatable subgroups for this location
+	foundNext, reasonsNext := grp.allocateSubGroups(location, subgrpsReq, subgrpsAllocRes)
+
+	return (foundRes && foundNext), append(reasons, reasonsNext...)
 }
 
 // "n" is used to index over list of group resources
@@ -261,171 +415,192 @@ func allocateSubGroups(
 // usedResource is the amount of utilized resource in the global resource list
 // i.e. usedResource[grpAllocRes[i][n]] is used when considering the "i"th alloctable group of the "n"th resource
 // i.e. usedResource[allocated[grpReq[n]]] is subtracted from after allocation
-func allocateGroup(
-	contName string,
-	req map[string]int64, grpReq map[string]string,
-	allocRes map[string]int64, grpsAllocRes map[string](map[string]string), scorer map[string]scoreFunc,
-	usedResource map[string]int64, allocated map[string]string,
-	usedGroups map[string]bool, bPreferUsed bool, baseGroup string) (bool, []algorithm.PredicateFailureReason, float64) {
-
-	if len(grpReq) == 0 {
-		return true, nil, 0.0
+func (grp *GrpAllocator) allocateGroup() (bool, []algorithm.PredicateFailureReason) {
+	if len(grp.GrpRequiredResource) == 0 {
+		return false, nil
 	}
 
-	maxScore := -1.0
-	maxScoreKey := ""
 	anyFind := false
+	maxScoreKey := ""
+	maxScoreGrp := grp
 	maxIsUsedGroup := false
 	maxGroupName := ""
-	var allocatedSubGrp map[string]string
 	var predicateFails []algorithm.PredicateFailureReason
 
-	subgrpsReq, isSubGrp := findSubGroups(baseGroup, grpReq)
+	// find subgroups for required resources
+	subgrpsReq, isSubGrp := findSubGroups(grp.ReqBaseGroupName, grp.GrpRequiredResource)
+	grp.IsReqSubGrp = isSubGrp
 
 	// go over all possible places to allocate
-	for grpsAllocResKey, grpsAllocResElem := range grpsAllocRes {
-		foundRes, reasons, score := resourceAvailable(contName, req, grpReq, allocRes, grpsAllocResElem, scorer, usedResource, isSubGrp)
+	for grpsAllocResKey := range grp.GrpAllocResource {
+		grpCheck := grp.cloneGroup()
+		found, reasons := grpCheck.allocateGroupAt(grpsAllocResKey, subgrpsReq)
+		allocLocationName := grp.AllocBaseGroupPrefix + "/" + grpsAllocResKey
 
-		if foundRes == true {
-			glog.V(5).Infoln(baseGroup, "group", grpsAllocResKey, "base resource available with score", score)
-		}
-		// next subgroup
-		subgrpsAllocRes, _ := findSubGroups(baseGroup, grpsAllocResElem)
-		allocatedNext := make(map[string]string)
-		foundNext, reasonsNext, scoreNext := allocateSubGroups(contName, req, subgrpsReq, allocRes, subgrpsAllocRes, scorer, usedResource, allocatedNext,
-			usedGroups, bPreferUsed, baseGroup+"/"+grpsAllocResKey)
-		if foundRes && foundNext {
-			score += scoreNext
-			groupName := baseGroup + "/" + grpsAllocResKey // a unique name for the group
-			glog.V(5).Infoln(groupName, "total resource available with score", score)
+		if found {
+			glog.V(5).Infoln(allocLocationName, "total resource available with score", grpCheck.Score)
 			takeNew := false
-			if !bPreferUsed {
-				if score >= maxScore {
+			if !grp.PreferUsed {
+				if grpCheck.Score >= maxScoreGrp.Score {
 					takeNew = true
 				}
 			} else {
 				// prefer previously used
 				if maxIsUsedGroup {
 					// already have used group, only take if current is used and score is higher
-					if usedGroups[groupName] && score >= maxScore {
+					if grp.UsedGroups[allocLocationName] && grpCheck.Score >= maxScoreGrp.Score {
 						takeNew = true
 					}
 				} else {
 					// don't have used, take if score higher or used
-					if usedGroups[groupName] || score >= maxScore {
+					if grp.UsedGroups[allocLocationName] || grpCheck.Score >= maxScoreGrp.Score {
 						takeNew = true
 					}
 				}
 			}
 			if takeNew {
-				maxScore = score
-				maxScoreKey = grpsAllocResKey
 				anyFind = true
-				allocatedSubGrp = allocatedNext
-				maxIsUsedGroup = usedGroups[groupName]
-				maxGroupName = groupName
+				maxScoreKey = grpsAllocResKey
+				maxScoreGrp = grpCheck
+				maxIsUsedGroup = grp.UsedGroups[allocLocationName]
+				maxGroupName = allocLocationName
 			}
 		}
-		if len(grpsAllocRes) == 1 {
+		if len(grp.GrpAllocResource) == 1 {
 			predicateFails = append(predicateFails, reasons...)
-			predicateFails = append(predicateFails, reasonsNext...)
 		}
 	}
 
+	grp.takeGroup(maxScoreGrp) // take the group with max score
 	if anyFind {
-		for grpReqKey, grpReqValue := range grpReq {
-			if isSubGrp[grpReqKey] {
-				// get from next
-				allocated[grpReqValue] = allocatedSubGrp[grpReqValue]
-			} else {
-				allocated[grpReqValue] = grpsAllocRes[maxScoreKey][grpReqKey]
-			}
-			if v1.IsEnumResource(grpReqKey) {
-				usedResource[allocated[grpReqValue]] |= (req[grpReqValue] & allocRes[allocated[grpReqValue]])
-			} else {
-				usedResource[allocated[grpReqValue]] += req[grpReqValue]
-			}
-		}
-		usedGroups[maxGroupName] = true
-		return true, nil, maxScore
+		glog.V(5).Infoln("Maxscore from key", maxScoreKey)
+		grp.UsedGroups[maxGroupName] = true
+		return true, nil
 	}
 
-	return false, predicateFails, 0.0
+	return false, predicateFails
 }
 
-// allocate the main group
-func containerFitsGroupConstraints(contReq *v1.Container, allocatable *schedulercache.Resource, scorer map[string]scoreFunc, usedResource map[string]int64,
-	usedGroups map[string]bool, bPreferUsed bool) (bool, []algorithm.PredicateFailureReason, float64) {
-
-	// Required resources
-	reqName := make(map[string]string)
-	req := make(map[string]int64)
-	// Quantitites available on NodeInfo
-	allocName := make(map[string](map[string]string))
-	alloc := make(map[string]int64)
-	// where are resources coming from for given constraint
-	allocatedLoc := make(map[string]string)
-	glog.V(7).Infoln("Requests", contReq.Resources.Requests)
-	glog.V(7).Infoln("AllocatableRes", allocatable.OpaqueIntResources)
-	for reqRes, reqVal := range contReq.Resources.Requests {
-		if !prechecked(string(reqRes)) {
-			reqName[string(reqRes)] = string(reqRes)
-			req[string(reqRes)] = reqVal.Value()
+// DefaultScorer returns default scorer given a name
+func DefaultScorer(resource string) v1.ResourceScoreFunc {
+	if !prechecked(resource) {
+		if !v1.IsEnumResource(resource) {
+			return LeftoverScoreFunc
 		}
+		return EnumScoreFunc
 	}
-	for allocRes, allocVal := range allocatable.OpaqueIntResources {
-		if !prechecked(string(allocRes)) {
-			assignMap(allocName, []string{"0", string(allocRes)}, string(allocRes))
-			alloc[string(allocRes)] = allocVal
-		}
-	}
-	glog.V(7).Infoln("Required", reqName, req)
-	glog.V(7).Infoln("Allocatable", allocName, alloc)
-
-	found, reasons, score := allocateGroup(contReq.Name, req, reqName, alloc, allocName,
-		scorer, usedResource, allocatedLoc,
-		usedGroups, bPreferUsed, v1.ResourceGroupPrefix)
-
-	if contReq.Resources.AllocateFrom == nil {
-		contReq.Resources.AllocateFrom = make(v1.ResourceLocation)
-	}
-	for allocatedKey, allocatedLocVal := range allocatedLoc {
-		contReq.Resources.AllocateFrom[v1.ResourceName(allocatedKey)] = v1.ResourceName(allocatedLocVal)
-	}
-
-	glog.V(5).Infoln("Allocated", allocatedLoc)
-	glog.V(5).Infoln("Container allocation found", found, "with score", score)
-
-	return found, reasons, score
+	return nil
 }
 
-func initUsedResource(n *schedulercache.NodeInfo) map[string]int64 {
-	usedResource := make(map[string]int64)
-	requested := n.RequestedResource()
-	for resKey, resVal := range requested.OpaqueIntResources {
-		usedResource[string(resKey)] = resVal
-	}
-	return usedResource
-}
-
-func defaultScoreFunc(r *schedulercache.Resource) map[string]scoreFunc {
-	scorer := make(map[string]scoreFunc)
+func defaultScoreFunc(r *schedulercache.Resource) map[string]v1.ResourceScoreFunc {
+	scorer := make(map[string]v1.ResourceScoreFunc)
 	for key := range r.OpaqueIntResources {
 		keyS := string(key)
-		if !prechecked(keyS) {
-			if !v1.IsEnumResource(keyS) {
-				scorer[keyS] = leftoverScoreFunc
-			} else {
-				scorer[keyS] = enumScoreFunc
-			}
-		}
+		scorer[keyS] = DefaultScorer(keyS)
 	}
 	return scorer
 }
 
+// allocate the main group
+func containerFitsGroupConstraints(contReq *v1.Container, initContainer bool,
+	allocatable *schedulercache.Resource, allocScorer map[string]v1.ResourceScoreFunc,
+	podResource map[string]int64, nodeResource map[string]int64,
+	usedGroups map[string]bool, bPreferUsed bool) (*GrpAllocator, bool, []algorithm.PredicateFailureReason, float64) {
+
+	grp := &GrpAllocator{}
+
+	// Required resources
+	reqName := make(map[string]string)
+	req := make(map[string]int64)
+	reqScorer := make(map[string]v1.ResourceScoreFunc)
+	// Quantitites available on NodeInfo
+	allocName := make(map[string](map[string]string))
+	alloc := make(map[string]int64)
+	glog.V(7).Infoln("Requests", contReq.Resources.Requests)
+	glog.V(7).Infoln("AllocatableRes", allocatable.OpaqueIntResources)
+	if contReq.Resources.Scorer == nil {
+		contReq.Resources.Scorer = make(map[v1.ResourceName]v1.ResourceScoreFunc)
+	}
+	for reqRes, reqVal := range contReq.Resources.Requests {
+		if !prechecked(string(reqRes)) {
+			reqName[string(reqRes)] = string(reqRes)
+			req[string(reqRes)] = reqVal.Value()
+			scoreFn := contReq.Resources.Scorer[reqRes]
+			if scoreFn == nil {
+				scoreFn = DefaultScorer(string(reqRes))
+				contReq.Resources.Scorer[reqRes] = scoreFn
+			}
+			reqScorer[string(reqRes)] = scoreFn
+		}
+	}
+	glog.V(7).Infoln("Required", reqName, req)
+
+	re := regexp.MustCompile(`(\S*)/(\S*)`)
+	matches := re.FindStringSubmatch(v1.ResourceGroupPrefix)
+	var grpPrefix string
+	var grpName string
+	if len(matches) != 3 {
+		panic("Invalid prefix")
+	} else {
+		grpPrefix = matches[1]
+		grpName = matches[2]
+	}
+	for allocRes, allocVal := range allocatable.OpaqueIntResources {
+		if !prechecked(string(allocRes)) {
+			assignMap(allocName, []string{grpName, string(allocRes)}, string(allocRes))
+			alloc[string(allocRes)] = allocVal
+		}
+	}
+	glog.V(7).Infoln("Allocatable", allocName, alloc)
+
+	grp.ContName = contReq.Name
+	grp.InitContainer = initContainer
+	grp.PreferUsed = bPreferUsed
+	grp.RequiredResource = req
+	grp.ReqScorer = reqScorer
+	grp.AllocResource = alloc
+	grp.AllocScorer = allocScorer
+	grp.UsedGroups = usedGroups
+	grp.GrpRequiredResource = reqName
+	grp.GrpAllocResource = allocName
+	grp.ReqBaseGroupName = v1.ResourceGroupPrefix
+	grp.AllocBaseGroupPrefix = grpPrefix
+	grp.Score = 0.0
+	// pick up current resource usage
+	grp.PodResource = podResource
+	grp.NodeResource = nodeResource
+
+	found, reasons := grp.allocateGroup()
+	score := grp.Score
+
+	if contReq.Resources.AllocateFrom == nil {
+		contReq.Resources.AllocateFrom = make(v1.ResourceLocation)
+	}
+	for allocatedKey, allocatedLocVal := range grp.AllocateFrom {
+		contReq.Resources.AllocateFrom[v1.ResourceName(allocatedKey)] = v1.ResourceName(allocatedLocVal)
+	}
+
+	glog.V(5).Infoln("Allocated", grp.AllocateFrom)
+	glog.V(5).Infoln("PodResources", grp.PodResource)
+	glog.V(5).Infoln("NodeResources", grp.NodeResource)
+	glog.V(5).Infoln("Container allocation found", found, "with score", score)
+
+	return grp, found, reasons, score
+}
+
+func initNodeResource(n *schedulercache.NodeInfo) map[string]int64 {
+	nodeResource := make(map[string]int64)
+	requested := n.RequestedResource()
+	for resKey, resVal := range requested.OpaqueIntResources {
+		nodeResource[string(resKey)] = resVal
+	}
+	return nodeResource
+}
+
 // PodFitsGroupConstraints tells if pod fits constraints, score returned is score of running containers
 func PodFitsGroupConstraints(n *schedulercache.NodeInfo, spec *v1.PodSpec) (bool, []algorithm.PredicateFailureReason, float64) {
-	usedResource := initUsedResource(n)
+	podResource := make(map[string]int64)
+	nodeResource := initNodeResource(n)
 	usedGroups := make(map[string]bool)
 	totalScore := 0.0
 	var predicateFails []algorithm.PredicateFailureReason
@@ -436,26 +611,31 @@ func PodFitsGroupConstraints(n *schedulercache.NodeInfo, spec *v1.PodSpec) (bool
 	scorer := defaultScoreFunc(allocatable)
 
 	// first go over running containers
-	// now go over all running containers
 	for i := range spec.Containers {
-		if fits, reasons, score := containerFitsGroupConstraints(&spec.Containers[i], allocatable, scorer, usedResource, usedGroups, true); fits == false {
+		grp, fits, reasons, score := containerFitsGroupConstraints(&spec.Containers[i], false, allocatable,
+			scorer, podResource, nodeResource, usedGroups, true)
+		if fits == false {
 			found = false
 			predicateFails = append(predicateFails, reasons...)
 		} else {
 			totalScore += score
 		}
+		podResource = grp.PodResource
+		nodeResource = grp.NodeResource
 	}
 
 	// now go over initialization containers, try to reutilize used groups
 	for i := range spec.InitContainers {
-		// clear the used resources
-		usedResource = initUsedResource(n)
 		// container.Resources.Requests contains a map, alloctable contains type Resource
 		// prefer groups which are already used by running containers
-		if fits, reasons, _ := containerFitsGroupConstraints(&spec.InitContainers[i], allocatable, scorer, usedResource, usedGroups, true); fits == false {
+		grp, fits, reasons, _ := containerFitsGroupConstraints(&spec.InitContainers[i], true, allocatable,
+			scorer, podResource, nodeResource, usedGroups, true)
+		if fits == false {
 			found = false
 			predicateFails = append(predicateFails, reasons...)
 		}
+		podResource = grp.PodResource
+		nodeResource = grp.NodeResource
 	}
 
 	glog.V(4).Infoln("Used", usedGroups)

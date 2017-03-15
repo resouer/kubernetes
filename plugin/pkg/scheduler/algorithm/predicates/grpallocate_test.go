@@ -54,59 +54,60 @@ func addContainer(cont *[]v1.Container, name string) v1.ResourceList {
 	return c.Resources.Requests
 }
 
-func TestGrpAllocate1(t *testing.T) {
-	flag.Parse()
+// ResourceList is a map, no need for pointer
+func setResource(alloc v1.ResourceList, res map[string]int64, grpres map[string]int64) {
+	// set resource
+	for key, val := range res {
+		setRes(alloc, key, val)
+	}
+	// set group resource
+	for key, val := range grpres {
+		setGrpRes(alloc, key, val)
+	}
+}
 
-	pod := v1.Pod{ObjectMeta: v1.ObjectMeta{Name: "pod1"}, Spec: v1.PodSpec{}}
-	spec := &pod.Spec
-
-	// allocatable resources
+func createNode(name string, res map[string]int64, grpres map[string]int64) *schedulercache.NodeInfo {
 	alloc := v1.ResourceList{}
-	setRes(alloc, "A1", 4000)
-	setRes(alloc, "B1", 3000)
-	setGrpRes(alloc, "gpu/dev0/memory", 100000)
-	setGrpRes(alloc, "gpu/dev0/cards", 1)
-	setGrpRes(alloc, "gpu/dev1/memory", 256000)
-	setGrpRes(alloc, "gpu/dev1/cards", 1)
-	setGrpRes(alloc, "gpu/dev1/enumType", int64(0x1))
-	setGrpRes(alloc, "gpu/dev2/memory", 257000)
-	setGrpRes(alloc, "gpu/dev2/cards", 1)
-	setGrpRes(alloc, "gpu/dev3/memory", 192000)
-	setGrpRes(alloc, "gpu/dev3/cards", 1)
-	setGrpRes(alloc, "gpu/dev4/memory", 178000)
-	setGrpRes(alloc, "gpu/dev4/cards", 1)
-	setGrpRes(alloc, "gpu/dev3/enumType", int64(0x1))
-	node := v1.Node{ObjectMeta: v1.ObjectMeta{Name: "node1"}, Status: v1.NodeStatus{Capacity: alloc, Allocatable: alloc}}
+	setResource(alloc, res, grpres)
+	node := v1.Node{ObjectMeta: v1.ObjectMeta{Name: name}, Status: v1.NodeStatus{Capacity: alloc, Allocatable: alloc}}
 	fmt.Println("AA", node.Status.Allocatable)
 	nodeInfo := schedulercache.NewNodeInfo()
 	nodeInfo.SetNode(&node)
+
 	glog.V(7).Infoln("AllocatableResource", len(nodeInfo.AllocatableResource().OpaqueIntResources), nodeInfo.AllocatableResource())
 
-	// required resources
-	contR := addContainer(&spec.InitContainers, "Init0")
-	setRes(contR, "A1", 2200)
-	setRes(contR, "B1", 2000)
-	setGrpRes(contR, "gpu/0/memory", 100000)
-	setGrpRes(contR, "gpu/0/cards", 1)
-	glog.V(7).Infoln("Init0Required", spec.InitContainers[0].Resources.Requests)
+	return nodeInfo
+}
 
-	contR = addContainer(&spec.Containers, "Run0")
-	setRes(contR, "A1", 3000)
-	setRes(contR, "B1", 1000)
-	setGrpRes(contR, "gpu/a/memory", 256000)
-	setGrpRes(contR, "gpu/a/cards", 1)
-	setGrpRes(contR, "gpu/b/memory", 178000)
-	setGrpRes(contR, "gpu/b/cards", 1)
-	glog.V(7).Infoln("Run0Required", spec.Containers[0].Resources.Requests)
-	contR = addContainer(&spec.Containers, "Run1")
-	setRes(contR, "A1", 1000)
-	setRes(contR, "B1", 2000)
-	setGrpRes(contR, "gpu/0/memory", 190000)
-	setGrpRes(contR, "gpu/0/cards", 1)
-	setGrpRes(contR, "gpu/0/enumType", int64(0x3))
-	glog.V(7).Infoln("Run1Required", spec.Containers[1].Resources.Requests)
+type cont struct {
+	name   string
+	res    map[string]int64
+	grpres map[string]int64
+}
 
+func createPod(name string, iconts []cont, rconts []cont) *v1.Pod {
+	pod := v1.Pod{ObjectMeta: v1.ObjectMeta{Name: name}, Spec: v1.PodSpec{}}
+	spec := &pod.Spec
+
+	var contR v1.ResourceList
+
+	for index, icont := range iconts {
+		contR = addContainer(&spec.InitContainers, icont.name)
+		setResource(contR, icont.res, icont.grpres)
+		glog.V(7).Infoln(icont.name, spec.InitContainers[index].Resources.Requests)
+	}
+	for index, rcont := range rconts {
+		contR = addContainer(&spec.Containers, rcont.name)
+		setResource(contR, rcont.res, rcont.grpres)
+		glog.V(7).Infoln(rcont.name, spec.Containers[index].Resources.Requests)
+	}
+
+	return &pod
+}
+
+func sampleTest(pod *v1.Pod, nodeInfo *schedulercache.NodeInfo) {
 	// now perform allocation
+	spec := &pod.Spec
 	found, reasons, score := PodFitsGroupConstraints(nodeInfo, spec)
 	//fmt.Println("AllocatedFromF", spec.InitContainers[0].Resources)
 	fmt.Printf("Found: %t Score: %f\n", found, score)
@@ -116,10 +117,11 @@ func TestGrpAllocate1(t *testing.T) {
 	}
 	if found {
 		printPodAllocation(spec)
-		usedResources := nodeInfo.ComputePodGroupResources(spec)
+		usedResources, _ := nodeInfo.ComputePodGroupResources(spec, false)
+		node := nodeInfo.Node()
 		spec.NodeName = node.ObjectMeta.Name
 
-		updatedNode := schedulercache.NewNodeInfo(&pod)
+		updatedNode := schedulercache.NewNodeInfo(pod)
 
 		for usedRes, usedAmt := range usedResources {
 			fmt.Println("Resource", usedRes, "AmtUsed", usedAmt)
@@ -128,7 +130,39 @@ func TestGrpAllocate1(t *testing.T) {
 			fmt.Println("RequestedResource", usedRes, "Amt", usedAmt)
 		}
 	}
+}
+
+func TestGrpAllocate1(t *testing.T) {
+	flag.Parse()
+
+	// allocatable resources
+	nodeInfo := createNode("node1",
+		map[string]int64{"A1": 4000, "B1": 3000},
+		map[string]int64{
+			"gpu/dev0/memory": 100000, "gpu/dev0/cards": 1,
+			"gpu/dev1/memory": 256000, "gpu/dev1/cards": 1, "gpu/dev1/enumType": int64(0x1),
+			"gpu/dev2/memory": 257000, "gpu/dev2/cards": 1,
+			"gpu/dev3/memory": 192000, "gpu/dev3/cards": 1, "gpu/dev3/enumType": int64(0x1),
+			"gpu/dev4/memory": 178000, "gpu/dev4/cards": 1})
+
+	// required resources
+	pod := createPod("pod1",
+		[]cont{
+			{name: "Init0",
+				res:    map[string]int64{"A1": 2200, "B1": 2000},
+				grpres: map[string]int64{"gpu/0/memory": 100000, "gpu/0/cards": 1}}},
+		[]cont{
+			{"Run0",
+				map[string]int64{"A1": 3000, "B1": 1000},
+				map[string]int64{
+					"gpu/a/memory": 256000, "gpu/a/cards": 1,
+					"gpu/b/memory": 178000, "gpu/b/cards": 1}},
+			{name: "Run1",
+				res: map[string]int64{"A1": 1000, "B1": 2000},
+				grpres: map[string]int64{
+					"gpu/0/memory": 190000, "gpu/0/cards": 1, "gpu/0/enumType": int64(0x3)}}})
+
+	sampleTest(pod, nodeInfo)
 
 	glog.Flush()
 }
-
