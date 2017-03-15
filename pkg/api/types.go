@@ -1246,9 +1246,11 @@ type ResourceRequirements struct {
 	// otherwise to an implementation-defined value
 	// +optional
 	Requests ResourceList `json:"requests,omitempty"`
-	// AllocateFrom describes the location of compute resources being used on the node
+	// AllocateFrom describes the location of compute resources being used on the node - filled in by scheduler
 	// +optional
-	AllocateFrom ResourceLocation `json:"allocatefrom,omitempty`
+	AllocateFrom ResourceLocation `json:"allocatefrom,omitempty"`
+	// Scorer describes scoring, checking, and taking of resource
+	Scorer map[ResourceName]ResourceScoreFunc `json:"scorer,omitempty"`
 }
 
 // Container represents a single container that is expected to be run on the host.
@@ -2667,6 +2669,10 @@ type ResourceList map[ResourceName]resource.Quantity
 
 // ResourceLocation is a set of (resource name, resource location on node) pairs.
 type ResourceLocation map[ResourceName]ResourceName
+
+// ResourceScoreFunc is a function which takes in (allocatable, usedByPod, usedByNode, requested, initContainer) resources
+// and returns (resourceFits, score, usedByContainer, newUsedByPod, newUsedByNode)
+type ResourceScoreFunc func(alloctable int64, usedByPod int64, usedByNode int64, requested int64, initContainer bool) (bool, float64, int64, int64, int64)
 
 // +genclient=true
 // +nonNamespaced=true

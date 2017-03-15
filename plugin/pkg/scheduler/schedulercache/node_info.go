@@ -189,66 +189,69 @@ func hasPodAffinityConstraints(pod *api.Pod) bool {
 	return affinity.PodAffinity != nil || affinity.PodAntiAffinity != nil
 }
 
-// ComputePodGroupResources returns resources needed by pod
-func (n *NodeInfo) ComputePodGroupResources(spec *api.PodSpec) map[api.ResourceName]int64 {
-	usedResources := make(map[api.ResourceName]int64)
+func (n *NodeInfo) updateGroupResourceForContainer(cont *api.Container, bInitContainer bool, bRemoveCont bool,
+	podResources map[api.ResourceName]int64, updatedUsedByNode map[api.ResourceName]int64) {
+
 	allocatable := n.allocatableResource.OpaqueIntResources
+	for resource, allocatedFrom := range cont.Resources.AllocateFrom {
+		requestedResourceV := cont.Resources.Requests[resource]
+		requestedResource := &requestedResourceV
+		val := requestedResource.Value()
+		if bRemoveCont {
+			val = -val
+		}
+		allocatableRes := allocatable[allocatedFrom]
+		podRes := podResources[allocatedFrom]
+		nodeRes := updatedUsedByNode[allocatedFrom]
+		scorerFn := cont.Resources.Scorer[resource]
+		_, _, _, newPodUsed, newNodeUsed := scorerFn(allocatableRes, podRes, nodeRes, val, bInitContainer)
+		podResources[allocatedFrom] = newPodUsed
+		updatedUsedByNode[allocatedFrom] = newNodeUsed
+	}
+}
+
+// ComputePodGroupResources returns resources needed by pod & updated node resources
+func (n *NodeInfo) ComputePodGroupResources(spec *api.PodSpec, bRemovePod bool) (
+	podResources map[api.ResourceName]int64, updatedUsedByNode map[api.ResourceName]int64) {
+
+	updatedUsedByNode = make(map[api.ResourceName]int64)
+	podResources = make(map[api.ResourceName]int64)
+	for key, val := range n.requestedResource.OpaqueIntResources {
+		updatedUsedByNode[key] = val
+	}
 
 	// go over running containers to compute utilized resources
 	for _, cont := range spec.Containers {
-		for resourceReq, allocatedFrom := range cont.Resources.AllocateFrom {
-			requestedResourceV := cont.Resources.Requests[resourceReq]
-			requestedResource := &requestedResourceV
-			val := requestedResource.Value()
-			if api.IsEnumResource(string(resourceReq)) {
-				usedResources[allocatedFrom] |= (val & allocatable[allocatedFrom])
-			} else {
-				usedResources[allocatedFrom] += val
-			}
-		}
+		n.updateGroupResourceForContainer(&cont, false, bRemovePod, podResources, updatedUsedByNode)
 	}
 
 	// now go over init containers to compute resources required
 	for _, cont := range spec.InitContainers {
-		for resourceReq, allocatedFrom := range cont.Resources.AllocateFrom {
-			requestedResourceV := cont.Resources.Requests[resourceReq]
-			requestedResource := &requestedResourceV
-			val := requestedResource.Value()
-			if api.IsEnumResource(string(resourceReq)) {
-				usedResources[allocatedFrom] |= (val & allocatable[allocatedFrom])
-			} else {
-				if val > usedResources[allocatedFrom] {
-					usedResources[allocatedFrom] = val
-				}
-			}
-		}
+		n.updateGroupResourceForContainer(&cont, true, bRemovePod, podResources, updatedUsedByNode)
 	}
 
-	return usedResources
+	return podResources, updatedUsedByNode
 }
 
-// TakePodGroupResource takes pod resource from node
+// TakePodGroupResource takes pod resource from node, pod added
 func (n *NodeInfo) takePodGroupResource(spec *api.PodSpec) {
-	usedResources := n.ComputePodGroupResources(spec)
+	_, usedResources := n.ComputePodGroupResources(spec, false)
 	requested := n.requestedResource
 
 	for usedResourceKey, usedResourceVal := range usedResources {
-		// enum resources can be used, but not taken
-		if !api.IsEnumResource(string(usedResourceKey)) {
-			requested.AddOpaque(usedResourceKey, usedResourceVal)
-		}
+		requested.AddOpaque(usedResourceKey, 0) // just to make sure key exists
+		requested.OpaqueIntResources[usedResourceKey] = usedResourceVal
 	}
 }
 
-// ReturnPodGroupResource returns pod resource to node
+// ReturnPodGroupResource returns pod resource to node, pod removed
 func (n *NodeInfo) returnPodGroupResource(spec *api.PodSpec) {
-	usedResources := n.ComputePodGroupResources(spec)
+	_, usedResources := n.ComputePodGroupResources(spec, true)
 	requested := n.requestedResource
 
 	for usedResourceKey, usedResourceVal := range usedResources {
-		if !api.IsEnumResource(string(usedResourceKey)) {
-			requested.AddOpaque(usedResourceKey, -usedResourceVal)
-		}
+		requested.AddOpaque(usedResourceKey, 0)
+		requested.OpaqueIntResources[usedResourceKey] = usedResourceVal
 	}
 }
 
