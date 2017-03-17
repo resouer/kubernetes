@@ -19,9 +19,11 @@ package cinder
 import (
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"strings"
 
 	"github.com/golang/glog"
+	"github.com/rackspace/gophercloud"
 	"github.com/rackspace/gophercloud/openstack/blockstorage/v2/extensions/volumeactions"
 )
 
@@ -121,6 +123,10 @@ func (cb *CinderBaremetalUtil) AttachDiskBaremetal(b *cinderVolumeMounter, globa
 func (cb *CinderBaremetalUtil) DetachDiskBaremetal(cd *cinderVolumeUnmounter, globalPDPath string) error {
 	volume, err := cb.client.getVolume(cd.pdName)
 	if err != nil {
+		if eo, ok := err.(*gophercloud.UnexpectedResponseCodeError); ok && eo.Actual == http.StatusNotFound{
+			glog.V(1).Infof("detach: volume %s (%s) not found", cd.pdName, cd.volName)
+			return nil
+		}
 		return err
 	}
 
