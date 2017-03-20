@@ -481,6 +481,19 @@ func (grp *GrpAllocator) allocateGroup() (bool, []algorithm.PredicateFailureReas
 	return false, predicateFails
 }
 
+func SetScorer(resource string, scorerType int) v1.ResourceScoreFunc {
+	if scorerType == v1.DefaultScorer {
+		return DefaultScorer(resource)
+	}
+	if scorerType == v1.LeftOverScorer {
+		return LeftoverScoreFunc
+	}
+	if scorerType == v1.EnumLeftOverScorer {
+		return EnumScoreFunc
+	}
+	return nil
+}
+
 // DefaultScorer returns default scorer given a name
 func DefaultScorer(resource string) v1.ResourceScoreFunc {
 	if !prechecked(resource) {
@@ -492,11 +505,12 @@ func DefaultScorer(resource string) v1.ResourceScoreFunc {
 	return nil
 }
 
-func defaultScoreFunc(r *schedulercache.Resource) map[string]v1.ResourceScoreFunc {
+func setScoreFunc(r *schedulercache.Resource) map[string]v1.ResourceScoreFunc {
 	scorer := make(map[string]v1.ResourceScoreFunc)
 	for key := range r.OpaqueIntResources {
 		keyS := string(key)
-		scorer[keyS] = DefaultScorer(keyS)
+		//scorer[keyS] = DefaultScorer(keyS)
+		scorer[keyS] = SetScorer(keyS, r.Scorer[key])
 	}
 	return scorer
 }
@@ -518,18 +532,15 @@ func containerFitsGroupConstraints(contReq *v1.Container, initContainer bool,
 	alloc := make(map[string]int64)
 	glog.V(7).Infoln("Requests", contReq.Resources.Requests)
 	glog.V(7).Infoln("AllocatableRes", allocatable.OpaqueIntResources)
-	if contReq.Resources.Scorer == nil {
-		contReq.Resources.Scorer = make(map[v1.ResourceName]v1.ResourceScoreFunc)
+	if contReq.Resources.ScorerFn == nil {
+		contReq.Resources.ScorerFn = make(map[v1.ResourceName]v1.ResourceScoreFunc)
 	}
 	for reqRes, reqVal := range contReq.Resources.Requests {
 		if !prechecked(string(reqRes)) {
 			reqName[string(reqRes)] = string(reqRes)
 			req[string(reqRes)] = reqVal.Value()
-			scoreFn := contReq.Resources.Scorer[reqRes]
-			if scoreFn == nil {
-				scoreFn = DefaultScorer(string(reqRes))
-				contReq.Resources.Scorer[reqRes] = scoreFn
-			}
+			scoreFn := SetScorer(string(reqRes), contReq.Resources.Scorer[reqRes])
+			contReq.Resources.ScorerFn[reqRes] = scoreFn
 			reqScorer[string(reqRes)] = scoreFn
 		}
 	}
@@ -608,7 +619,7 @@ func PodFitsGroupConstraints(n *schedulercache.NodeInfo, spec *v1.PodSpec) (bool
 
 	allocatableV := n.AllocatableResource()
 	allocatable := &allocatableV
-	scorer := defaultScoreFunc(allocatable)
+	scorer := setScoreFunc(allocatable)
 
 	// first go over running containers
 	for i := range spec.Containers {

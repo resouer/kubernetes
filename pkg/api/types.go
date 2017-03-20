@@ -1250,7 +1250,9 @@ type ResourceRequirements struct {
 	// +optional
 	AllocateFrom ResourceLocation `json:"allocatefrom,omitempty"`
 	// Scorer describes scoring, checking, and taking of resource
-	Scorer map[ResourceName]ResourceScoreFunc `json:"scorer,omitempty"`
+	Scorer ResourceScorer `json:"scorer,omitempty"`
+	// ScorerFn is the scoring function used
+	ScorerFn map[ResourceName]ResourceScoreFunc `json:"scorerfn,omitempty"`
 }
 
 // Container represents a single container that is expected to be run on the host.
@@ -2489,6 +2491,9 @@ type NodeStatus struct {
 	// Allocatable represents the resources of a node that are available for scheduling.
 	// +optional
 	Allocatable ResourceList `json:"allocatable,omitempty"`
+	// Scorer represents the scorer function for the resources on the node
+	// +optional
+	Scorer ResourceScorer `json:"scorer,omitempty"`
 	// NodePhase is the current lifecycle phase of the node.
 	// +optional
 	Phase NodePhase `json:"phase,omitempty"`
@@ -2669,6 +2674,15 @@ type ResourceList map[ResourceName]resource.Quantity
 
 // ResourceLocation is a set of (resource name, resource location on node) pairs.
 type ResourceLocation map[ResourceName]ResourceName
+
+// ResourceScorer is a set of (resource name, scorer) pairs.
+type ResourceScorer map[ResourceName]int
+
+const (
+	DefaultScorer = iota
+	LeftOverScorer
+	EnumLeftOverScorer
+)
 
 // ResourceScoreFunc is a function which takes in (allocatable, usedByPod, usedByNode, requested, initContainer) resources
 // and returns (resourceFits, score, usedByContainer, newUsedByPod, newUsedByNode)
