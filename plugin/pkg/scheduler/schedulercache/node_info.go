@@ -60,6 +60,7 @@ type Resource struct {
 	Memory             int64
 	NvidiaGPU          int64
 	OpaqueIntResources map[api.ResourceName]int64
+	Scorer             map[api.ResourceName]int
 }
 
 func (r *Resource) ResourceList() api.ResourceList {
@@ -203,7 +204,7 @@ func (n *NodeInfo) updateGroupResourceForContainer(cont *api.Container, bInitCon
 		allocatableRes := allocatable[allocatedFrom]
 		podRes := podResources[allocatedFrom]
 		nodeRes := updatedUsedByNode[allocatedFrom]
-		scorerFn := cont.Resources.Scorer[resource]
+		scorerFn := cont.Resources.ScorerFn[resource]
 		_, _, _, newPodUsed, newNodeUsed := scorerFn(allocatableRes, podRes, nodeRes, val, bInitContainer)
 		podResources[allocatedFrom] = newPodUsed
 		updatedUsedByNode[allocatedFrom] = newNodeUsed
@@ -386,6 +387,19 @@ func (n *NodeInfo) SetNode(node *api.Node) error {
 				}
 				n.allocatableResource.OpaqueIntResources[rName] = rQuant.Value()
 			}
+		}
+		if n.allocatableResource.Scorer == nil {
+			n.allocatableResource.Scorer = map[api.ResourceName]int{}
+		}
+		if node.Status.Scorer != nil {
+			val, available := node.Status.Scorer[rName]
+			if available {
+				n.allocatableResource.Scorer[rName] = val
+			} else {
+				n.allocatableResource.Scorer[rName] = api.DefaultScorer
+			}
+		} else {
+			n.allocatableResource.Scorer[rName] = api.DefaultScorer
 		}
 	}
 	n.generation++
