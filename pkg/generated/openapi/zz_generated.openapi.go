@@ -10825,6 +10825,20 @@ var OpenAPIDefinitions *common.OpenAPIDefinitions = &common.OpenAPIDefinitions{
 							},
 						},
 					},
+					"scorer": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Scorer represents the scorer function for the resources on the node",
+							Type:        []string{"object"},
+							AdditionalProperties: &spec.SchemaOrBool{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"integer"},
+										Format: "int32",
+									},
+								},
+							},
+						},
+					},
 				},
 			},
 		},
@@ -13520,6 +13534,20 @@ var OpenAPIDefinitions *common.OpenAPIDefinitions = &common.OpenAPIDefinitions{
 									SchemaProps: spec.SchemaProps{
 										Type:   []string{"string"},
 										Format: "",
+									},
+								},
+							},
+						},
+					},
+					"scorer": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Scorer describes scoring, checking, and taking of resource",
+							Type:        []string{"object"},
+							AdditionalProperties: &spec.SchemaOrBool{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"integer"},
+										Format: "int32",
 									},
 								},
 							},

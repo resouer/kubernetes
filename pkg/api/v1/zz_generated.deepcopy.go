@@ -1830,6 +1830,15 @@ func DeepCopy_v1_NodeStatus(in interface{}, out interface{}, c *conversion.Clone
 		} else {
 			out.VolumesAttached = nil
 		}
+		if in.Scorer != nil {
+			in, out := &in.Scorer, &out.Scorer
+			*out = make(ResourceScorer)
+			for key, val := range *in {
+				(*out)[key] = val
+			}
+		} else {
+			out.Scorer = nil
+		}
 		return nil
 	}
 }
@@ -3155,6 +3164,28 @@ func DeepCopy_v1_ResourceRequirements(in interface{}, out interface{}, c *conver
 			}
 		} else {
 			out.AllocateFrom = nil
+		}
+		if in.Scorer != nil {
+			in, out := &in.Scorer, &out.Scorer
+			*out = make(ResourceScorer)
+			for key, val := range *in {
+				(*out)[key] = val
+			}
+		} else {
+			out.Scorer = nil
+		}
+		if in.ScorerFn != nil {
+			in, out := &in.ScorerFn, &out.ScorerFn
+			*out = make(map[ResourceName]ResourceScoreFunc)
+			for key, val := range *in {
+				if newVal, err := c.DeepCopy(&val); err != nil {
+					return err
+				} else {
+					(*out)[key] = *newVal.(*ResourceScoreFunc)
+				}
+			}
+		} else {
+			out.ScorerFn = nil
 		}
 		return nil
 	}

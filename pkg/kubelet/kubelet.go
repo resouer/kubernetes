@@ -50,6 +50,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubelet/dockertools"
 	"k8s.io/kubernetes/pkg/kubelet/events"
 	"k8s.io/kubernetes/pkg/kubelet/eviction"
+	"k8s.io/kubernetes/pkg/kubelet/gpu/nvidia"
 	"k8s.io/kubernetes/pkg/kubelet/images"
 	"k8s.io/kubernetes/pkg/kubelet/kuberuntime"
 	"k8s.io/kubernetes/pkg/kubelet/lifecycle"
@@ -92,7 +93,6 @@ import (
 	"k8s.io/kubernetes/pkg/util/wait"
 	"k8s.io/kubernetes/pkg/volume"
 	"k8s.io/kubernetes/plugin/pkg/scheduler/algorithm/predicates"
-	"k8s.io/kubernetes/pkg/kubelet/nvidiagpu"
 )
 
 const (
@@ -797,6 +797,14 @@ func NewMainKubelet(kubeCfg *componentconfig.KubeletConfiguration, kubeDeps *Kub
 	klet.appArmorValidator = apparmor.NewValidator(kubeCfg.ContainerRuntime)
 	klet.softAdmitHandlers.AddPodAdmitHandler(lifecycle.NewAppArmorAdmitHandler(klet.appArmorValidator))
 
+	if kubeCfg.ContainerRuntime == "docker" {
+		if klet.gpuManager, err = nvidia.NewNvidiaGPUManager(klet, klet.dockerClient); err != nil {
+			return nil, err
+		}
+	} else {
+		glog.Errorf("Accelerators feature is supported with docker runtime only. Disabling this feature internally.")
+	}
+
 	// Finally, put the most recent version of the config on the Kubelet, so
 	// people can see how it was configured.
 	klet.kubeletConfiguration = *kubeCfg
@@ -1099,7 +1107,7 @@ type Kubelet struct {
 	experimentalHostUserNamespaceDefaulting bool
 
 	// NVIDIA GPU Manager
- 	nvidiaGPUManager nvidiagpu.NvidiaGPUManager	
+	nvidiaGPUManager nvidiagpu.NvidiaGPUManager
 }
 
 // setupDataDirs creates:
@@ -1197,10 +1205,10 @@ func (kl *Kubelet) initializeModules() error {
 	}
 
 	// Step 7: Init Nvidia Manager. Do not need to return err until we use NVML instead.
- 	kl.nvidiaGPUManager.Init(kl.dockerClient)
- 
- 	// Step 8: Start resource analyzer
-  	kl.resourceAnalyzer.Start()
+	kl.nvidiaGPUManager.Start(kl.dockerClient)
+
+	// Step 8: Start resource analyzer
+	kl.resourceAnalyzer.Start()
 
 	return nil
 }

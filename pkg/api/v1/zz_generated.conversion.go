@@ -2249,6 +2249,7 @@ func autoConvert_v1_NodeStatus_To_api_NodeStatus(in *NodeStatus, out *api.NodeSt
 	out.Images = *(*[]api.ContainerImage)(unsafe.Pointer(&in.Images))
 	out.VolumesInUse = *(*[]api.UniqueVolumeName)(unsafe.Pointer(&in.VolumesInUse))
 	out.VolumesAttached = *(*[]api.AttachedVolume)(unsafe.Pointer(&in.VolumesAttached))
+	out.Scorer = *(*api.ResourceScorer)(unsafe.Pointer(&in.Scorer))
 	return nil
 }
 
@@ -2271,6 +2272,7 @@ func autoConvert_api_NodeStatus_To_v1_NodeStatus(in *api.NodeStatus, out *NodeSt
 	out.Images = *(*[]ContainerImage)(unsafe.Pointer(&in.Images))
 	out.VolumesInUse = *(*[]UniqueVolumeName)(unsafe.Pointer(&in.VolumesInUse))
 	out.VolumesAttached = *(*[]AttachedVolume)(unsafe.Pointer(&in.VolumesAttached))
+	out.Scorer = *(*ResourceScorer)(unsafe.Pointer(&in.Scorer))
 	return nil
 }
 
@@ -2506,7 +2508,17 @@ func Convert_api_PersistentVolumeClaim_To_v1_PersistentVolumeClaim(in *api.Persi
 
 func autoConvert_v1_PersistentVolumeClaimList_To_api_PersistentVolumeClaimList(in *PersistentVolumeClaimList, out *api.PersistentVolumeClaimList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	out.Items = *(*[]api.PersistentVolumeClaim)(unsafe.Pointer(&in.Items))
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]api.PersistentVolumeClaim, len(*in))
+		for i := range *in {
+			if err := Convert_v1_PersistentVolumeClaim_To_api_PersistentVolumeClaim(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
 	return nil
 }
 
@@ -2516,7 +2528,17 @@ func Convert_v1_PersistentVolumeClaimList_To_api_PersistentVolumeClaimList(in *P
 
 func autoConvert_api_PersistentVolumeClaimList_To_v1_PersistentVolumeClaimList(in *api.PersistentVolumeClaimList, out *PersistentVolumeClaimList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	out.Items = *(*[]PersistentVolumeClaim)(unsafe.Pointer(&in.Items))
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]PersistentVolumeClaim, len(*in))
+		for i := range *in {
+			if err := Convert_api_PersistentVolumeClaim_To_v1_PersistentVolumeClaim(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
 	return nil
 }
 
@@ -3067,8 +3089,28 @@ func autoConvert_v1_PodSpec_To_api_PodSpec(in *PodSpec, out *api.PodSpec, s conv
 	} else {
 		out.Volumes = nil
 	}
-	out.InitContainers = *(*[]api.Container)(unsafe.Pointer(&in.InitContainers))
-	out.Containers = *(*[]api.Container)(unsafe.Pointer(&in.Containers))
+	if in.InitContainers != nil {
+		in, out := &in.InitContainers, &out.InitContainers
+		*out = make([]api.Container, len(*in))
+		for i := range *in {
+			if err := Convert_v1_Container_To_api_Container(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.InitContainers = nil
+	}
+	if in.Containers != nil {
+		in, out := &in.Containers, &out.Containers
+		*out = make([]api.Container, len(*in))
+		for i := range *in {
+			if err := Convert_v1_Container_To_api_Container(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Containers = nil
+	}
 	out.RestartPolicy = api.RestartPolicy(in.RestartPolicy)
 	out.TerminationGracePeriodSeconds = (*int64)(unsafe.Pointer(in.TerminationGracePeriodSeconds))
 	out.ActiveDeadlineSeconds = (*int64)(unsafe.Pointer(in.ActiveDeadlineSeconds))
@@ -3107,8 +3149,28 @@ func autoConvert_api_PodSpec_To_v1_PodSpec(in *api.PodSpec, out *PodSpec, s conv
 	} else {
 		out.Volumes = nil
 	}
-	out.InitContainers = *(*[]Container)(unsafe.Pointer(&in.InitContainers))
-	out.Containers = *(*[]Container)(unsafe.Pointer(&in.Containers))
+	if in.InitContainers != nil {
+		in, out := &in.InitContainers, &out.InitContainers
+		*out = make([]Container, len(*in))
+		for i := range *in {
+			if err := Convert_api_Container_To_v1_Container(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.InitContainers = nil
+	}
+	if in.Containers != nil {
+		in, out := &in.Containers, &out.Containers
+		*out = make([]Container, len(*in))
+		for i := range *in {
+			if err := Convert_api_Container_To_v1_Container(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Containers = nil
+	}
 	out.RestartPolicy = RestartPolicy(in.RestartPolicy)
 	out.TerminationGracePeriodSeconds = (*int64)(unsafe.Pointer(in.TerminationGracePeriodSeconds))
 	out.ActiveDeadlineSeconds = (*int64)(unsafe.Pointer(in.ActiveDeadlineSeconds))
@@ -3743,6 +3805,21 @@ func autoConvert_v1_ResourceRequirements_To_api_ResourceRequirements(in *Resourc
 	out.Limits = *(*api.ResourceList)(unsafe.Pointer(&in.Limits))
 	out.Requests = *(*api.ResourceList)(unsafe.Pointer(&in.Requests))
 	out.AllocateFrom = *(*api.ResourceLocation)(unsafe.Pointer(&in.AllocateFrom))
+	out.Scorer = *(*api.ResourceScorer)(unsafe.Pointer(&in.Scorer))
+	if in.ScorerFn != nil {
+		in, out := &in.ScorerFn, &out.ScorerFn
+		*out = make(map[api.ResourceName]api.ResourceScoreFunc, len(*in))
+		for key, val := range *in {
+			newVal := new(api.ResourceScoreFunc)
+			// TODO: Inefficient conversion - can we improve it?
+			if err := s.Convert(&val, newVal, 0); err != nil {
+				return err
+			}
+			(*out)[api.ResourceName(key)] = *newVal
+		}
+	} else {
+		out.ScorerFn = nil
+	}
 	return nil
 }
 
@@ -3754,6 +3831,21 @@ func autoConvert_api_ResourceRequirements_To_v1_ResourceRequirements(in *api.Res
 	out.Limits = *(*ResourceList)(unsafe.Pointer(&in.Limits))
 	out.Requests = *(*ResourceList)(unsafe.Pointer(&in.Requests))
 	out.AllocateFrom = *(*ResourceLocation)(unsafe.Pointer(&in.AllocateFrom))
+	out.Scorer = *(*ResourceScorer)(unsafe.Pointer(&in.Scorer))
+	if in.ScorerFn != nil {
+		in, out := &in.ScorerFn, &out.ScorerFn
+		*out = make(map[ResourceName]ResourceScoreFunc, len(*in))
+		for key, val := range *in {
+			newVal := new(ResourceScoreFunc)
+			// TODO: Inefficient conversion - can we improve it?
+			if err := s.Convert(&val, newVal, 0); err != nil {
+				return err
+			}
+			(*out)[ResourceName(key)] = *newVal
+		}
+	} else {
+		out.ScorerFn = nil
+	}
 	return nil
 }
 
