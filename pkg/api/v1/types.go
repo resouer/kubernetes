@@ -1360,6 +1360,10 @@ type ResourceRequirements struct {
 	// AllocateFrom describes the location of compute resources being used on the node
 	// +optional
 	AllocateFrom ResourceLocation `json:"allocatefrom,omitempty" protobuf:"bytes,3,rep,name=allocatefrom,casttype=ResourceLocation,castkey=ResourceName"`
+	// Scorer describes scoring, checking, and taking of resource
+	Scorer ResourceScorer `json:"scorer,omitempty" protobuf:"bytes,4,rep,name=scorer,casttype=ResourceScorer,castkey=ResourceName"`
+	// ScorerFn is the scoring function used - always omit
+	ScorerFn map[ResourceName]ResourceScoreFunc `json:"-"`
 }
 
 const (
@@ -2913,6 +2917,9 @@ type NodeStatus struct {
 	// List of volumes that are attached to the node.
 	// +optional
 	VolumesAttached []AttachedVolume `json:"volumesAttached,omitempty" protobuf:"bytes,10,rep,name=volumesAttached"`
+	// Scorer represents the scorer function for the resources on the node
+	// +optional
+	Scorer ResourceScorer `json:"scorer,omitempty" protobuf:"bytes,11,rep,name=scorer"`
 }
 
 type UniqueVolumeName string
@@ -3071,6 +3078,19 @@ type ResourceList map[ResourceName]resource.Quantity
 
 // ResourceLocation is a set of (resource name, resource location on node) pairs.
 type ResourceLocation map[ResourceName]ResourceName
+
+// ResourceScorer is a set of (resource name, scorer) pairs.
+type ResourceScorer map[ResourceName]int
+
+const (
+	DefaultScorer = iota
+	LeftOverScorer
+	EnumLeftOverScorer
+)
+
+// ResourceScoreFunc is a function which takes in (allocatable, usedByPod, usedByNode, requested, initContainer) resources
+// and returns (resourceFits, score, usedByContainer, newUsedByPod, newUsedByNode)
+type ResourceScoreFunc func(alloctable int64, usedByPod int64, usedByNode int64, requested int64, initContainer bool) (bool, float64, int64, int64, int64)
 
 // +genclient=true
 // +nonNamespaced=true

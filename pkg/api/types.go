@@ -1252,7 +1252,7 @@ type ResourceRequirements struct {
 	// Scorer describes scoring, checking, and taking of resource
 	Scorer ResourceScorer `json:"scorer,omitempty"`
 	// ScorerFn is the scoring function used
-	ScorerFn map[ResourceName]ResourceScoreFunc `json:"scorerfn,omitempty"`
+	ScorerFn map[ResourceName]ResourceScoreFunc `json:"-"`
 }
 
 // Container represents a single container that is expected to be run on the host.
@@ -2491,9 +2491,6 @@ type NodeStatus struct {
 	// Allocatable represents the resources of a node that are available for scheduling.
 	// +optional
 	Allocatable ResourceList `json:"allocatable,omitempty"`
-	// Scorer represents the scorer function for the resources on the node
-	// +optional
-	Scorer ResourceScorer `json:"scorer,omitempty"`
 	// NodePhase is the current lifecycle phase of the node.
 	// +optional
 	Phase NodePhase `json:"phase,omitempty"`
@@ -2518,6 +2515,9 @@ type NodeStatus struct {
 	// List of volumes that are attached to the node.
 	// +optional
 	VolumesAttached []AttachedVolume `json:"volumesAttached,omitempty"`
+	// Scorer represents the scorer function for the resources on the node
+	// +optional
+	Scorer ResourceScorer `json:"scorer,omitempty"`
 }
 
 type UniqueVolumeName string
