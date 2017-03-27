@@ -72,32 +72,31 @@ func (kl *Kubelet) listPodsFromDisk() ([]types.UID, error) {
 	return pods, nil
 }
 
-// getActivePods returns non-terminal pods
-func (kl *Kubelet) getActivePods() []*api.Pod {
+// GetActivePods returns non-terminal pods
+func (kl *Kubelet) GetActivePods() []*api.Pod {
 	allPods := kl.podManager.GetPods()
 	activePods := kl.filterOutTerminatedPods(allPods)
 	return activePods
 }
 
 // makeDevices determines the devices for the given container.
-func (kl *Kubelet) makeDevices(container *api.Container) []kubecontainer.DeviceInfo {
-	nvidiaGPULimit := container.Resources.Limits.NvidiaGPU()
-
-	if nvidiaGPULimit.Value() != 0 {
-		if nvidiaGPUPaths, err := kl.nvidiaGPUManager.AllocateGPUs(int(nvidiaGPULimit.Value())); err == nil {
-			devices := []kubecontainer.DeviceInfo{{PathOnHost: nvidiagpu.NvidiaCtlDevice, PathInContainer: nvidiagpu.NvidiaCtlDevice, Permissions: "mrw"},
-				{PathOnHost: nvidiagpu.NvidiaUVMDevice, PathInContainer: nvidiagpu.NvidiaUVMDevice, Permissions: "mrw"}}
-
-			for i, path := range nvidiaGPUPaths {
-				devices = append(devices, kubecontainer.DeviceInfo{PathOnHost: path, PathInContainer: "/dev/nvidia" + strconv.Itoa(i), Permissions: "mrw"})
-			}
-
-			return devices
-
-		}
+// Experimental.
+func (kl *Kubelet) makeDevices(pod *api.Pod, container *api.Container) ([]kubecontainer.DeviceInfo, error) {
+	if container.Resources.Limits.NvidiaGPU().IsZero() {
+		return nil, nil
 	}
 
-	return nil
+	nvidiaGPUPaths, err := kl.gpuManager.AllocateGPU(pod, container)
+	if err != nil {
+		return nil, err
+	}
+	var devices []kubecontainer.DeviceInfo
+	for _, path := range nvidiaGPUPaths {
+		// Devices have to be mapped one to one because of nvidia CUDA library requirements.
+		devices = append(devices, kubecontainer.DeviceInfo{PathOnHost: path, PathInContainer: path, Permissions: "mrw"})
+	}
+
+	return devices, nil
 }
 
 // makeMounts determines the mount points for the given container.
@@ -309,7 +308,10 @@ func (kl *Kubelet) GenerateRunContainerOptions(pod *api.Pod, container *api.Cont
 	volumes := kl.volumeManager.GetMountedVolumesForPod(podName)
 
 	opts.PortMappings = makePortMappings(container)
-	opts.Devices = kl.makeDevices(container)
+	opts.Devices, err = kl.makeDevices(pod, container)
+	if err != nil {
+		return nil, err
+	}
 
 	opts.Mounts, err = makeMounts(pod, kl.getPodDir(pod.UID), container, hostname, hostDomainName, podIP, volumes)
 	if err != nil {

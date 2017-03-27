@@ -50,6 +50,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubelet/dockertools"
 	"k8s.io/kubernetes/pkg/kubelet/events"
 	"k8s.io/kubernetes/pkg/kubelet/eviction"
+	"k8s.io/kubernetes/pkg/kubelet/gpu"
 	"k8s.io/kubernetes/pkg/kubelet/gpu/nvidia"
 	"k8s.io/kubernetes/pkg/kubelet/images"
 	"k8s.io/kubernetes/pkg/kubelet/kuberuntime"
@@ -1106,8 +1107,8 @@ type Kubelet struct {
 	// experimental behavior is desired.
 	experimentalHostUserNamespaceDefaulting bool
 
-	// NVIDIA GPU Manager
-	nvidiaGPUManager nvidiagpu.NvidiaGPUManager
+	// GPU Manager
+	gpuManager gpu.GPUManager
 }
 
 // setupDataDirs creates:
@@ -1205,7 +1206,7 @@ func (kl *Kubelet) initializeModules() error {
 	}
 
 	// Step 7: Init Nvidia Manager. Do not need to return err until we use NVML instead.
-	kl.nvidiaGPUManager.Start(kl.dockerClient)
+	kl.gpuManager.Start()
 
 	// Step 8: Start resource analyzer
 	kl.resourceAnalyzer.Start()
@@ -1221,7 +1222,7 @@ func (kl *Kubelet) initializeRuntimeDependentModules() {
 		glog.Fatalf("Failed to start cAdvisor %v", err)
 	}
 	// eviction manager must start after cadvisor because it needs to know if the container runtime has a dedicated imagefs
-	if err := kl.evictionManager.Start(kl, kl.getActivePods, evictionMonitoringPeriod); err != nil {
+	if err := kl.evictionManager.Start(kl, kl.GetActivePods, evictionMonitoringPeriod); err != nil {
 		kl.runtimeState.setInternalError(fmt.Errorf("failed to start eviction manager %v", err))
 	}
 }
