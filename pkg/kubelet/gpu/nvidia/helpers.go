@@ -16,7 +16,7 @@ limitations under the License.
 
 package nvidia
 
-import "k8s.io/apimachinery/pkg/util/sets"
+import "k8s.io/kubernetes/pkg/util/sets"
 
 type containerToGPU map[string]sets.String
 
