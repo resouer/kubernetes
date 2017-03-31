@@ -386,6 +386,8 @@ type Mount struct {
 	ReadOnly bool
 	// Whether the mount needs SELinux relabeling
 	SELinuxRelabel bool
+	// VolumeDriver
+	VolumeDriver string
 }
 
 type PortMapping struct {

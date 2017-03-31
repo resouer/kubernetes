@@ -511,6 +511,25 @@ func makeEnvList(envs []kubecontainer.EnvVar) (result []string) {
 	return
 }
 
+// From https://docs.docker.com/engine/reference/commandline/volume_create/#extended-description,
+// If you specify a volume name already in use on the current driver, Docker assumes you want to re-use the existing volume and does not return an error.
+// So no need to list volumes and check if volume already exists on current driver, can simply create
+func (dm *DockerManager) makeMountVolumes(mounts []kubecontainer.Mount) (*kubecontainer.Mount, error) {
+	for _, m := range mounts {
+		if m.VolumeDriver != "" {
+			createRequest := dockertypes.VolumeCreateRequest{
+				Name:   m.HostPath,
+				Driver: m.VolumeDriver,
+			}
+			_, err := dm.client.CreateVolume(createRequest) // assumes no error returned if volume already exists
+			if err != nil {
+				return &m, err
+			}
+		}
+	}
+	return nil, nil
+}
+
 // makeMountBindings converts the mount list to a list of strings that
 // can be understood by docker.
 // Each element in the string is in the form of:
@@ -648,6 +667,11 @@ func (dm *DockerManager) runContainer(
 			PathInContainer:   device.PathInContainer,
 			CgroupPermissions: device.Permissions,
 		}
+	}
+	// mount volumes
+	if failedMount, err := dm.makeMountVolumes(opts.Mounts); err != nil {
+		glog.Errorln("Failed to create needed volumes", *failedMount)
+		return kubecontainer.ContainerID{}, err // container creation cannot continue
 	}
 	binds := makeMountBindings(opts.Mounts)
 

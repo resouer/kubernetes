@@ -8,6 +8,7 @@ import (
 	"github.com/golang/glog"
 
 	v1 "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/kubelet/gpu"
 	"k8s.io/kubernetes/plugin/pkg/scheduler/algorithm"
 	"k8s.io/kubernetes/plugin/pkg/scheduler/schedulercache"
 )
@@ -623,6 +624,7 @@ func PodFitsGroupConstraints(n *schedulercache.NodeInfo, spec *v1.PodSpec) (bool
 
 	// first go over running containers
 	for i := range spec.Containers {
+		gpu.TranslateGPUResources(&spec.Containers[i])
 		grp, fits, reasons, score := containerFitsGroupConstraints(&spec.Containers[i], false, allocatable,
 			scorer, podResource, nodeResource, usedGroups, true)
 		if fits == false {
@@ -637,6 +639,7 @@ func PodFitsGroupConstraints(n *schedulercache.NodeInfo, spec *v1.PodSpec) (bool
 
 	// now go over initialization containers, try to reutilize used groups
 	for i := range spec.InitContainers {
+		gpu.TranslateGPUResources(&spec.InitContainers[i])
 		// container.Resources.Requests contains a map, alloctable contains type Resource
 		// prefer groups which are already used by running containers
 		grp, fits, reasons, _ := containerFitsGroupConstraints(&spec.InitContainers[i], true, allocatable,

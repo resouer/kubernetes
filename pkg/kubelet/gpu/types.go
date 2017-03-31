@@ -28,5 +28,5 @@ type GPUManager interface {
 	// AllocateGPU attempts to allocate GPUs for input container.
 	// Returns paths to allocated GPUs and nil on success.
 	// Returns an error on failure.
-	AllocateGPU(*v1.Pod, *v1.Container) ([]string, error)
+	AllocateGPU(*v1.Pod, *v1.Container) (string, string, []string, error)
 }

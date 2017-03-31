@@ -26,9 +26,9 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"sort"
-	"strconv"
 	"strings"
 	"time"
 
@@ -79,24 +79,80 @@ func (kl *Kubelet) GetActivePods() []*api.Pod {
 	return activePods
 }
 
-// makeDevices determines the devices for the given container.
-// Experimental.
-func (kl *Kubelet) makeDevices(pod *api.Pod, container *api.Container) ([]kubecontainer.DeviceInfo, error) {
-	if container.Resources.Limits.NvidiaGPU().IsZero() {
+func createGPUVolumeMount(volumeName string, volumeDriver string) (*kubecontainer.Mount, error) {
+	if volumeName == "" {
 		return nil, nil
 	}
 
-	nvidiaGPUPaths, err := kl.gpuManager.AllocateGPU(pod, container)
-	if err != nil {
-		return nil, err
+	re := regexp.MustCompile(`(.*?):(.*)`)
+	matches := re.FindStringSubmatch(volumeName)
+	if len(matches) != 3 {
+		return nil, fmt.Errorf("GPU Volume name %s is invalid", volumeName)
 	}
+
+	hostPath := matches[1]
+	containerPath := matches[2]
+	readOnly := false
+
+	// test for readonly flag
+	matches = re.FindStringSubmatch(containerPath)
+	if len(matches) == 3 {
+		containerPath = matches[1]
+		readOnly = (matches[2] == "ro")
+	}
+
+	return &kubecontainer.Mount{
+		Name:          volumeDriver + "/" + hostPath,
+		ContainerPath: containerPath,
+		HostPath:      hostPath,
+		ReadOnly:      readOnly,
+		VolumeDriver:  volumeDriver,
+	}, nil
+}
+
+func (kl *Kubelet) makeGPUDevices(pod *api.Pod, container *api.Container) ([]kubecontainer.Mount, []kubecontainer.DeviceInfo, error) {
+	var mounts []kubecontainer.Mount
 	var devices []kubecontainer.DeviceInfo
+
+	if !container.Resources.Limits.NvidiaGPU().IsZero() {
+		return nil, nil, nil
+	}
+
+	volumeName, volumeDriver, nvidiaGPUPaths, err := kl.gpuManager.AllocateGPU(pod, container)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	for _, path := range nvidiaGPUPaths {
 		// Devices have to be mapped one to one because of nvidia CUDA library requirements.
 		devices = append(devices, kubecontainer.DeviceInfo{PathOnHost: path, PathInContainer: path, Permissions: "mrw"})
 	}
+	gpuMount, err := createGPUVolumeMount(volumeName, volumeDriver)
+	if err != nil {
+		return nil, nil, err
+	}
+	mounts = append(mounts, *gpuMount)
+	if err != nil {
+		return nil, nil, err
+	}
 
-	return devices, nil
+	return mounts, devices, nil
+}
+
+// makeDevices determines the devices for the given container.
+// Experimental.
+func (kl *Kubelet) makeDevices(pod *api.Pod, container *api.Container) ([]kubecontainer.Mount, []kubecontainer.DeviceInfo, error) {
+	var mounts []kubecontainer.Mount
+	var devices []kubecontainer.DeviceInfo
+
+	if gpuMounts, gpuDevices, err := kl.makeGPUDevices(pod, container); err != nil {
+		return nil, nil, err
+	} else {
+		mounts = append(mounts, gpuMounts...)
+		devices = append(devices, gpuDevices...)
+	}
+
+	return mounts, devices, nil
 }
 
 // makeMounts determines the mount points for the given container.
@@ -308,7 +364,9 @@ func (kl *Kubelet) GenerateRunContainerOptions(pod *api.Pod, container *api.Cont
 	volumes := kl.volumeManager.GetMountedVolumesForPod(podName)
 
 	opts.PortMappings = makePortMappings(container)
-	opts.Devices, err = kl.makeDevices(pod, container)
+
+	deviceMounts := []kubecontainer.Mount{}
+	deviceMounts, opts.Devices, err = kl.makeDevices(pod, container)
 	if err != nil {
 		return nil, err
 	}
@@ -317,6 +375,8 @@ func (kl *Kubelet) GenerateRunContainerOptions(pod *api.Pod, container *api.Cont
 	if err != nil {
 		return nil, err
 	}
+	opts.Mounts = append(opts.Mounts, deviceMounts...)
+
 	opts.Envs, err = kl.makeEnvironmentVariables(pod, container, podIP)
 	if err != nil {
 		return nil, err

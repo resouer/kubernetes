@@ -20,6 +20,7 @@ import (
 	"time"
 
 	dockertypes "github.com/docker/engine-api/types"
+	dockerfilters "github.com/docker/engine-api/types/filters"
 	"k8s.io/kubernetes/pkg/kubelet/metrics"
 )
 
@@ -103,6 +104,42 @@ func (in instrumentedDockerInterface) RemoveContainer(id string, opts dockertype
 	defer recordOperation(operation, time.Now())
 
 	err := in.client.RemoveContainer(id, opts)
+	recordError(operation, err)
+	return err
+}
+
+func (in instrumentedDockerInterface) CreateVolume(opts dockertypes.VolumeCreateRequest) (*dockertypes.Volume, error) {
+	const operation = "create_volume"
+	defer recordOperation(operation, time.Now())
+
+	out, err := in.client.CreateVolume(opts)
+	recordError(operation, err)
+	return out, err
+}
+
+func (in instrumentedDockerInterface) ListVolumes(filter dockerfilters.Args) (*dockertypes.VolumesListResponse, error) {
+	const operation = "list_volumes"
+	defer recordOperation(operation, time.Now())
+
+	out, err := in.client.ListVolumes(filter)
+	recordError(operation, err)
+	return out, err
+}
+
+func (in instrumentedDockerInterface) InspectVolume(volumeID string) (*dockertypes.Volume, error) {
+	const operation = "inspect_volume"
+	defer recordOperation(operation, time.Now())
+
+	out, err := in.client.InspectVolume(volumeID)
+	recordError(operation, err)
+	return out, err
+}
+
+func (in instrumentedDockerInterface) RemoveVolume(volumeID string) error {
+	const operation = "remove_volume"
+	defer recordOperation(operation, time.Now())
+
+	err := in.client.RemoveVolume(volumeID)
 	recordError(operation, err)
 	return err
 }

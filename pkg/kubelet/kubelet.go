@@ -799,7 +799,7 @@ func NewMainKubelet(kubeCfg *componentconfig.KubeletConfiguration, kubeDeps *Kub
 	klet.softAdmitHandlers.AddPodAdmitHandler(lifecycle.NewAppArmorAdmitHandler(klet.appArmorValidator))
 
 	if kubeCfg.ContainerRuntime == "docker" {
-		if klet.gpuManager, err = nvidia.NewNvidiaGPUManager(klet, klet.dockerClient); err != nil {
+		if klet.gpuManager, err = nvidia.NewNvidiaGPUManager(klet.dockerClient); err != nil {
 			return nil, err
 		}
 	} else {
