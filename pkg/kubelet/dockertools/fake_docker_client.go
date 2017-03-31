@@ -28,6 +28,7 @@ import (
 
 	dockertypes "github.com/docker/engine-api/types"
 	dockercontainer "github.com/docker/engine-api/types/container"
+	dockerfilters "github.com/docker/engine-api/types/filters"
 	"k8s.io/kubernetes/pkg/util/clock"
 
 	"k8s.io/kubernetes/pkg/api"
@@ -315,6 +316,22 @@ func (f *FakeDockerClient) InspectContainer(id string) (*dockertypes.ContainerJS
 		return nil, err
 	}
 	return nil, fmt.Errorf("container %q not found", id)
+}
+
+func (f *FakeDockerClient) CreateVolume(opts dockertypes.VolumeCreateRequest) (*dockertypes.Volume, error) {
+	return nil, nil
+}
+
+func (f *FakeDockerClient) ListVolumes(filter dockerfilters.Args) (*dockertypes.VolumesListResponse, error) {
+	return nil, nil
+}
+
+func (f *FakeDockerClient) InspectVolume(volumeID string) (*dockertypes.Volume, error) {
+	return nil, nil
+}
+
+func (f *FakeDockerClient) RemoveVolume(volumeID string) error {
+	return nil
 }
 
 // InspectImageByRef is a test-spy implementation of DockerInterface.InspectImageByRef.

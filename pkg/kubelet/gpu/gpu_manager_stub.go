@@ -18,8 +18,11 @@ package gpu
 
 import (
 	"fmt"
+	"regexp"
+	"strconv"
 
 	v1 "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/resource"
 )
 
 type gpuManagerStub struct{}
@@ -32,10 +35,46 @@ func (gms *gpuManagerStub) Capacity() v1.ResourceList {
 	return nil
 }
 
-func (gms *gpuManagerStub) AllocateGPU(_ *v1.Pod, _ *v1.Container) ([]string, error) {
-	return nil, fmt.Errorf("GPUs are not supported")
+// AllocateGPU Returns volumename, volumedriver, devices
+func (gms *gpuManagerStub) AllocateGPU(_ *v1.Pod, _ *v1.Container) (volumeName string, volumeDriver string, devices []string, err error) {
+	devices = nil
+	err = fmt.Errorf("GPUs are not supported")
+	return volumeName, volumeDriver, devices, err
 }
 
 func NewGPUManagerStub() GPUManager {
 	return &gpuManagerStub{}
+}
+
+func AddResource(list v1.ResourceList, key string, val int64) {
+	list[v1.ResourceName(key)] = *resource.NewQuantity(val, resource.DecimalSI)
+}
+
+func TranslateGPUResources(container *v1.Container) error {
+	re := regexp.MustCompile(v1.ResourceGroupPrefix + "/gpu/" + `(.*?)/cards`)
+
+	requests := container.Resources.Requests
+
+	neededGPUQ := requests[v1.ResourceNvidiaGPU]
+	neededGPUs := neededGPUQ.Value()
+	haveGPUs := 0
+	maxGPUIndex := -1
+	for _, res := range container.Resources.AllocateFrom {
+		matches := re.FindStringSubmatch(string(res))
+		if len(matches) >= 2 {
+			haveGPUs++
+			gpuIndex, err := strconv.Atoi(matches[1])
+			if err == nil {
+				if gpuIndex > maxGPUIndex {
+					maxGPUIndex = gpuIndex
+				}
+			}
+		}
+	}
+	diffGPU := int(neededGPUs - int64(haveGPUs))
+	for i := 0; i < diffGPU; i++ {
+		gpuIndex := maxGPUIndex + i + 1
+		AddResource(requests, v1.ResourceGroupPrefix+"/gpu/"+strconv.Itoa(gpuIndex)+"/cards", 1)
+	}
+	return nil
 }

@@ -30,6 +30,7 @@ import (
 	"github.com/docker/docker/pkg/jsonmessage"
 	dockerapi "github.com/docker/engine-api/client"
 	dockertypes "github.com/docker/engine-api/types"
+	dockerfilters "github.com/docker/engine-api/types/filters"
 	"github.com/golang/glog"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/credentialprovider"
@@ -56,6 +57,10 @@ type DockerInterface interface {
 	StartContainer(id string) error
 	StopContainer(id string, timeout int) error
 	RemoveContainer(id string, opts dockertypes.ContainerRemoveOptions) error
+	CreateVolume(opts dockertypes.VolumeCreateRequest) (*dockertypes.Volume, error)
+	ListVolumes(filter dockerfilters.Args) (*dockertypes.VolumesListResponse, error)
+	InspectVolume(volumeID string) (*dockertypes.Volume, error)
+	RemoveVolume(volumeID string) error
 	InspectImageByRef(imageRef string) (*dockertypes.ImageInspect, error)
 	InspectImageByID(imageID string) (*dockertypes.ImageInspect, error)
 	ListImages(opts dockertypes.ImageListOptions) ([]dockertypes.Image, error)

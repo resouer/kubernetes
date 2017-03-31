@@ -32,6 +32,7 @@ import (
 	dockerstdcopy "github.com/docker/docker/pkg/stdcopy"
 	dockerapi "github.com/docker/engine-api/client"
 	dockertypes "github.com/docker/engine-api/types"
+	dockerfilters "github.com/docker/engine-api/types/filters"
 	"golang.org/x/net/context"
 )
 
@@ -176,6 +177,55 @@ func (d *kubeDockerClient) RemoveContainer(id string, opts dockertypes.Container
 	ctx, cancel := d.getTimeoutContext()
 	defer cancel()
 	err := d.client.ContainerRemove(ctx, id, opts)
+	if ctxErr := contextError(ctx); ctxErr != nil {
+		return ctxErr
+	}
+	return err
+}
+
+func (d *kubeDockerClient) CreateVolume(opts dockertypes.VolumeCreateRequest) (*dockertypes.Volume, error) {
+	ctx, cancel := d.getTimeoutContext()
+	defer cancel()
+	volumeResp, err := d.client.VolumeCreate(ctx, opts)
+	if ctxErr := contextError(ctx); ctxErr != nil {
+		return nil, ctxErr
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &volumeResp, nil
+}
+
+func (d *kubeDockerClient) ListVolumes(filter dockerfilters.Args) (*dockertypes.VolumesListResponse, error) {
+	ctx, cancel := d.getTimeoutContext()
+	defer cancel()
+	volumesResp, err := d.client.VolumeList(ctx, filter)
+	if ctxErr := contextError(ctx); ctxErr != nil {
+		return nil, ctxErr
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &volumesResp, nil
+}
+
+func (d *kubeDockerClient) InspectVolume(volumeID string) (*dockertypes.Volume, error) {
+	ctx, cancel := d.getTimeoutContext()
+	defer cancel()
+	volumeResp, err := d.client.VolumeInspect(ctx, volumeID)
+	if ctxErr := contextError(ctx); ctxErr != nil {
+		return nil, ctxErr
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &volumeResp, nil
+}
+
+func (d *kubeDockerClient) RemoveVolume(volumeID string) error {
+	ctx, cancel := d.getTimeoutContext()
+	defer cancel()
+	err := d.client.VolumeRemove(ctx, volumeID)
 	if ctxErr := contextError(ctx); ctxErr != nil {
 		return ctxErr
 	}
