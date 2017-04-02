@@ -193,5 +193,6 @@ func defaultPriorities() sets.String {
 				Weight: 1,
 			},
 		),
+		factory.RegisterPriorityFunction("LeastNewlyCreatedPodsPriority", priorities.LeastNewlyCreatedPodsPriority, 1),
 	)
 }

@@ -22,9 +22,11 @@ import (
 	"sort"
 	"strconv"
 	"testing"
+	"time"
 
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/resource"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/util/codeinspector"
 	"k8s.io/kubernetes/plugin/pkg/scheduler"
@@ -926,6 +928,63 @@ func TestPrioritiesRegistered(t *testing.T) {
 				t.Errorf("priority %s is implemented as public but seems not registered or used in any other place",
 					functionName)
 			}
+		}
+	}
+}
+
+func TestLeastNewlyCreatedPodsPriority(t *testing.T) {
+	machine1Spec := api.PodSpec{
+		NodeName: "machine1",
+	}
+	machine3Spec := api.PodSpec{
+		NodeName: "machine3",
+	}
+	simplePod := api.PodSpec{
+		Containers: []api.Container{},
+	}
+	tests := []struct {
+		pod          *api.Pod
+		pods         []*api.Pod
+		nodes        []api.Node
+		expectedList schedulerapi.HostPriorityList
+		test         string
+	}{
+		{
+			/*
+				Node1
+					2 of 2 newly created pods
+					Score: 10 - (2 / 2) * 10 = 0
+
+				Node2
+					0 of 2 newly created pods
+					Score: 10 - (0 / 2) * 10 = 10
+
+				Node3
+					1 of 2 newly created pods
+					Score: 10 - (1 / 2) * 10 = 5
+
+			*/
+			pod:          &api.Pod{Spec: simplePod},
+			nodes:        []api.Node{makeNode("machine1", 4000, 10000), makeNode("machine2", 4000, 10000), makeNode("machine3", 4000, 10000)},
+			expectedList: []schedulerapi.HostPriority{{"machine1", 0}, {"machine2", 10}, {"machine3", 5}},
+			test:         "test nodes with VS without newly created pods",
+			pods: []*api.Pod{
+				{Spec: machine1Spec, ObjectMeta: api.ObjectMeta{CreationTimestamp: unversioned.NewTime(time.Now())}},
+				{Spec: machine1Spec, ObjectMeta: api.ObjectMeta{CreationTimestamp: unversioned.NewTime(time.Now())}},
+				{Spec: machine3Spec, ObjectMeta: api.ObjectMeta{CreationTimestamp: unversioned.NewTime(time.Now().Add(-10 * time.Minute))}},
+				{Spec: machine3Spec, ObjectMeta: api.ObjectMeta{CreationTimestamp: unversioned.NewTime(time.Now())}},
+			},
+		},
+	}
+
+	for _, test := range tests {
+		nodeNameToInfo := schedulercache.CreateNodeNameToInfoMap(test.pods)
+		list, err := LeastNewlyCreatedPodsPriority(test.pod, nodeNameToInfo, algorithm.FakeNodeLister(api.NodeList{Items: test.nodes}))
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+		if !reflect.DeepEqual(test.expectedList, list) {
+			t.Errorf("%s: expected %#v, got %#v", test.test, test.expectedList, list)
 		}
 	}
 }
