@@ -20,13 +20,9 @@ package nvidia
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"net/http"
 	"regexp"
 	"strings"
 	"sync"
-
-	"strconv"
 
 	v1 "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/resource"
@@ -60,8 +56,10 @@ type gpusInfo struct {
 // nvidiaGPUManager manages nvidia gpu devices.
 type nvidiaGPUManager struct {
 	sync.Mutex
-	gpus    map[string]gpuInfo
-	numGpus int
+	np       NvidiaPlugin
+	gpus     map[string]gpuInfo
+	pathToID map[string]string
+	numGpus  int
 }
 
 // NewNvidiaGPUManager returns a GPUManager that manages local Nvidia GPUs.
@@ -70,17 +68,8 @@ func NewNvidiaGPUManager(dockerClient dockertools.DockerInterface) (gpu.GPUManag
 	if dockerClient == nil {
 		return nil, fmt.Errorf("invalid docker client specified")
 	}
-	return &nvidiaGPUManager{gpus: make(map[string]gpuInfo)}, nil
-}
-
-func getResponse(url string) ([]byte, error) {
-	resp, err := http.Get(url)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
-	return body, err
+	plugin := &NvidiaDockerPlugin{}
+	return &nvidiaGPUManager{gpus: make(map[string]gpuInfo), np: plugin}, nil
 }
 
 // Initialize the GPU devices
@@ -88,7 +77,8 @@ func (ngm *nvidiaGPUManager) UpdateGPUInfo() error {
 	ngm.Lock()
 	defer ngm.Unlock()
 
-	body, err := getResponse("http://localhost:3476/v1.0/gpu/info/json")
+	np := ngm.np
+	body, err := np.GetGPUInfo()
 	if err != nil {
 		return err
 	}
@@ -103,6 +93,7 @@ func (ngm *nvidiaGPUManager) UpdateGPUInfo() error {
 		ngm.gpus[key] = copy
 	}
 	// go over found GPUs and reassign
+	ngm.pathToID = make(map[string]string)
 	for index, gpuFound := range gpus.Gpus {
 		gpu, available := ngm.gpus[gpuFound.ID]
 		if available {
@@ -111,6 +102,7 @@ func (ngm *nvidiaGPUManager) UpdateGPUInfo() error {
 		gpuFound.Found = true
 		gpuFound.Index = index
 		ngm.gpus[gpuFound.ID] = gpuFound
+		ngm.pathToID[gpuFound.Path] = gpuFound.ID
 	}
 	ngm.numGpus = len(gpus.Gpus) // if ngm.numGpus <> len(ngm.gpus), then some gpus have gone missing
 
@@ -146,39 +138,41 @@ func (ngm *nvidiaGPUManager) AllocateGPU(pod *v1.Pod, container *v1.Container) (
 
 	re := regexp.MustCompile(v1.ResourceGroupPrefix + "/gpu/" + `(.*?)/cards`)
 
-	devString := ""
+	devices := []int{}
 	for _, res := range container.Resources.AllocateFrom {
 		matches := re.FindStringSubmatch(string(res))
 		if len(matches) >= 2 {
 			id := matches[1]
-			if devString == "" {
-				devString = strconv.Itoa(ngm.gpus[id].Index)
-			} else {
-				devString += "+" + strconv.Itoa(ngm.gpus[id].Index)
-			}
+			devices = append(devices, ngm.gpus[id].Index)
 			if ngm.gpus[id].Found {
 				gpuList = append(gpuList, ngm.gpus[id].Path)
 			}
 		}
 	}
-	devString = "http://localhost:3476/v1.0/docker/cli?dev=" + devString
-	body, err := getResponse(devString)
+	np := ngm.np
+	body, err := np.GetGPUCommandLine(devices)
 	if err != nil {
 		return "", "", nil, err
 	}
 
-	re = regexp.MustCompile(`(.*?)=(.*?)`)
+	re = regexp.MustCompile(`(.*?)=(.*)`)
+	//fmt.Println("body:", body)
 	tokens := strings.Split(string(body), " ")
+	//fmt.Println("tokens:", tokens)
 	for _, token := range tokens {
-		matches := re.FindStringSubmatch(string(token))
+		matches := re.FindStringSubmatch(token)
 		if len(matches) == 3 {
 			key := matches[1]
 			val := matches[2]
+			//fmt.Printf("Token %v Match key %v Val %v\n", token, key, val)
 			if key == `--device` {
-				//gpuList = append(gpuList, val)
-			} else if key == `volume--driver` {
+				_, available := ngm.pathToID[val] // val is path in case of device
+				if !available {
+					gpuList = append(gpuList, val) // for other devices, e.g. /dev/nvidiactl, /dev/nvidia-uvm, /dev/nvidia-uvm-tools
+				}
+			} else if key == `--volume-driver` {
 				volumeDriver = val
-			} else if key == `volume` {
+			} else if key == `--volume` {
 				volumeName = val
 			}
 		}
