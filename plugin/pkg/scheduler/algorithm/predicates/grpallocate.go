@@ -7,6 +7,8 @@ import (
 
 	"github.com/golang/glog"
 
+	"sort"
+
 	v1 "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/kubelet/gpu"
 	"k8s.io/kubernetes/plugin/pkg/scheduler/algorithm"
@@ -73,6 +75,22 @@ func getMapK(x interface{}, keys []interface{}) interface{} {
 
 func getMap(x interface{}, keys interface{}) interface{} {
 	return getMapK(x, toInterfaceArray(keys))
+}
+
+// sorted string keys
+func sortedStringKeys(x interface{}) []string {
+	t := reflect.TypeOf(x)
+	keys := []string{}
+	if t.Kind() == reflect.Map {
+		mv := reflect.ValueOf(x)
+		keysV := mv.MapKeys()
+		for _, val := range keysV {
+			keys = append(keys, val.String())
+		}
+		sort.Strings(keys)
+		return keys
+	}
+	panic("Not a map")
 }
 
 // ===================================================
@@ -361,8 +379,11 @@ func (grp *GrpAllocator) allocateSubGroups(
 
 	found := true
 	var predicateFails []algorithm.PredicateFailureReason
-	for subgrpsKey, subgrpsElemGrp := range subgrpsReq {
-		for subgrpsElemIndex := range subgrpsElemGrp {
+	sortedSubGrpsReqKeys := sortedStringKeys(subgrpsReq)
+	for _, subgrpsKey := range sortedSubGrpsReqKeys {
+		subgrpsElemGrp := subgrpsReq[subgrpsKey]
+		sortedSubgrpsElemGrp := sortedStringKeys(subgrpsElemGrp)
+		for _, subgrpsElemIndex := range sortedSubgrpsElemGrp {
 			subGrp := grp.createSubGroup(allocLocationName, subgrpsReq, subgrpsAllocRes, subgrpsKey, subgrpsElemIndex)
 			foundSubGrp, reasons := subGrp.allocateGroup()
 			if !foundSubGrp {
@@ -433,7 +454,8 @@ func (grp *GrpAllocator) allocateGroup() (bool, []algorithm.PredicateFailureReas
 	grp.IsReqSubGrp = isSubGrp
 
 	// go over all possible places to allocate
-	for grpsAllocResKey := range grp.GrpAllocResource {
+	sortedGrpAllocResourceKeys := sortedStringKeys(grp.GrpAllocResource)
+	for _, grpsAllocResKey := range sortedGrpAllocResourceKeys {
 		grpCheck := grp.cloneGroup()
 		found, reasons := grpCheck.allocateGroupAt(grpsAllocResKey, subgrpsReq)
 		allocLocationName := grp.AllocBaseGroupPrefix + "/" + grpsAllocResKey
@@ -624,7 +646,7 @@ func PodFitsGroupConstraints(n *schedulercache.NodeInfo, spec *v1.PodSpec) (bool
 
 	// first go over running containers
 	for i := range spec.Containers {
-		gpu.TranslateGPUResources(&spec.Containers[i])
+		gpu.TranslateGPUResources(n, &spec.Containers[i])
 		grp, fits, reasons, score := containerFitsGroupConstraints(&spec.Containers[i], false, allocatable,
 			scorer, podResource, nodeResource, usedGroups, true)
 		if fits == false {
@@ -639,7 +661,7 @@ func PodFitsGroupConstraints(n *schedulercache.NodeInfo, spec *v1.PodSpec) (bool
 
 	// now go over initialization containers, try to reutilize used groups
 	for i := range spec.InitContainers {
-		gpu.TranslateGPUResources(&spec.InitContainers[i])
+		gpu.TranslateGPUResources(n, &spec.InitContainers[i])
 		// container.Resources.Requests contains a map, alloctable contains type Resource
 		// prefer groups which are already used by running containers
 		grp, fits, reasons, _ := containerFitsGroupConstraints(&spec.InitContainers[i], true, allocatable,

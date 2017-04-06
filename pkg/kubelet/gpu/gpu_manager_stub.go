@@ -23,6 +23,7 @@ import (
 
 	v1 "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/resource"
+	"k8s.io/kubernetes/plugin/pkg/scheduler/schedulercache"
 )
 
 type gpuManagerStub struct{}
@@ -50,16 +51,17 @@ func AddResource(list v1.ResourceList, key string, val int64) {
 	list[v1.ResourceName(key)] = *resource.NewQuantity(val, resource.DecimalSI)
 }
 
-func TranslateGPUResources(container *v1.Container) error {
-	re := regexp.MustCompile(v1.ResourceGroupPrefix + "/gpu/" + `(.*?)/cards`)
-
+func TranslateGPUResources(nodeInfo *schedulercache.NodeInfo, container *v1.Container) error {
 	requests := container.Resources.Requests
+
+	// First stage translation, translate # of cards to simple GPU resources
+	re := regexp.MustCompile(v1.ResourceGroupPrefix + "/gpu/" + `(.*?)/cards`)
 
 	neededGPUQ := requests[v1.ResourceNvidiaGPU]
 	neededGPUs := neededGPUQ.Value()
 	haveGPUs := 0
 	maxGPUIndex := -1
-	for _, res := range container.Resources.AllocateFrom {
+	for res := range container.Resources.Requests {
 		matches := re.FindStringSubmatch(string(res))
 		if len(matches) >= 2 {
 			haveGPUs++
@@ -76,5 +78,55 @@ func TranslateGPUResources(container *v1.Container) error {
 		gpuIndex := maxGPUIndex + i + 1
 		AddResource(requests, v1.ResourceGroupPrefix+"/gpu/"+strconv.Itoa(gpuIndex)+"/cards", 1)
 	}
+
+	stages := 1
+	re = regexp.MustCompile(v1.ResourceGroupPrefix + `/gpu/(.*?)/device/(.*)`)
+	for key := range nodeInfo.AllocatableResource().OpaqueIntResources {
+		matches := re.FindStringSubmatch(string(key))
+		if (len(matches)) >= 2 {
+			stages = 2
+			break
+		}
+	}
+
+	if stages == 2 {
+		// second stage translation
+		maxGroupIndex := -1
+		for res := range container.Resources.Requests {
+			matches := re.FindStringSubmatch(string(res))
+			if len(matches) >= 2 {
+				groupIndex, err := strconv.Atoi(matches[1])
+				if err == nil {
+					if groupIndex > maxGroupIndex {
+						maxGroupIndex = groupIndex
+					}
+				}
+			}
+		}
+		groupIndex := maxGroupIndex + 1
+		re2 := regexp.MustCompile(v1.ResourceGroupPrefix + `/gpu/((.*?)/(.*))`)
+		newList := make(v1.ResourceList)
+		groupMap := make(map[string]string)
+		for res, val := range container.Resources.Requests {
+			matches := re.FindStringSubmatch(string(res))
+			newRes := res
+			if len(matches) == 0 {
+				matches = re2.FindStringSubmatch(string(res))
+				if len(matches) >= 4 {
+					mapDevice, available := groupMap[matches[2]]
+					if !available {
+						groupMap[matches[2]] = strconv.Itoa(groupIndex)
+						groupIndex++
+						mapDevice = groupMap[matches[2]]
+					}
+					newRes = v1.ResourceName(v1.ResourceGroupPrefix + "/gpu/" + mapDevice + "/device/" + matches[1])
+				}
+			}
+			newList[newRes] = val
+		}
+		container.Resources.Requests = newList
+		fmt.Println("New Resources", container.Resources.Requests)
+	}
+
 	return nil
 }
