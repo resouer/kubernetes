@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"reflect"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 
@@ -644,4 +645,20 @@ func PodAnnotationsFromSysctls(sysctls []Sysctl) string {
 		kvs[i] = fmt.Sprintf("%s=%s", sysctls[i].Name, sysctls[i].Value)
 	}
 	return strings.Join(kvs, ",")
+}
+
+// sorted string keys
+func SortedStringKeys(x interface{}) []string {
+	t := reflect.TypeOf(x)
+	keys := []string{}
+	if t.Kind() == reflect.Map {
+		mv := reflect.ValueOf(x)
+		keysV := mv.MapKeys()
+		for _, val := range keysV {
+			keys = append(keys, val.String())
+		}
+		sort.Strings(keys)
+		return keys
+	}
+	panic("Not a map")
 }

@@ -88,7 +88,7 @@ func findSubGroups(baseGroup string, grp map[string]string) (map[string](map[str
 	glog.V(5).Infoln("Subgroup def", baseGroup+`/(\S*?)/(\S*?)/(\S*)`)
 	re := regexp.MustCompile(baseGroup + `/(\S*?)/(\S*?)/(\S*)`)
 	for grpKey, grpElem := range grp {
-		matches := re.FindStringSubmatch(grpKey)
+		matches := re.FindStringSubmatch(grpElem)
 		if len(matches) >= 4 {
 			assignMap(subGrp, matches[1:], grpElem)
 			isSubGrp[grpKey] = true
@@ -99,9 +99,9 @@ func findSubGroups(baseGroup string, grp map[string]string) (map[string](map[str
 	return subGrp, isSubGrp
 }
 
-func printResMap(res map[string]int64, grp map[string]string) {
+func printResMap(res map[string]int64, grp map[string]string, isSubGrp map[string]bool) {
 	for grpKey, grpElem := range grp {
-		glog.V(5).Infoln("Key", grpKey, "GlobalKey", grpElem, "Val", res[grpElem])
+		glog.V(5).Infoln("Key", grpKey, "GlobalKey", grpElem, "Val", res[grpElem], "IsSubGrp", isSubGrp[grpKey])
 	}
 }
 
@@ -280,9 +280,9 @@ func (grp *GrpAllocator) resourceAvailable(resourceLocation string) (bool, []alg
 	grpAllocRes := grp.GrpAllocResource[resourceLocation]
 
 	glog.V(5).Infoln("Resource requirments")
-	printResMap(grp.RequiredResource, grp.GrpRequiredResource)
+	printResMap(grp.RequiredResource, grp.GrpRequiredResource, grp.IsReqSubGrp)
 	glog.V(5).Infoln("Available in group")
-	printResMap(grp.AllocResource, grpAllocRes)
+	printResMap(grp.AllocResource, grpAllocRes, grp.IsAllocSubGrp)
 
 	score := 0.0
 	numCnt := 0
@@ -316,7 +316,7 @@ func (grp *GrpAllocator) resourceAvailable(resourceLocation string) (bool, []alg
 			grp.PodResource[globalName] = podR
 			grp.NodeResource[globalName] = nodeR
 			grp.AllocateFrom[grpReqElem] = globalName
-			glog.V(5).Infoln("Resource", grpReqElem, "Available")
+			glog.V(5).Infoln("Resource", grpReqElem, "Available with score", scoreR)
 			numCnt++
 		} else {
 			glog.V(5).Infoln("No test for subgroup", grpReqElem)
@@ -361,8 +361,11 @@ func (grp *GrpAllocator) allocateSubGroups(
 
 	found := true
 	var predicateFails []algorithm.PredicateFailureReason
-	for subgrpsKey, subgrpsElemGrp := range subgrpsReq {
-		for subgrpsElemIndex := range subgrpsElemGrp {
+	sortedSubGrpsReqKeys := v1.SortedStringKeys(subgrpsReq)
+	for _, subgrpsKey := range sortedSubGrpsReqKeys {
+		subgrpsElemGrp := subgrpsReq[subgrpsKey]
+		sortedSubgrpsElemGrp := v1.SortedStringKeys(subgrpsElemGrp)
+		for _, subgrpsElemIndex := range sortedSubgrpsElemGrp {
 			subGrp := grp.createSubGroup(allocLocationName, subgrpsReq, subgrpsAllocRes, subgrpsKey, subgrpsElemIndex)
 			foundSubGrp, reasons := subGrp.allocateGroup()
 			if !foundSubGrp {
@@ -433,7 +436,8 @@ func (grp *GrpAllocator) allocateGroup() (bool, []algorithm.PredicateFailureReas
 	grp.IsReqSubGrp = isSubGrp
 
 	// go over all possible places to allocate
-	for grpsAllocResKey := range grp.GrpAllocResource {
+	sortedGrpAllocResourceKeys := v1.SortedStringKeys(grp.GrpAllocResource)
+	for _, grpsAllocResKey := range sortedGrpAllocResourceKeys {
 		grpCheck := grp.cloneGroup()
 		found, reasons := grpCheck.allocateGroupAt(grpsAllocResKey, subgrpsReq)
 		allocLocationName := grp.AllocBaseGroupPrefix + "/" + grpsAllocResKey
@@ -531,6 +535,7 @@ func containerFitsGroupConstraints(contReq *v1.Container, initContainer bool,
 	// Quantitites available on NodeInfo
 	allocName := make(map[string](map[string]string))
 	alloc := make(map[string]int64)
+	glog.V(5).Infoln("Allocating for container", contReq.Name)
 	glog.V(7).Infoln("Requests", contReq.Resources.Requests)
 	glog.V(7).Infoln("AllocatableRes", allocatable.OpaqueIntResources)
 	if contReq.Resources.ScorerFn == nil {
@@ -624,7 +629,7 @@ func PodFitsGroupConstraints(n *schedulercache.NodeInfo, spec *v1.PodSpec) (bool
 
 	// first go over running containers
 	for i := range spec.Containers {
-		gpu.TranslateGPUResources(&spec.Containers[i])
+		gpu.TranslateGPUResources(n, &spec.Containers[i])
 		grp, fits, reasons, score := containerFitsGroupConstraints(&spec.Containers[i], false, allocatable,
 			scorer, podResource, nodeResource, usedGroups, true)
 		if fits == false {
@@ -639,7 +644,7 @@ func PodFitsGroupConstraints(n *schedulercache.NodeInfo, spec *v1.PodSpec) (bool
 
 	// now go over initialization containers, try to reutilize used groups
 	for i := range spec.InitContainers {
-		gpu.TranslateGPUResources(&spec.InitContainers[i])
+		gpu.TranslateGPUResources(n, &spec.InitContainers[i])
 		// container.Resources.Requests contains a map, alloctable contains type Resource
 		// prefer groups which are already used by running containers
 		grp, fits, reasons, _ := containerFitsGroupConstraints(&spec.InitContainers[i], true, allocatable,

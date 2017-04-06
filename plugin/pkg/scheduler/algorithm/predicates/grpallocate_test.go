@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"math"
+	"strings"
 	"testing"
 
 	"github.com/golang/glog"
@@ -30,8 +31,12 @@ type PodEx struct {
 
 func printContainerAllocation(cont *v1.Container) {
 	//glog.V(5).Infoln("Allocated", cont.Resources.Allocated)
-	for resKey, resVal := range cont.Resources.Requests {
-		fmt.Println("Resource", cont.Name+"/"+string(resKey), "TakenFrom", cont.Resources.AllocateFrom[resKey], "Amt", resVal)
+	sortedKeys := v1.SortedStringKeys(cont.Resources.Requests)
+	for _, resKey := range sortedKeys {
+		resVal := cont.Resources.Requests[v1.ResourceName(resKey)]
+		fmt.Println("Resource", cont.Name+"/"+string(resKey),
+			"TakenFrom", cont.Resources.AllocateFrom[v1.ResourceName(resKey)],
+			"Amt", resVal)
 	}
 }
 
@@ -83,7 +88,13 @@ func setResource(alloc v1.ResourceList, res map[string]int64, grpres map[string]
 	}
 }
 
-func createNode(name string, res map[string]int64, grpres map[string]int64) *schedulercache.NodeInfo {
+type nodeArgs struct {
+	name   string
+	res    map[string]int64
+	grpres map[string]int64
+}
+
+func createNode(name string, res map[string]int64, grpres map[string]int64) (*schedulercache.NodeInfo, nodeArgs) {
 	alloc := v1.ResourceList{}
 	setResource(alloc, res, grpres)
 	node := v1.Node{ObjectMeta: v1.ObjectMeta{Name: name}, Status: v1.NodeStatus{Capacity: alloc, Allocatable: alloc}}
@@ -93,20 +104,49 @@ func createNode(name string, res map[string]int64, grpres map[string]int64) *sch
 
 	glog.V(7).Infoln("AllocatableResource", len(nodeInfo.AllocatableResource().OpaqueIntResources), nodeInfo.AllocatableResource())
 
-	return nodeInfo
+	return nodeInfo, nodeArgs{name: name, res: res, grpres: grpres}
+}
+
+func createNodeArgs(args *nodeArgs) *schedulercache.NodeInfo {
+	info, _ := createNode(args.name, args.res, args.grpres)
+	return info
 }
 
 func setExpectedResources(c *cont) {
 	expectedGrpLoc := make(map[string]string)
+	prefix := make(map[string]string)
+	suffix := make(map[string]string)
+	re := regexp.MustCompile(`(.*)/(.*)`) // take max in prefix
+	for keyRes := range c.grpres {
+		matches := re.FindStringSubmatch(keyRes)
+		if len(matches) == 3 {
+			prefix[keyRes] = matches[1]
+			suffix[keyRes] = matches[2]
+		} else {
+			prefix[keyRes] = ""
+			suffix[keyRes] = matches[2]
+		}
+	}
 	for key, val := range c.expectedGrpLoc {
-		re := regexp.MustCompile(key + `/(.*)`)
-		for keyRes := range c.grpres {
-			matches := re.FindStringSubmatch(keyRes)
-			if len(matches) >= 2 {
-				newKey := v1.ResourceGroupPrefix + "/" + key + "/" + matches[1]
-				newVal := v1.ResourceGroupPrefix + "/" + val + "/" + matches[1]
-				expectedGrpLoc[newKey] = newVal
+		//re := regexp.MustCompile(key + `/(.*)`)
+		if c.grpres != nil {
+			for keyRes := range c.grpres {
+				//matches := re.FindStringSubmatch(keyRes)
+				if strings.HasSuffix(key, prefix[keyRes]) {
+					newKey := v1.ResourceGroupPrefix + "/" + key + "/" + suffix[keyRes]
+					newVal := v1.ResourceGroupPrefix + "/" + val + "/" + suffix[keyRes]
+					expectedGrpLoc[newKey] = newVal
+				}
+				// if len(matches) >= 2 {
+				// 	newKey := v1.ResourceGroupPrefix + "/" + key + "/" + matches[1]
+				// 	newVal := v1.ResourceGroupPrefix + "/" + val + "/" + matches[1]
+				// 	expectedGrpLoc[newKey] = newVal
+				// }
 			}
+		} else {
+			newKey := v1.ResourceGroupPrefix + "/" + key + "/cards"
+			newVal := v1.ResourceGroupPrefix + "/" + val + "/cards"
+			expectedGrpLoc[newKey] = newVal
 		}
 	}
 	c.expectedGrpLoc = expectedGrpLoc
@@ -211,7 +251,7 @@ func TestGrpAllocate1(t *testing.T) {
 	flag.Parse()
 
 	// allocatable resources
-	nodeInfo := createNode("node1",
+	nodeInfo, nodeArgs := createNode("node1",
 		map[string]int64{"A1": 4000, "B1": 3000},
 		map[string]int64{
 			"gpu/dev0/memory": 100000, "gpu/dev0/cards": 1,
@@ -247,6 +287,82 @@ func TestGrpAllocate1(t *testing.T) {
 		},
 	)
 
+	//sampleTest(pod, podEx, nodeInfo)
+	testPodAllocs(t, pod, podEx, nodeInfo)
+
+	// test with just numgpu
+	nodeInfo = createNodeArgs(&nodeArgs)
+	nodeInfo, nodeArgs = createNode("node1",
+		map[string]int64{"A1": 4000, "B1": 3000},
+		map[string]int64{
+			"gpu/dev0/memory": 100000, "gpu/dev0/cards": 1,
+			"gpu/dev1/memory": 256000, "gpu/dev1/cards": 1,
+			"gpu/dev2/memory": 257000, "gpu/dev2/cards": 1,
+			"gpu/dev3/memory": 192000, "gpu/dev3/cards": 1,
+			"gpu/dev4/memory": 178000, "gpu/dev4/cards": 1},
+	)
+	pod, podEx = createPod("pod1", 1.5,
+		[]cont{
+			{name: "Init0",
+				res:            map[string]int64{string(v1.ResourceNvidiaGPU): 1},
+				expectedGrpLoc: map[string]string{"gpu/0": "gpu/dev4"}}},
+		[]cont{
+			{name: "Run0",
+				res: map[string]int64{string(v1.ResourceNvidiaGPU): 2},
+				expectedGrpLoc: map[string]string{
+					"gpu/0": "gpu/dev4",
+					"gpu/1": "gpu/dev3"},
+			},
+			{name: "Run1",
+				res:            map[string]int64{string(v1.ResourceNvidiaGPU): 1},
+				expectedGrpLoc: map[string]string{"gpu/0": "gpu/dev2"},
+			},
+		},
+	)
+	//sampleTest(pod, podEx, nodeInfo)
+	testPodAllocs(t, pod, podEx, nodeInfo)
+
+	// test gpu affinity group
+	nodeInfo, _ = createNode("node1",
+		map[string]int64{"A1": 4000, "B1": 3000},
+		map[string]int64{
+			"gpugrp/group0/gpu/dev0/memory": 100000, "gpugrp/group0/gpu/dev0/cards": 1,
+			"gpugrp/group0/gpu/dev1/memory": 256000, "gpugrp/group0/gpu/dev1/cards": 1,
+			"gpugrp/group1/gpu/dev2/memory": 257000, "gpugrp/group1/gpu/dev2/cards": 1,
+			"gpugrp/group2/gpu/dev3/memory": 192000, "gpugrp/group2/gpu/dev3/cards": 1,
+			"gpugrp/group2/gpu/dev4/memory": 178000, "gpugrp/group2/gpu/dev4/cards": 1},
+	)
+
+	// required resources
+	pod, podEx = createPod("pod1", 4.992846,
+		[]cont{
+			// this goes to dev4 since all gpus are in use in running state, which is fine
+			{name: "Init0",
+				grpres:         map[string]int64{"gpu/0/memory": 100000, "gpu/0/cards": 1},
+				expectedGrpLoc: map[string]string{"gpugrp/0/gpu/0": "gpugrp/group2/gpu/dev4"}}},
+		[]cont{
+			{name: "Run0",
+				grpres: map[string]int64{
+					"gpugrp/A/gpu/a/memory": 190000, "gpugrp/A/gpu/a/cards": 1,
+					"gpugrp/A/gpu/b/memory": 178000, "gpugrp/A/gpu/b/cards": 1},
+				expectedGrpLoc: map[string]string{
+					"gpugrp/A/gpu/a": "gpugrp/group2/gpu/dev3",
+					"gpugrp/A/gpu/b": "gpugrp/group2/gpu/dev4"},
+			},
+			{name: "Run1",
+				grpres: map[string]int64{
+					"gpu/0/memory": 256000, "gpu/0/cards": 1},
+				expectedGrpLoc: map[string]string{"gpugrp/0/gpu/0": "gpugrp/group0/gpu/dev1"},
+			},
+			{name: "Run2",
+				grpres: map[string]int64{
+					"gpu/0/memory": 256000, "gpu/0/cards": 1,
+					"gpu/1/memory": 100000, "gpu/1/cards": 1},
+				expectedGrpLoc: map[string]string{"gpugrp/0/gpu/0": "gpugrp/group1/gpu/dev2",
+					"gpugrp/1/gpu/1": "gpugrp/group0/gpu/dev0"},
+			},
+		},
+	)
 	//sampleTest(pod, podEx, nodeInfo)
 	testPodAllocs(t, pod, podEx, nodeInfo)
 
