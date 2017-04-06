@@ -21,6 +21,8 @@ import (
 	"regexp"
 	"strconv"
 
+	"github.com/golang/glog"
+
 	v1 "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/plugin/pkg/scheduler/schedulercache"
@@ -51,10 +53,73 @@ func AddResource(list v1.ResourceList, key string, val int64) {
 	list[v1.ResourceName(key)] = *resource.NewQuantity(val, resource.DecimalSI)
 }
 
+// Resource translation to max level specified in nodeInfo
+
+// TranslateResource translates resources to next level
+func TranslateResource(nodeInfo *schedulercache.NodeInfo, container *v1.Container,
+	stagePrefix string, thisStage string, nextStage string) {
+
+	// see if translation needed
+	translationNeeded := false
+	re := regexp.MustCompile(stagePrefix + "/" + thisStage + `/(.*?)/` + nextStage + `(.*)`)
+	for key := range nodeInfo.AllocatableResource().OpaqueIntResources {
+		matches := re.FindStringSubmatch(string(key))
+		if (len(matches)) >= 2 {
+			translationNeeded = true
+			break
+		}
+	}
+	if !translationNeeded {
+		return
+	}
+
+	// find max existing index
+	maxGroupIndex := -1
+	for res := range container.Resources.Requests {
+		matches := re.FindStringSubmatch(string(res))
+		if len(matches) >= 2 {
+			groupIndex, err := strconv.Atoi(matches[1])
+			if err == nil {
+				if groupIndex > maxGroupIndex {
+					maxGroupIndex = groupIndex
+				}
+			}
+		}
+	}
+
+	groupIndex := maxGroupIndex + 1
+	re2 := regexp.MustCompile(stagePrefix + "/" + nextStage + "/" + `((.*?)/(.*))`)
+	newList := make(v1.ResourceList)
+	groupMap := make(map[string]string)
+	// ordered addition to make sure groupIndex is deterministic based on order
+	reqKeys := v1.SortedStringKeys(container.Resources.Requests)
+	for _, resKey := range reqKeys {
+		val := container.Resources.Requests[v1.ResourceName(resKey)]
+		matches := re.FindStringSubmatch(string(resKey))
+		newResKey := v1.ResourceName(resKey)
+		if len(matches) == 0 { // does not qualify as next stage resource
+			matches = re2.FindStringSubmatch(string(resKey))
+			if len(matches) >= 4 {
+				mapGrp, available := groupMap[matches[2]]
+				if !available {
+					groupMap[matches[2]] = strconv.Itoa(groupIndex)
+					groupIndex++
+					mapGrp = groupMap[matches[2]]
+				}
+				newResKey = v1.ResourceName(stagePrefix + "/" + thisStage + "/" + mapGrp + "/" + nextStage + "/" + matches[1])
+			}
+		}
+		newList[newResKey] = val
+	}
+	container.Resources.Requests = newList
+	glog.V(5).Infoln("New Resources", container.Resources.Requests)
+}
+
+// TranslateGPUResources translates GPU resources to max level
 func TranslateGPUResources(nodeInfo *schedulercache.NodeInfo, container *v1.Container) error {
 	requests := container.Resources.Requests
 
-	// First stage translation, translate # of cards to simple GPU resources
+	// First stage translation, translate # of cards to simple GPU resources - extra stage
 	re := regexp.MustCompile(v1.ResourceGroupPrefix + "/gpu/" + `(.*?)/cards`)
 
 	neededGPUQ := requests[v1.ResourceNvidiaGPU]
@@ -79,54 +144,8 @@ func TranslateGPUResources(nodeInfo *schedulercache.NodeInfo, container *v1.Cont
 		AddResource(requests, v1.ResourceGroupPrefix+"/gpu/"+strconv.Itoa(gpuIndex)+"/cards", 1)
 	}
 
-	stages := 1
-	re = regexp.MustCompile(v1.ResourceGroupPrefix + `/gpu/(.*?)/device/(.*)`)
-	for key := range nodeInfo.AllocatableResource().OpaqueIntResources {
-		matches := re.FindStringSubmatch(string(key))
-		if (len(matches)) >= 2 {
-			stages = 2
-			break
-		}
-	}
-
-	if stages == 2 {
-		// second stage translation
-		maxGroupIndex := -1
-		for res := range container.Resources.Requests {
-			matches := re.FindStringSubmatch(string(res))
-			if len(matches) >= 2 {
-				groupIndex, err := strconv.Atoi(matches[1])
-				if err == nil {
-					if groupIndex > maxGroupIndex {
-						maxGroupIndex = groupIndex
-					}
-				}
-			}
-		}
-		groupIndex := maxGroupIndex + 1
-		re2 := regexp.MustCompile(v1.ResourceGroupPrefix + `/gpu/((.*?)/(.*))`)
-		newList := make(v1.ResourceList)
-		groupMap := make(map[string]string)
-		for res, val := range container.Resources.Requests {
-			matches := re.FindStringSubmatch(string(res))
-			newRes := res
-			if len(matches) == 0 {
-				matches = re2.FindStringSubmatch(string(res))
-				if len(matches) >= 4 {
-					mapDevice, available := groupMap[matches[2]]
-					if !available {
-						groupMap[matches[2]] = strconv.Itoa(groupIndex)
-						groupIndex++
-						mapDevice = groupMap[matches[2]]
-					}
-					newRes = v1.ResourceName(v1.ResourceGroupPrefix + "/gpu/" + mapDevice + "/device/" + matches[1])
-				}
-			}
-			newList[newRes] = val
-		}
-		container.Resources.Requests = newList
-		fmt.Println("New Resources", container.Resources.Requests)
-	}
+	// perform 2nd stage translation if needed
+	TranslateResource(nodeInfo, container, v1.ResourceGroupPrefix, "gpugrp", "gpu")
 
 	return nil
 }
