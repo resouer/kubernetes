@@ -18,6 +18,7 @@ package priorities
 
 import (
 	"math"
+	"time"
 
 	"github.com/golang/glog"
 	"k8s.io/kubernetes/pkg/api"
@@ -272,4 +273,40 @@ func fractionOfCapacity(requested, capacity int64) float64 {
 		return 1
 	}
 	return float64(requested) / float64(capacity)
+}
+
+// LeastNewlyCreatedPodsPriority prefers node with less newly created pod so we can spread the burden of pod creating
+func LeastNewlyCreatedPodsPriority(pod *api.Pod, nodeNameToInfo map[string]*schedulercache.NodeInfo, nodeLister algorithm.NodeLister) (schedulerapi.HostPriorityList, error) {
+	nodes, err := nodeLister.List()
+	if err != nil {
+		return schedulerapi.HostPriorityList{}, err
+	}
+
+	list := schedulerapi.HostPriorityList{}
+	for _, node := range nodes.Items {
+		list = append(list, calculateLeastNewlyCreatedPodsPriority(node, nodeNameToInfo[node.Name]))
+	}
+	return list, nil
+}
+
+func calculateLeastNewlyCreatedPodsPriority(node api.Node, nodeInfo *schedulercache.NodeInfo) schedulerapi.HostPriority {
+	var count int
+	for _, pod := range nodeInfo.Pods() {
+		// if this pod is younger than 1 minute, consider it as newly created
+		if pod.GetCreationTimestamp().After(time.Now().Add(-1 * time.Minute)) {
+			count++
+		}
+	}
+	// calculate score by count
+	var score int
+	if podLength := len(nodeInfo.Pods()); podLength != 0 {
+		score = 10 - int(float64(count)/float64(podLength)*10.0)
+	} else {
+		score = 10
+	}
+
+	return schedulerapi.HostPriority{
+		Host:  node.Name,
+		Score: score,
+	}
 }
