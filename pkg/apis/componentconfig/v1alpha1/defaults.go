@@ -98,6 +98,9 @@ func SetDefaults_KubeSchedulerConfiguration(obj *KubeSchedulerConfiguration) {
 	if obj.FailureDomains == "" {
 		obj.FailureDomains = api.DefaultFailureDomains
 	}
+	if obj.NewPodAge == 0 {
+		obj.NewPodAge = 30
+	}
 }
 
 func SetDefaults_LeaderElectionConfiguration(obj *LeaderElectionConfiguration) {

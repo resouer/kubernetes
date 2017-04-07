@@ -50,6 +50,7 @@ func NewSchedulerServer() *SchedulerServer {
 
 // AddFlags adds flags for a specific SchedulerServer to the specified FlagSet
 func (s *SchedulerServer) AddFlags(fs *pflag.FlagSet) {
+	fs.IntVar(&s.NewPodAge, "new-pod-age", s.NewPodAge, "Define the age of Pod in seconds can be considered as new, default to 30s")
 	fs.Int32Var(&s.Port, "port", s.Port, "The port that the scheduler's http service runs on")
 	fs.StringVar(&s.Address, "address", s.Address, "The IP address to serve on (set to 0.0.0.0 for all interfaces)")
 	fs.StringVar(&s.AlgorithmProvider, "algorithm-provider", s.AlgorithmProvider, "The scheduling algorithm provider to use, one of: "+factory.ListAlgorithmProviders())

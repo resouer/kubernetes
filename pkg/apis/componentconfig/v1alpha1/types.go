@@ -113,6 +113,8 @@ type KubeSchedulerConfiguration struct {
 	FailureDomains string `json:"failureDomains"`
 	// leaderElection defines the configuration of leader election client.
 	LeaderElection LeaderElectionConfiguration `json:"leaderElection"`
+	// Define the age of Pod can be considered as new
+	NewPodAge int `json:"newPodAge"`
 }
 
 // LeaderElectionConfiguration defines the configuration of leader election

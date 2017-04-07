@@ -92,6 +92,9 @@ type ConfigFactory struct {
 
 	// Indicate the "all topologies" set for empty topologyKey when it's used for PreferredDuringScheduling pod anti-affinity.
 	FailureDomains string
+
+	// Define the age of Pod can be considered as new
+	NewPodAge int
 }
 
 // Initializes the factory.
@@ -379,6 +382,7 @@ func (f *ConfigFactory) getPluginArgs() (*PluginFactoryArgs, error) {
 		PVCInfo:    f.PVCLister,
 		HardPodAffinitySymmetricWeight: f.HardPodAffinitySymmetricWeight,
 		FailureDomains:                 sets.NewString(failureDomainArgs...).List(),
+		NewPodAge:                      f.NewPodAge,
 	}, nil
 }
 

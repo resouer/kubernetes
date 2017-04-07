@@ -43,6 +43,7 @@ type PluginFactoryArgs struct {
 	PVCInfo                        predicates.PersistentVolumeClaimInfo
 	HardPodAffinitySymmetricWeight int
 	FailureDomains                 []string
+	NewPodAge                      int
 }
 
 // A FitPredicateFactory produces a FitPredicate from the given args.
