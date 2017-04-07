@@ -108,6 +108,9 @@ func Run(s *options.SchedulerServer) error {
 	}()
 
 	configFactory := factory.NewConfigFactory(kubeClient, s.SchedulerName, s.HardPodAffinitySymmetricWeight, s.FailureDomains)
+
+	configFactory.NewPodAge = s.NewPodAge
+
 	config, err := createConfig(s, configFactory)
 
 	if err != nil {

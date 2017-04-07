@@ -193,6 +193,14 @@ func defaultPriorities() sets.String {
 				Weight: 1,
 			},
 		),
-		factory.RegisterPriorityFunction("LeastNewlyCreatedPodsPriority", priorities.LeastNewlyCreatedPodsPriority, 1),
+		factory.RegisterPriorityConfigFactory(
+			"LeastNewlyCreatedPodsPriority",
+			factory.PriorityConfigFactory{
+				Function: func(args factory.PluginFactoryArgs) algorithm.PriorityFunction {
+					return priorities.NewLeastNewlyCreatedPodsPriority(args.NewPodAge)
+				},
+				Weight: 1,
+			},
+		),
 	)
 }
