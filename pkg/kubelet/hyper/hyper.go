@@ -1123,7 +1123,11 @@ func (r *runtime) SyncPod(pod *api.Pod, podStatus api.PodStatus, internalPodStat
 		if c == nil {
 			if kubecontainer.ShouldContainerBeRestarted(&container, pod, internalPodStatus) {
 				glog.V(3).Infof("Container %+v is dead, but RestartPolicy says that we should restart it.", container)
-				restartPod = true
+				// NOTE: this is commented out since:
+				// 1. hyper.sh should not respect RestartPolicy
+				// 2. we encountered container being restart for twice
+				// restartPod = true
+				glog.Warningf("Skip restart policy request of container %v, with pod status: %+v", container.Name, internalPodStatus)
 				break
 			}
 			continue
