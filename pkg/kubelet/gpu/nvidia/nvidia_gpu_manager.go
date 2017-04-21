@@ -110,7 +110,8 @@ func (ngm *nvidiaGPUManager) UpdateGPUInfo() error {
 }
 
 func (ngm *nvidiaGPUManager) Start() error {
-	return ngm.UpdateGPUInfo()
+	_ = ngm.UpdateGPUInfo() // ignore error in updating, gpus stay at zero
+	return nil
 }
 
 // Get how many GPU cards we have.

@@ -138,7 +138,9 @@ func (g *genericScheduler) Schedule(pod *api.Pod, nodeLister algorithm.NodeListe
 	topNode, selectErr := g.selectHost(priorityList)
 	if selectErr == nil {
 		// run it again on top node to assign AllocateFrom in PodSpec Container.Resource
+		pod.Spec.AllocatingResources = true
 		predicates.PodFitsGroupConstraints(g.cachedNodeInfoMap[topNode], &pod.Spec)
+		pod.Spec.AllocatingResources = false
 	}
 	return topNode, selectErr
 }

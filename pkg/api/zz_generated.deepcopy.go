@@ -2740,6 +2740,7 @@ func DeepCopy_api_PodSpec(in interface{}, out interface{}, c *conversion.Cloner)
 		}
 		out.Hostname = in.Hostname
 		out.Subdomain = in.Subdomain
+		out.AllocatingResources = in.AllocatingResources
 		return nil
 	}
 }

@@ -1831,6 +1831,9 @@ type PodSpec struct {
 	// If not specified, the pod will not have a domainname at all.
 	// +optional
 	Subdomain string `json:"subdomain,omitempty"`
+
+	// Tells whether we need to allocate resource locations
+	AllocatingResources bool `json:"-"`
 }
 
 // Sysctl defines a kernel parameter to be set

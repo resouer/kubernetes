@@ -226,7 +226,7 @@ var integerResources = sets.NewString(
 
 // IsIntegerResourceName returns true if the resource is measured in integer values
 func IsIntegerResourceName(str string) bool {
-	return integerResources.Has(str) || IsOpaqueIntResourceName(ResourceName(str))
+	return integerResources.Has(str) || IsOpaqueIntResourceName(ResourceName(str)) || IsGroupResourceName(ResourceName(str))
 }
 
 // NewDeleteOptions returns a DeleteOptions indicating the resource should

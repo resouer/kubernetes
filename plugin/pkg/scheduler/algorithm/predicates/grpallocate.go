@@ -486,6 +486,36 @@ func (grp *GrpAllocator) allocateGroup() (bool, []algorithm.PredicateFailureReas
 	return false, predicateFails
 }
 
+func (grp *GrpAllocator) checkGroupAlloc(grpName string, allocateFrom v1.ResourceLocation) (bool, []algorithm.PredicateFailureReason) {
+	found := true
+	score := 0.0
+	var predicateFails []algorithm.PredicateFailureReason
+	for key, required := range grp.RequiredResource {
+		allocFrom := string(allocateFrom[v1.ResourceName(key)])
+		allocatable, available := grp.AllocResource[allocFrom]
+		if !available {
+			found = false
+			predicateFails = append(predicateFails, NewInsufficientResourceError(v1.ResourceName(key), required, int64(0), int64(0)))
+			continue
+		}
+		scoreFn := grp.ReqScorer[key]
+		usedPod := grp.PodResource[allocFrom]
+		usedNode := grp.NodeResource[allocFrom]
+		foundR, scoreR, _, podR, nodeR := scoreFn(allocatable, usedPod, usedNode, required, grp.InitContainer)
+		if !foundR {
+			found = false
+			predicateFails = append(predicateFails, NewInsufficientResourceError(v1.ResourceName(key), required, usedNode, allocatable))
+			continue
+		}
+		score += scoreR
+		// if found update used resource
+		grp.PodResource[allocFrom] = podR
+		grp.NodeResource[allocFrom] = nodeR
+	}
+	grp.Score = score / float64(len(grp.RequiredResource))
+	return found, predicateFails
+}
+
 func SetScorer(resource string, scorerType int) v1.ResourceScoreFunc {
 	if scorerType == v1.DefaultScorer {
 		return DefaultScorer(resource)
@@ -524,7 +554,8 @@ func setScoreFunc(r *schedulercache.Resource) map[string]v1.ResourceScoreFunc {
 func containerFitsGroupConstraints(contReq *v1.Container, initContainer bool,
 	allocatable *schedulercache.Resource, allocScorer map[string]v1.ResourceScoreFunc,
 	podResource map[string]int64, nodeResource map[string]int64,
-	usedGroups map[string]bool, bPreferUsed bool) (*GrpAllocator, bool, []algorithm.PredicateFailureReason, float64) {
+	usedGroups map[string]bool, bPreferUsed bool, bSetAllocateFrom bool) (
+	*GrpAllocator, bool, []algorithm.PredicateFailureReason, float64) {
 
 	grp := &GrpAllocator{}
 
@@ -587,14 +618,26 @@ func containerFitsGroupConstraints(contReq *v1.Container, initContainer bool,
 	grp.PodResource = podResource
 	grp.NodeResource = nodeResource
 
-	found, reasons := grp.allocateGroup()
-	score := grp.Score
+	var found bool
+	var reasons []algorithm.PredicateFailureReason
+	var score float64
 
 	if contReq.Resources.AllocateFrom == nil {
-		contReq.Resources.AllocateFrom = make(v1.ResourceLocation)
-	}
-	for allocatedKey, allocatedLocVal := range grp.AllocateFrom {
-		contReq.Resources.AllocateFrom[v1.ResourceName(allocatedKey)] = v1.ResourceName(allocatedLocVal)
+		found, reasons = grp.allocateGroup()
+		score = grp.Score
+		if bSetAllocateFrom {
+			contReq.Resources.AllocateFrom = make(v1.ResourceLocation)
+			for allocatedKey, allocatedLocVal := range grp.AllocateFrom {
+				contReq.Resources.AllocateFrom[v1.ResourceName(allocatedKey)] = v1.ResourceName(allocatedLocVal)
+			}
+		}
+	} else {
+		grpTest := grp.cloneGroup()
+		found, reasons = grpTest.checkGroupAlloc(grpName, contReq.Resources.AllocateFrom)
+		if found {
+			grp.takeGroup(grpTest)
+		}
+		score = grp.Score
 	}
 
 	glog.V(5).Infoln("Allocated", grp.AllocateFrom)
@@ -614,6 +657,15 @@ func initNodeResource(n *schedulercache.NodeInfo) map[string]int64 {
 	return nodeResource
 }
 
+func PodClearAllocateFrom(spec *v1.PodSpec) {
+	for i := range spec.Containers {
+		spec.Containers[i].Resources.AllocateFrom = nil
+	}
+	for i := range spec.InitContainers {
+		spec.InitContainers[i].Resources.AllocateFrom = nil
+	}
+}
+
 // PodFitsGroupConstraints tells if pod fits constraints, score returned is score of running containers
 func PodFitsGroupConstraints(n *schedulercache.NodeInfo, spec *v1.PodSpec) (bool, []algorithm.PredicateFailureReason, float64) {
 	podResource := make(map[string]int64)
@@ -631,7 +683,7 @@ func PodFitsGroupConstraints(n *schedulercache.NodeInfo, spec *v1.PodSpec) (bool
 	for i := range spec.Containers {
 		gpu.TranslateGPUResources(n, &spec.Containers[i])
 		grp, fits, reasons, score := containerFitsGroupConstraints(&spec.Containers[i], false, allocatable,
-			scorer, podResource, nodeResource, usedGroups, true)
+			scorer, podResource, nodeResource, usedGroups, true, spec.AllocatingResources)
 		if fits == false {
 			found = false
 			predicateFails = append(predicateFails, reasons...)
@@ -648,7 +700,7 @@ func PodFitsGroupConstraints(n *schedulercache.NodeInfo, spec *v1.PodSpec) (bool
 		// container.Resources.Requests contains a map, alloctable contains type Resource
 		// prefer groups which are already used by running containers
 		grp, fits, reasons, _ := containerFitsGroupConstraints(&spec.InitContainers[i], true, allocatable,
-			scorer, podResource, nodeResource, usedGroups, true)
+			scorer, podResource, nodeResource, usedGroups, true, spec.AllocatingResources)
 		if fits == false {
 			found = false
 			predicateFails = append(predicateFails, reasons...)
