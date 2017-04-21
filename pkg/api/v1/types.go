@@ -2114,6 +2114,9 @@ type PodSpec struct {
 	// If not specified, the pod will not have a domainname at all.
 	// +optional
 	Subdomain string `json:"subdomain,omitempty" protobuf:"bytes,17,opt,name=subdomain"`
+
+	// Tells whether we need to allocate resource locations
+	AllocatingResources bool `json:"-"`
 }
 
 // PodSecurityContext holds pod-level security attributes and common container settings.

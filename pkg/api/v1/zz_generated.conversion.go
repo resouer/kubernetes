@@ -3134,6 +3134,7 @@ func autoConvert_v1_PodSpec_To_api_PodSpec(in *PodSpec, out *api.PodSpec, s conv
 	out.ImagePullSecrets = *(*[]api.LocalObjectReference)(unsafe.Pointer(&in.ImagePullSecrets))
 	out.Hostname = in.Hostname
 	out.Subdomain = in.Subdomain
+	out.AllocatingResources = in.AllocatingResources
 	return nil
 }
 
@@ -3190,7 +3191,7 @@ func autoConvert_api_PodSpec_To_v1_PodSpec(in *api.PodSpec, out *PodSpec, s conv
 	out.ImagePullSecrets = *(*[]LocalObjectReference)(unsafe.Pointer(&in.ImagePullSecrets))
 	out.Hostname = in.Hostname
 	out.Subdomain = in.Subdomain
-	// WARNING: in.AllocatingResources requires manual conversion: does not exist in peer-type
+	out.AllocatingResources = in.AllocatingResources
 	return nil
 }
 
