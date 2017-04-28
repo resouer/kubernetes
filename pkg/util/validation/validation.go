@@ -38,31 +38,43 @@ var qualifiedNameRegexp = regexp.MustCompile("^" + qualifiedNameFmt + "$")
 func IsQualifiedName(value string) []string {
 	var errs []string
 	parts := strings.Split(value, "/")
-	var name string
+	//var name string
+	var startIndex int
 	switch len(parts) {
 	case 1:
-		name = parts[0]
-	case 2:
+		//name = parts[0]
+		startIndex = 0
+	default:
 		var prefix string
-		prefix, name = parts[0], parts[1]
+		prefix = parts[0]
 		if len(prefix) == 0 {
 			errs = append(errs, "prefix part "+EmptyError())
 		} else if msgs := IsDNS1123Subdomain(prefix); len(msgs) != 0 {
 			errs = append(errs, prefixEach(msgs, "prefix part ")...)
 		}
-	default:
-		return append(errs, RegexError(qualifiedNameFmt, "MyName", "my.name", "123-abc")+
-			" with an optional DNS subdomain prefix and '/' (e.g. 'example.com/MyName'")
+		startIndex = 1
+		//default:
+		//	return append(errs, RegexError(qualifiedNameFmt, "MyName", "my.name", "123-abc")+
+		//		" with an optional DNS subdomain prefix and '/' (e.g. 'example.com/MyName'")
 	}
 
-	if len(name) == 0 {
-		errs = append(errs, "name part "+EmptyError())
-	} else if len(name) > qualifiedNameMaxLength {
+	totalLen := 0
+	for i := startIndex; i < len(parts); i++ {
+		name := parts[i]
+		if len(name) == 0 {
+			errs = append(errs, "name part "+EmptyError())
+		}
+		if !qualifiedNameRegexp.MatchString(name) {
+			errs = append(errs, "name part "+RegexError(qualifiedNameFmt, "MyName", "my.name", "123-abc"))
+		}
+		totalLen += len(name)
+	}
+	// count number of slashes
+	totalLen += len(parts) - startIndex - 1
+	if totalLen > qualifiedNameMaxLength {
 		errs = append(errs, "name part "+MaxLenError(qualifiedNameMaxLength))
 	}
-	if !qualifiedNameRegexp.MatchString(name) {
-		errs = append(errs, "name part "+RegexError(qualifiedNameFmt, "MyName", "my.name", "123-abc"))
-	}
+
 	return errs
 }
 

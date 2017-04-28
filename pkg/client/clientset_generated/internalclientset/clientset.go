@@ -180,49 +180,59 @@ func NewForConfig(c *restclient.Config) (*Clientset, error) {
 	var err error
 	clientset.CoreClient, err = internalversioncore.NewForConfig(&configShallowCopy)
 	if err != nil {
+		glog.Errorf("failed to create the CoreClient: %v", err)
 		return nil, err
 	}
 	clientset.AppsClient, err = internalversionapps.NewForConfig(&configShallowCopy)
 	if err != nil {
+		glog.Errorf("failed to create the AppsClient: %v", err)
 		return nil, err
 	}
 	clientset.AuthenticationClient, err = internalversionauthentication.NewForConfig(&configShallowCopy)
 	if err != nil {
+		glog.Errorf("failed to create the AuthenticationClient: %v", err)
 		return nil, err
 	}
 	clientset.AuthorizationClient, err = internalversionauthorization.NewForConfig(&configShallowCopy)
 	if err != nil {
+		glog.Errorf("failed to create the AuthorizationClient: %v", err)
 		return nil, err
 	}
 	clientset.AutoscalingClient, err = internalversionautoscaling.NewForConfig(&configShallowCopy)
 	if err != nil {
+		glog.Errorf("failed to create the AutoscalingClient: %v", err)
 		return nil, err
 	}
 	clientset.BatchClient, err = internalversionbatch.NewForConfig(&configShallowCopy)
 	if err != nil {
+		glog.Errorf("failed to create the BatchClient: %v", err)
 		return nil, err
 	}
 	clientset.CertificatesClient, err = internalversioncertificates.NewForConfig(&configShallowCopy)
 	if err != nil {
+		glog.Errorf("failed to create the CertificatesClient: %v", err)
 		return nil, err
 	}
 	clientset.ExtensionsClient, err = internalversionextensions.NewForConfig(&configShallowCopy)
 	if err != nil {
+		glog.Errorf("failed to create the ExtensionsClient: %v", err)
 		return nil, err
 	}
 	clientset.PolicyClient, err = internalversionpolicy.NewForConfig(&configShallowCopy)
 	if err != nil {
+		glog.Errorf("failed to create the PolicyClient: %v", err)
 		return nil, err
 	}
 	clientset.RbacClient, err = internalversionrbac.NewForConfig(&configShallowCopy)
 	if err != nil {
+		glog.Errorf("failed to create the RbacClient: %v", err)
 		return nil, err
 	}
 	clientset.StorageClient, err = internalversionstorage.NewForConfig(&configShallowCopy)
 	if err != nil {
+		glog.Errorf("failed to create the StorageClient: %v", err)
 		return nil, err
 	}
-
 	clientset.DiscoveryClient, err = discovery.NewDiscoveryClientForConfig(&configShallowCopy)
 	if err != nil {
 		glog.Errorf("failed to create the DiscoveryClient: %v", err)
