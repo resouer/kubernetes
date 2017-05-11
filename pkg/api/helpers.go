@@ -134,9 +134,9 @@ func IsGroupResourceName(name ResourceName) bool {
 }
 
 // IsEnumResource returns true if resource name is an "enum" resource
-func IsEnumResource(res string) bool {
+func IsEnumResource(res ResourceName) bool {
 	re := regexp.MustCompile(`\S*/(\S*)`)
-	matches := re.FindStringSubmatch(res)
+	matches := re.FindStringSubmatch(string(res))
 	if len(matches) >= 2 {
 		return strings.HasPrefix(strings.ToLower(matches[1]), "enum")
 	}

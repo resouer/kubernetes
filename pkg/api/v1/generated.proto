@@ -1568,6 +1568,10 @@ message NodeStatus {
   // List of volumes that are attached to the node.
   // +optional
   repeated AttachedVolume volumesAttached = 10;
+
+  // Scorer represents the scorer function for the resources on the node
+  // +optional
+  map<string, int32> scorer = 11;
 }
 
 // NodeSystemInfo is a set of ids/uuids to uniquely identify the node.
@@ -2991,6 +2995,13 @@ message ResourceRequirements {
   // More info: http://kubernetes.io/docs/user-guide/compute-resources/
   // +optional
   map<string, k8s.io.kubernetes.pkg.api.resource.Quantity> requests = 2;
+
+  // AllocateFrom describes the location of compute resources being used on the node
+  // +optional
+  map<string, string> allocatefrom = 3;
+
+  // Scorer describes scoring, checking, and taking of resource
+  map<string, int32> scorer = 4;
 }
 
 // SELinuxOptions are the labels to be applied to the container

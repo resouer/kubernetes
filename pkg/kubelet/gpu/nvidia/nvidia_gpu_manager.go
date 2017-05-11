@@ -24,6 +24,8 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/golang/glog"
+
 	v1 "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/kubelet/dockertools"
@@ -141,17 +143,21 @@ func (ngm *nvidiaGPUManager) AllocateGPU(pod *v1.Pod, container *v1.Container) (
 
 	devices := []int{}
 	for _, res := range container.Resources.AllocateFrom {
+		glog.V(3).Infof("PodName: %v -- searching for device UID: %v", pod.Name, res)
 		matches := re.FindStringSubmatch(string(res))
 		if len(matches) >= 2 {
 			id := matches[1]
 			devices = append(devices, ngm.gpus[id].Index)
+			glog.V(3).Infof("PodName: %v -- device index: %v", pod.Name, ngm.gpus[id].Index)
 			if ngm.gpus[id].Found {
 				gpuList = append(gpuList, ngm.gpus[id].Path)
+				glog.V(3).Infof("PodName: %v -- device path: %v", pod.Name, ngm.gpus[id].Path)
 			}
 		}
 	}
 	np := ngm.np
 	body, err := np.GetGPUCommandLine(devices)
+	glog.V(3).Infof("PodName: %v Command line from plugin: %v", pod.Name, string(body))
 	if err != nil {
 		return "", "", nil, err
 	}

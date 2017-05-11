@@ -25,6 +25,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/golang/glog"
+
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/validation"
@@ -67,6 +69,7 @@ func (podStrategy) PrepareForUpdate(ctx api.Context, obj, old runtime.Object) {
 	newPod := obj.(*api.Pod)
 	oldPod := old.(*api.Pod)
 	newPod.Status = oldPod.Status
+	glog.V(2).Infof("PodName: %v NewV0: %v", newPod.Name, newPod.Spec.Containers[0].Resources)
 }
 
 // Validate validates a new pod.

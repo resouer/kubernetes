@@ -557,6 +557,9 @@ func (r *Request) Body(obj interface{}) *Request {
 			return r
 		}
 		glog.V(8).Infof("Request Body: %#v", string(data))
+		//testStr, errStr := json.Marshal(t)
+		//glog.V(2).Infof("errStr: %v TestBody: %#v", errStr, string(testStr))
+		//glog.V(2).Infof("Request Body: %#v", string(data))
 		r.body = bytes.NewReader(data)
 		r.SetHeader("Content-Type", r.content.ContentType)
 	default:
