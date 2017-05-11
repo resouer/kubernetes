@@ -386,6 +386,7 @@ func (f *ConfigFactory) CreateFromKeys(predicateKeys, priorityKeys sets.String, 
 		Algorithm:           algo,
 		Binder:              &binder{f.Client},
 		PodConditionUpdater: &podConditionUpdater{f.Client},
+		PodUpdater:          &podUpdater{f.Client},
 		NextPod: func() *api.Pod {
 			return f.getNextPod()
 		},
@@ -663,6 +664,18 @@ func (p *podConditionUpdater) Update(pod *api.Pod, condition *api.PodCondition) 
 		return err
 	}
 	return nil
+}
+
+type podUpdater struct {
+	Client clientset.Interface
+}
+
+func (p *podUpdater) Update(pod *api.Pod) error {
+	glog.V(2).Infof("PodName: %v Updating pod with spec %v", pod.Name, pod.Spec.Containers[0].Resources.AllocateFrom)
+	podUpdated, err := p.Client.Core().Pods(pod.Namespace).Update(pod)
+	glog.V(2).Infof("PodName: %v Updated podspec cont0: %v", podUpdated.Name, podUpdated.Spec.Containers[0].Resources.Requests)
+	glog.V(2).Infof("PodName: %v Updated podspec cont0: %v", podUpdated.Name, podUpdated.Spec.Containers[0].Resources.AllocateFrom)
+	return err
 }
 
 type clock interface {

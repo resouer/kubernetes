@@ -87,7 +87,7 @@ func createGPUVolumeMount(volumeName string, volumeDriver string) (*kubecontaine
 	re := regexp.MustCompile(`(.*?):(.*)`)
 	matches := re.FindStringSubmatch(volumeName)
 	if len(matches) != 3 {
-		return nil, fmt.Errorf("GPU Volume name %s is invalid", volumeName)
+		return nil, fmt.Errorf("GPU Volume name %s is invalid - driver %s", volumeName, volumeDriver)
 	}
 
 	hostPath := matches[1]
@@ -100,6 +100,8 @@ func createGPUVolumeMount(volumeName string, volumeDriver string) (*kubecontaine
 		containerPath = matches[1]
 		readOnly = (matches[2] == "ro")
 	}
+	glog.V(3).Infof("Create GPU Volume mount - name: %s, ContainerPath: %s HostPath: %s ReadOnly: %v VolumeDriver: %s",
+		volumeDriver+"/"+hostPath, containerPath, hostPath, readOnly, volumeDriver)
 
 	return &kubecontainer.Mount{
 		Name:          volumeDriver + "/" + hostPath,
@@ -114,7 +116,7 @@ func (kl *Kubelet) makeGPUDevices(pod *api.Pod, container *api.Container) ([]kub
 	var mounts []kubecontainer.Mount
 	var devices []kubecontainer.DeviceInfo
 
-	if !container.Resources.Limits.NvidiaGPU().IsZero() {
+	if len(container.Resources.AllocateFrom) == 0 {
 		return nil, nil, nil
 	}
 
@@ -122,6 +124,8 @@ func (kl *Kubelet) makeGPUDevices(pod *api.Pod, container *api.Container) ([]kub
 	if err != nil {
 		return nil, nil, err
 	}
+	glog.V(2).Infof("GPU VolumeName: %v VolumeDriver: %v", volumeName, volumeDriver)
+	glog.V(2).Infof("Paths: %v", nvidiaGPUPaths)
 
 	for _, path := range nvidiaGPUPaths {
 		// Devices have to be mapped one to one because of nvidia CUDA library requirements.
@@ -145,7 +149,12 @@ func (kl *Kubelet) makeDevices(pod *api.Pod, container *api.Container) ([]kubeco
 	var mounts []kubecontainer.Mount
 	var devices []kubecontainer.DeviceInfo
 
+	glog.V(2).Infof("PodUID: %v PodName: %v NodeName: %v", pod.UID, pod.Name, pod.Spec.NodeName)
+	//glog.V(2).Infof("PodUID: %v PodName: %v Stack: %v", pod.UID, pod.Name, string(debug.Stack()))
+	glog.V(2).Infof("PodUID: %v PodName: %v Container name: %v resource: %v", pod.UID, pod.Name, container.Name, container.Resources.Requests)
+	glog.V(2).Infof("PodUID: %v PodName: %v Container name: %v allocatefrom: %v", pod.UID, pod.Name, container.Name, container.Resources.AllocateFrom)
 	if gpuMounts, gpuDevices, err := kl.makeGPUDevices(pod, container); err != nil {
+		glog.V(1).Infof("PodName: %v -- Error in make gpu devices: %v", pod.Name, err)
 		return nil, nil, err
 	} else {
 		mounts = append(mounts, gpuMounts...)

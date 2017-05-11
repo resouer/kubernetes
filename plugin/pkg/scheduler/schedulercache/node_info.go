@@ -25,6 +25,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/resource"
 	clientcache "k8s.io/kubernetes/pkg/client/cache"
 	priorityutil "k8s.io/kubernetes/plugin/pkg/scheduler/algorithm/priorities/util"
+	"k8s.io/kubernetes/plugin/pkg/scheduler/algorithm/scorer"
 )
 
 var emptyResource = Resource{}
@@ -60,7 +61,7 @@ type Resource struct {
 	Memory             int64
 	NvidiaGPU          int64
 	OpaqueIntResources map[api.ResourceName]int64
-	Scorer             map[api.ResourceName]int
+	Scorer             map[api.ResourceName]int32
 }
 
 func (r *Resource) ResourceList() api.ResourceList {
@@ -205,6 +206,9 @@ func (n *NodeInfo) updateGroupResourceForContainer(cont *api.Container, bInitCon
 		podRes := podResources[allocatedFrom]
 		nodeRes := updatedUsedByNode[allocatedFrom]
 		scorerFn := cont.Resources.ScorerFn[resource]
+		if scorerFn == nil {
+			scorerFn = scorer.SetScorer(resource, cont.Resources.Scorer[resource])
+		}
 		_, _, _, newPodUsed, newNodeUsed := scorerFn(allocatableRes, podRes, nodeRes, val, bInitContainer)
 		podResources[allocatedFrom] = newPodUsed
 		updatedUsedByNode[allocatedFrom] = newNodeUsed
@@ -389,7 +393,7 @@ func (n *NodeInfo) SetNode(node *api.Node) error {
 			}
 		}
 		if n.allocatableResource.Scorer == nil {
-			n.allocatableResource.Scorer = map[api.ResourceName]int{}
+			n.allocatableResource.Scorer = map[api.ResourceName]int32{}
 		}
 		if node.Status.Scorer != nil {
 			val, available := node.Status.Scorer[rName]

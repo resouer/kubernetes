@@ -2679,7 +2679,7 @@ type ResourceList map[ResourceName]resource.Quantity
 type ResourceLocation map[ResourceName]ResourceName
 
 // ResourceScorer is a set of (resource name, scorer) pairs.
-type ResourceScorer map[ResourceName]int
+type ResourceScorer map[ResourceName]int32
 
 const (
 	DefaultScorer = iota

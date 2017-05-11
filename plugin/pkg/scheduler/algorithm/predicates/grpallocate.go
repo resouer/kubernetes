@@ -1,7 +1,6 @@
 package predicates
 
 import (
-	"math"
 	"reflect"
 	"regexp"
 
@@ -10,6 +9,7 @@ import (
 	v1 "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/kubelet/gpu"
 	"k8s.io/kubernetes/plugin/pkg/scheduler/algorithm"
+	"k8s.io/kubernetes/plugin/pkg/scheduler/algorithm/scorer"
 	"k8s.io/kubernetes/plugin/pkg/scheduler/schedulercache"
 )
 
@@ -77,10 +77,6 @@ func getMap(x interface{}, keys interface{}) interface{} {
 
 // ===================================================
 
-func prechecked(constraint string) bool {
-	return !v1.IsGroupResourceName(v1.ResourceName(constraint))
-}
-
 func findSubGroups(baseGroup string, grp map[string]string) (map[string](map[string](map[string]string)), map[string]bool) {
 	subGrp := make(map[string](map[string](map[string]string)))
 	isSubGrp := make(map[string]bool)
@@ -103,85 +99,6 @@ func printResMap(res map[string]int64, grp map[string]string, isSubGrp map[strin
 	for grpKey, grpElem := range grp {
 		glog.V(5).Infoln("Key", grpKey, "GlobalKey", grpElem, "Val", res[grpElem], "IsSubGrp", isSubGrp[grpKey])
 	}
-}
-
-// LeftoverScoreFunc provides default scoring function
-func LeftoverScoreFunc(allocatable int64, usedByPod int64, usedByNode int64, requested int64, initContainer bool) (
-	found bool, score float64, usedByContainer int64, newUsedByPod, newUsedByNode int64) {
-
-	usedByContainer = requested
-
-	if !initContainer {
-		newUsedByPod = usedByPod + requested
-	} else {
-		if requested > usedByPod {
-			newUsedByPod = requested
-		} else {
-			newUsedByPod = usedByPod
-		}
-	}
-	newUsedByNode = usedByNode + (newUsedByPod - usedByPod)
-
-	leftoverI := allocatable - newUsedByNode // >= 0 (between -Inf and allocatable if not found)
-	leftoverF := float64(leftoverI)
-	allocatableF := float64(allocatable)
-	if allocatable != 0 {
-		score = 1.0 - (leftoverF / allocatableF) // between 0.0 and 1.0 if leftover between 0 and allocatable
-	} else {
-		score = 0.0
-	}
-	found = (leftoverI >= 0)
-
-	return found, score, usedByContainer, newUsedByPod, newUsedByNode // score will be between 0.0 and 1.0 if found = true
-}
-
-// AlwaysFoundScoreFunc provides something that always returns true
-// want to make allocatable-used as close to requested
-func AlwaysFoundScoreFunc(allocatable int64, usedByPod int64, usedByNode int64, requested int64, initContainer bool) (
-	found bool, score float64, usedByContainer int64, newUsedByPod, newUsedByNode int64) {
-
-	found, score, usedByContainer, newUsedByPod, newUsedByNode = LeftoverScoreFunc(allocatable, usedByPod, usedByNode, requested, initContainer)
-	diff := 1.0 - score          // between -Inf and 1.0
-	diff = math.Max(-1.0, diff)  // between -1.0 and 1.0
-	score = 1.0 - math.Abs(diff) // between 0.0 and 1.0
-	return found, score, usedByContainer, newUsedByPod, newUsedByNode
-}
-
-// Straight and simple C to Go translation from https://en.wikipedia.org/wiki/Hamming_weight
-func popcount(x uint64) int {
-	const (
-		m1  = 0x5555555555555555 //binary: 0101...
-		m2  = 0x3333333333333333 //binary: 00110011..
-		m4  = 0x0f0f0f0f0f0f0f0f //binary:  4 zeros,  4 ones ...
-		h01 = 0x0101010101010101 //the sum of 256 to the power of 0,1,2,3...
-	)
-	x -= (x >> 1) & m1             //put count of each 2 bits into those 2 bits
-	x = (x & m2) + ((x >> 2) & m2) //put count of each 4 bits into those 4 bits
-	x = (x + (x >> 4)) & m4        //put count of each 8 bits into those 8 bits
-	return int((x * h01) >> 56)    //returns left 8 bits of x + (x<<8) + (x<<16) + (x<<24) + ...
-}
-
-// EnumScoreFunc returns bitwise score
-func EnumScoreFunc(allocatable int64, usedByPod int64, usedByNode int64, requested int64, initContainer bool) (
-	found bool, score float64, usedByContainer int64, newUsedByPod, newUsedByNode int64) {
-
-	usedMask := uint64(allocatable & (usedByPod | requested))
-	bitCntAlloc := popcount(uint64(allocatable))
-	bitCntUsed := popcount(usedMask)
-	leftoverI := bitCntAlloc - bitCntUsed
-	leftoverF := float64(leftoverI)
-	allocatableF := float64(bitCntAlloc)
-	if bitCntAlloc != 0 {
-		score = 1.0 - (leftoverF / allocatableF)
-	} else {
-		score = 0.0
-	}
-	found = ((uint64(allocatable) & uint64(requested)) != 0) // at least one bit true
-	usedByContainer = allocatable & requested
-	newUsedByPod = int64(usedMask)
-	newUsedByNode = 0
-
-	return found, score, usedByContainer, newUsedByPod, newUsedByNode
 }
 
 // =====================================================
@@ -421,7 +338,7 @@ func (grp *GrpAllocator) allocateGroupAt(location string,
 // i.e. usedResource[allocated[grpReq[n]]] is subtracted from after allocation
 func (grp *GrpAllocator) allocateGroup() (bool, []algorithm.PredicateFailureReason) {
 	if len(grp.GrpRequiredResource) == 0 {
-		return false, nil
+		return true, nil
 	}
 
 	anyFind := false
@@ -516,40 +433,6 @@ func (grp *GrpAllocator) checkGroupAlloc(grpName string, allocateFrom v1.Resourc
 	return found, predicateFails
 }
 
-func SetScorer(resource string, scorerType int) v1.ResourceScoreFunc {
-	if scorerType == v1.DefaultScorer {
-		return DefaultScorer(resource)
-	}
-	if scorerType == v1.LeftOverScorer {
-		return LeftoverScoreFunc
-	}
-	if scorerType == v1.EnumLeftOverScorer {
-		return EnumScoreFunc
-	}
-	return nil
-}
-
-// DefaultScorer returns default scorer given a name
-func DefaultScorer(resource string) v1.ResourceScoreFunc {
-	if !prechecked(resource) {
-		if !v1.IsEnumResource(resource) {
-			return LeftoverScoreFunc
-		}
-		return EnumScoreFunc
-	}
-	return nil
-}
-
-func setScoreFunc(r *schedulercache.Resource) map[string]v1.ResourceScoreFunc {
-	scorer := make(map[string]v1.ResourceScoreFunc)
-	for key := range r.OpaqueIntResources {
-		keyS := string(key)
-		//scorer[keyS] = DefaultScorer(keyS)
-		scorer[keyS] = SetScorer(keyS, r.Scorer[key])
-	}
-	return scorer
-}
-
 // allocate the main group
 func containerFitsGroupConstraints(contReq *v1.Container, initContainer bool,
 	allocatable *schedulercache.Resource, allocScorer map[string]v1.ResourceScoreFunc,
@@ -573,10 +456,10 @@ func containerFitsGroupConstraints(contReq *v1.Container, initContainer bool,
 		contReq.Resources.ScorerFn = make(map[v1.ResourceName]v1.ResourceScoreFunc)
 	}
 	for reqRes, reqVal := range contReq.Resources.Requests {
-		if !prechecked(string(reqRes)) {
+		if !scorer.PrecheckedResource(reqRes) {
 			reqName[string(reqRes)] = string(reqRes)
 			req[string(reqRes)] = reqVal.Value()
-			scoreFn := SetScorer(string(reqRes), contReq.Resources.Scorer[reqRes])
+			scoreFn := scorer.SetScorer(reqRes, contReq.Resources.Scorer[reqRes])
 			contReq.Resources.ScorerFn[reqRes] = scoreFn
 			reqScorer[string(reqRes)] = scoreFn
 		}
@@ -594,7 +477,7 @@ func containerFitsGroupConstraints(contReq *v1.Container, initContainer bool,
 		grpName = matches[2]
 	}
 	for allocRes, allocVal := range allocatable.OpaqueIntResources {
-		if !prechecked(string(allocRes)) {
+		if !scorer.PrecheckedResource(allocRes) {
 			assignMap(allocName, []string{grpName, string(allocRes)}, string(allocRes))
 			alloc[string(allocRes)] = allocVal
 		}
@@ -629,6 +512,7 @@ func containerFitsGroupConstraints(contReq *v1.Container, initContainer bool,
 			contReq.Resources.AllocateFrom = make(v1.ResourceLocation)
 			for allocatedKey, allocatedLocVal := range grp.AllocateFrom {
 				contReq.Resources.AllocateFrom[v1.ResourceName(allocatedKey)] = v1.ResourceName(allocatedLocVal)
+				glog.V(2).Infof("Set allocate from %v to %v", allocatedKey, allocatedLocVal)
 			}
 		}
 	} else {
@@ -640,10 +524,10 @@ func containerFitsGroupConstraints(contReq *v1.Container, initContainer bool,
 		score = grp.Score
 	}
 
-	glog.V(5).Infoln("Allocated", grp.AllocateFrom)
-	glog.V(5).Infoln("PodResources", grp.PodResource)
-	glog.V(5).Infoln("NodeResources", grp.NodeResource)
-	glog.V(5).Infoln("Container allocation found", found, "with score", score)
+	glog.V(2).Infoln("Allocated", grp.AllocateFrom)
+	glog.V(2).Infoln("PodResources", grp.PodResource)
+	glog.V(2).Infoln("NodeResources", grp.NodeResource)
+	glog.V(2).Infoln("Container allocation found", found, "with score", score)
 
 	return grp, found, reasons, score
 }
@@ -664,6 +548,16 @@ func PodClearAllocateFrom(spec *v1.PodSpec) {
 	for i := range spec.InitContainers {
 		spec.InitContainers[i].Resources.AllocateFrom = nil
 	}
+}
+
+func setScoreFunc(r *schedulercache.Resource) map[string]v1.ResourceScoreFunc {
+	scorerFn := make(map[string]v1.ResourceScoreFunc)
+	for key := range r.OpaqueIntResources {
+		keyS := string(key)
+		//scorerFn[keyS] = DefaultScorer(keyS)
+		scorerFn[keyS] = scorer.SetScorer(key, r.Scorer[key])
+	}
+	return scorerFn
 }
 
 // PodFitsGroupConstraints tells if pod fits constraints, score returned is score of running containers
