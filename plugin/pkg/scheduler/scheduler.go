@@ -83,7 +83,8 @@ type Config struct {
 // New returns a new scheduler.
 func New(c *Config) *Scheduler {
 	s := &Scheduler{
-		config: c,
+		config:            c,
+		cachedNodeInfoMap: make(map[string]*schedulercache.NodeInfo),
 	}
 	metrics.Register()
 	return s
