@@ -140,7 +140,7 @@ func (g *genericScheduler) Schedule(pod *api.Pod, nodeLister algorithm.NodeListe
 		// run it again on top node to assign AllocateFrom in PodSpec Container.Resource
 		pod.Spec.AllocatingResources = true
 		predicates.PodFitsGroupConstraints(g.cachedNodeInfoMap[topNode], &pod.Spec)
-		if len(pod.Spec.Containers > 0) {
+		if len(pod.Spec.Containers) > 0 {
 			glog.V(2).Infof("Pod: %v Cont0 AfterAlloc Resources: %v", pod.Name, pod.Spec.Containers[0].Resources)
 		}
 		pod.Spec.AllocatingResources = false
