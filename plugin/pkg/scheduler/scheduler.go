@@ -23,6 +23,7 @@ import (
 	"k8s.io/kubernetes/pkg/client/record"
 	"k8s.io/kubernetes/pkg/util/wait"
 	"k8s.io/kubernetes/plugin/pkg/scheduler/algorithm"
+	"k8s.io/kubernetes/plugin/pkg/scheduler/algorithm/predicates"
 	"k8s.io/kubernetes/plugin/pkg/scheduler/metrics"
 	"k8s.io/kubernetes/plugin/pkg/scheduler/schedulercache"
 
@@ -45,7 +46,8 @@ type PodUpdater interface {
 // Scheduler watches for new unscheduled pods. It attempts to find
 // nodes that they fit on and writes bindings back to the api server.
 type Scheduler struct {
-	config *Config
+	cachedNodeInfoMap map[string]*schedulercache.NodeInfo
+	config            *Config
 }
 
 type Config struct {
@@ -97,6 +99,7 @@ func (s *Scheduler) scheduleOne() {
 
 	glog.V(3).Infof("Attempting to schedule pod: %v/%v", pod.Namespace, pod.Name)
 	start := time.Now()
+	predicates.PodClearAllocateFrom(&pod.Spec) // clear allocate from so that scheduler predicates search
 	dest, err := s.config.Algorithm.Schedule(pod, s.config.NodeLister)
 	if err != nil {
 		glog.V(1).Infof("Failed to schedule pod: %v/%v", pod.Namespace, pod.Name)
@@ -109,6 +112,16 @@ func (s *Scheduler) scheduleOne() {
 		})
 		return
 	}
+
+	// run resource allocation on selected node
+	pod.Spec.AllocatingResources = true
+	s.config.SchedulerCache.UpdateNodeNameToInfoMap(s.cachedNodeInfoMap)
+	predicates.PodFitsGroupConstraints(s.cachedNodeInfoMap[dest], &pod.Spec)
+	if len(pod.Spec.Containers) > 0 {
+		glog.V(2).Infof("Pod: %v Cont0 AfterAlloc Resources: %v", pod.Name, pod.Spec.Containers[0].Resources)
+	}
+	pod.Spec.AllocatingResources = false
+
 	metrics.SchedulingAlgorithmLatency.Observe(metrics.SinceInMicroseconds(start))
 
 	// Optimistically assume that the binding will succeed and send it to apiserver

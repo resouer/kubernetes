@@ -459,6 +459,12 @@ func (kl *Kubelet) setNodeStatusMachineInfo(node *api.Node) {
 	if node.Status.Capacity == nil {
 		node.Status.Capacity = api.ResourceList{}
 	}
+	// delete group resources -- this is needed in case GPUs go missing in middle
+	for key := range node.Status.Capacity {
+		if api.IsGroupResourceName(key) {
+			delete(node.Status.Capacity, key)
+		}
+	}
 
 	// populate GPU capacity.
 	gpuCapacity := kl.gpuManager.Capacity()
