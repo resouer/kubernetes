@@ -17,7 +17,6 @@ limitations under the License.
 package internalversion
 
 import (
-	"github.com/golang/glog"
 	api "k8s.io/kubernetes/pkg/api"
 	restclient "k8s.io/kubernetes/pkg/client/restclient"
 	watch "k8s.io/kubernetes/pkg/watch"
@@ -59,7 +58,6 @@ func newPods(c *CoreClient, namespace string) *pods {
 
 // Create takes the representation of a pod and creates it.  Returns the server's representation of the pod, and an error, if there is any.
 func (c *pods) Create(pod *api.Pod) (result *api.Pod, err error) {
-	glog.V(2).Info("PodName: %v InternalClient Resources: %v", pod.Name, pod.Spec.Containers[0].Resources)
 	result = &api.Pod{}
 	err = c.client.Post().
 		Namespace(c.ns).
@@ -67,14 +65,12 @@ func (c *pods) Create(pod *api.Pod) (result *api.Pod, err error) {
 		Body(pod).
 		Do().
 		Into(result)
-	glog.V(2).Info("PodName: %v Result InternalClient Resources: %v", result.Name, result.Spec.Containers[0].Resources)
 	return
 }
 
 // Update takes the representation of a pod and updates it. Returns the server's representation of the pod, and an error, if there is any.
 func (c *pods) Update(pod *api.Pod) (result *api.Pod, err error) {
 	result = &api.Pod{}
-	glog.V(2).Info("PodName: %v InternalClient Resources: %v", pod.Name, pod.Spec.Containers[0].Resources)
 	err = c.client.Put().
 		Namespace(c.ns).
 		Resource("pods").
@@ -82,7 +78,6 @@ func (c *pods) Update(pod *api.Pod) (result *api.Pod, err error) {
 		Body(pod).
 		Do().
 		Into(result)
-	glog.V(2).Info("PodName: %v Result InternalClient Resources: %v", result.Name, result.Spec.Containers[0].Resources)
 	return
 }
 

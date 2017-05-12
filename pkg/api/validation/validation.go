@@ -2285,7 +2285,10 @@ func ValidateContainerUpdates(newContainers, oldContainers []api.Container, fldP
 // ValidatePodUpdate tests to see if the update is legal for an end user to make. newPod is updated with fields
 // that cannot be changed.
 func ValidatePodUpdate(newPod, oldPod *api.Pod) field.ErrorList {
-	glog.V(2).Infof("PodName: %v NewV1: %v", newPod.Name, newPod.Spec.Containers[0].Resources)
+	if len(newPod.Spec.Containers) > 0 {
+		glog.V(5).Infof("PodValidation PodName: %v NewResources: %v", newPod.Name, newPod.Spec.Containers[0].Resources)
+	}
+
 	fldPath := field.NewPath("metadata")
 	allErrs := ValidateObjectMetaUpdate(&newPod.ObjectMeta, &oldPod.ObjectMeta, fldPath)
 	allErrs = append(allErrs, ValidatePodSpecificAnnotationUpdates(newPod, oldPod, fldPath.Child("annotations"))...)
@@ -2349,8 +2352,15 @@ func ValidatePodUpdate(newPod, oldPod *api.Pod) field.ErrorList {
 		activeDeadlineSeconds := *oldPod.Spec.ActiveDeadlineSeconds
 		mungedPod.Spec.ActiveDeadlineSeconds = &activeDeadlineSeconds
 	}
-	glog.V(2).Infof("PodName: %v Old: %v", oldPod.Name, oldPod.Spec.Containers[0].Resources)
-	glog.V(2).Infof("PodName: %v New: %v", mungedPod.Name, mungedPod.Spec.Containers[0].Resources)
+
+	if len(oldPod.Spec.Containers) > 0 {
+		glog.V(5).Infof("PodValidation PodName: %v Old: %v", oldPod.Name, oldPod.Spec.Containers[0].Resources)
+	}
+	if len(mungedPod.Spec.Containers) > 0 {
+		glog.V(5).Infof("PodValidation PodName: %v Munged: %v", mungedPod.Name, mungedPod.Spec.Containers[0].Resources)
+	}
+
+	// Allow fields to change -- so skip this check -- can check particular fields if needed
 	// if !api.Semantic.DeepEqual(mungedPod.Spec, oldPod.Spec) {
 	// 	//TODO: Pinpoint the specific field that causes the invalid error after we have strategic merge diff
 	// 	allErrs = append(allErrs, field.Forbidden(specPath, "pod updates may not change fields other than `containers[*].image` or `spec.activeDeadlineSeconds`"))

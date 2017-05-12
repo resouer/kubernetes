@@ -512,7 +512,7 @@ func containerFitsGroupConstraints(contReq *v1.Container, initContainer bool,
 			contReq.Resources.AllocateFrom = make(v1.ResourceLocation)
 			for allocatedKey, allocatedLocVal := range grp.AllocateFrom {
 				contReq.Resources.AllocateFrom[v1.ResourceName(allocatedKey)] = v1.ResourceName(allocatedLocVal)
-				glog.V(2).Infof("Set allocate from %v to %v", allocatedKey, allocatedLocVal)
+				glog.V(3).Infof("Set allocate from %v to %v", allocatedKey, allocatedLocVal)
 			}
 		}
 	} else {
@@ -525,8 +525,8 @@ func containerFitsGroupConstraints(contReq *v1.Container, initContainer bool,
 	}
 
 	glog.V(2).Infoln("Allocated", grp.AllocateFrom)
-	glog.V(2).Infoln("PodResources", grp.PodResource)
-	glog.V(2).Infoln("NodeResources", grp.NodeResource)
+	glog.V(3).Infoln("PodResources", grp.PodResource)
+	glog.V(3).Infoln("NodeResources", grp.NodeResource)
 	glog.V(2).Infoln("Container allocation found", found, "with score", score)
 
 	return grp, found, reasons, score
