@@ -143,15 +143,15 @@ func (ngm *nvidiaGPUManager) AllocateGPU(pod *v1.Pod, container *v1.Container) (
 
 	devices := []int{}
 	for _, res := range container.Resources.AllocateFrom {
-		glog.V(3).Infof("PodName: %v -- searching for device UID: %v", pod.Name, res)
+		glog.V(4).Infof("PodName: %v -- searching for device UID: %v", pod.Name, res)
 		matches := re.FindStringSubmatch(string(res))
 		if len(matches) >= 2 {
 			id := matches[1]
 			devices = append(devices, ngm.gpus[id].Index)
-			glog.V(3).Infof("PodName: %v -- device index: %v", pod.Name, ngm.gpus[id].Index)
+			glog.V(4).Infof("PodName: %v -- device index: %v", pod.Name, ngm.gpus[id].Index)
 			if ngm.gpus[id].Found {
 				gpuList = append(gpuList, ngm.gpus[id].Path)
-				glog.V(3).Infof("PodName: %v -- device path: %v", pod.Name, ngm.gpus[id].Path)
+				glog.V(3).Infof("PodName: %v -- UID: %v device path: %v", pod.Name, res, ngm.gpus[id].Path)
 			}
 		}
 	}

@@ -117,8 +117,10 @@ func (s *Scheduler) scheduleOne() {
 	// immediately.
 	assumed := *pod
 	assumed.Spec.NodeName = dest
-	glog.V(2).Infof("PodUID: %v PodName: %v Name: %v NodeName: %v AllocatedGrps: %v",
-		assumed.UID, assumed.Name, assumed.Spec.Containers[0].Name, assumed.Spec.Containers[0].Resources.AllocateFrom)
+	if len(assumed.Spec.Containers) > 0 {
+		glog.V(3).Infof("PodUID: %v PodName: %v Name: %v NodeName: %v AllocatedGrps: %v",
+			assumed.UID, assumed.Name, assumed.Spec.Containers[0].Name, assumed.Spec.Containers[0].Resources.AllocateFrom)
+	}
 	//glog.V(2).Infof("PodUID: %v PodName: %v Stack: %v", assumed.UID, assumed.Name, string(debug.Stack()))
 	if err := s.config.SchedulerCache.AssumePod(&assumed); err != nil {
 		glog.Errorf("scheduler cache AssumePod failed: %v", err)

@@ -671,10 +671,13 @@ type podUpdater struct {
 }
 
 func (p *podUpdater) Update(pod *api.Pod) error {
-	glog.V(2).Infof("PodName: %v Updating pod with spec %v", pod.Name, pod.Spec.Containers[0].Resources.AllocateFrom)
+	if len(pod.Spec.Containers) > 0 {
+		glog.V(2).Infof("PodName: %v Updating pod with spec %v", pod.Name, pod.Spec.Containers[0].Resources)
+	}
 	podUpdated, err := p.Client.Core().Pods(pod.Namespace).Update(pod)
-	glog.V(2).Infof("PodName: %v Updated podspec cont0: %v", podUpdated.Name, podUpdated.Spec.Containers[0].Resources.Requests)
-	glog.V(2).Infof("PodName: %v Updated podspec cont0: %v", podUpdated.Name, podUpdated.Spec.Containers[0].Resources.AllocateFrom)
+	if len(podUpdated.Spec.Containers) > 0 {
+		glog.V(2).Infof("PodName: %v Updated podspec cont0: %v", podUpdated.Name, podUpdated.Spec.Containers[0].Resources)
+	}
 	return err
 }
 

@@ -124,8 +124,8 @@ func (kl *Kubelet) makeGPUDevices(pod *api.Pod, container *api.Container) ([]kub
 	if err != nil {
 		return nil, nil, err
 	}
-	glog.V(2).Infof("GPU VolumeName: %v VolumeDriver: %v", volumeName, volumeDriver)
-	glog.V(2).Infof("Paths: %v", nvidiaGPUPaths)
+	glog.V(2).Infof("Pod: %v GPU VolumeName: %v VolumeDriver: %v", pod.Name, volumeName, volumeDriver)
+	glog.V(2).Infof("Pod: %v GPU Paths: %v", pod.Name, nvidiaGPUPaths)
 
 	for _, path := range nvidiaGPUPaths {
 		// Devices have to be mapped one to one because of nvidia CUDA library requirements.
@@ -149,10 +149,11 @@ func (kl *Kubelet) makeDevices(pod *api.Pod, container *api.Container) ([]kubeco
 	var mounts []kubecontainer.Mount
 	var devices []kubecontainer.DeviceInfo
 
-	glog.V(2).Infof("PodUID: %v PodName: %v NodeName: %v", pod.UID, pod.Name, pod.Spec.NodeName)
 	//glog.V(2).Infof("PodUID: %v PodName: %v Stack: %v", pod.UID, pod.Name, string(debug.Stack()))
-	glog.V(2).Infof("PodUID: %v PodName: %v Container name: %v resource: %v", pod.UID, pod.Name, container.Name, container.Resources.Requests)
-	glog.V(2).Infof("PodUID: %v PodName: %v Container name: %v allocatefrom: %v", pod.UID, pod.Name, container.Name, container.Resources.AllocateFrom)
+	glog.V(2).Infof("PodUID: %v PodName: %v Container name: %v Resources: %v",
+		pod.UID, pod.Name, container.Name, container.Resources.Requests)
+	glog.V(2).Infof("PodUID: %v PodName: %v Container name: %v AllocateFrom: %v",
+		pod.UID, pod.Name, container.Name, container.Resources.AllocateFrom)
 	if gpuMounts, gpuDevices, err := kl.makeGPUDevices(pod, container); err != nil {
 		glog.V(1).Infof("PodName: %v -- Error in make gpu devices: %v", pod.Name, err)
 		return nil, nil, err
