@@ -47,6 +47,16 @@ func SortedResourceNames(list api.ResourceList) []api.ResourceName {
 	return resources
 }
 
+// SortedResourceLocationNames returns sorted resource names of a resource location list
+func SortedResourceLocationNames(list api.ResourceLocation) []api.ResourceName {
+	resources := make([]api.ResourceName, 0, len(list))
+	for res := range list {
+		resources = append(resources, res)
+	}
+	sort.Sort(SortableResourceNames(resources))
+	return resources
+}
+
 type SortableResourceQuotas []api.ResourceQuota
 
 func (list SortableResourceQuotas) Len() int {
