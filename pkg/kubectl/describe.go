@@ -898,6 +898,14 @@ func describeContainers(label string, containers []api.Container, containerStatu
 			fmt.Fprintf(out, "      %s:\t%s\n", name, quantity.String())
 		}
 
+		if len(resources.AllocateFrom) > 0 {
+			fmt.Fprintf(out, "    AllocateFrom:\n")
+		}
+		for _, name := range SortedResourceLocationNames(resources.AllocateFrom) {
+			location := resources.AllocateFrom[name]
+			fmt.Fprintf(out, "      %s:\t%s\n", name, location)
+		}
+
 		if ok {
 			describeStatus("State", status.State, out)
 			if status.LastTerminationState.Terminated != nil {
