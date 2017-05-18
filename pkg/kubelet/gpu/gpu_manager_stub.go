@@ -50,18 +50,18 @@ func NewGPUManagerStub() GPUManager {
 }
 
 func AddResource(list v1.ResourceList, key string, val int64) {
-	list[v1.ResourceName(key)] = *resource.NewQuantity(val, resource.DecimalSI)
+	list[v1.ResourceName(v1.ResourceGroupPrefix+"/"+key)] = *resource.NewQuantity(val, resource.DecimalSI)
 }
 
 // Resource translation to max level specified in nodeInfo
 
 // TranslateResource translates resources to next level
 func TranslateResource(nodeInfo *schedulercache.NodeInfo, container *v1.Container,
-	stagePrefix string, thisStage string, nextStage string) {
+	thisStage string, nextStage string) bool {
 
 	// see if translation needed
 	translationNeeded := false
-	re := regexp.MustCompile(stagePrefix + "/" + thisStage + `/(.*?)/` + nextStage + `(.*)`)
+	re := regexp.MustCompile(`.*/` + thisStage + `/(.*?)/` + nextStage + `(.*)`)
 	for key := range nodeInfo.AllocatableResource().OpaqueIntResources {
 		matches := re.FindStringSubmatch(string(key))
 		if (len(matches)) >= 2 {
@@ -70,7 +70,7 @@ func TranslateResource(nodeInfo *schedulercache.NodeInfo, container *v1.Containe
 		}
 	}
 	if !translationNeeded {
-		return
+		return false
 	}
 
 	// find max existing index
@@ -88,31 +88,34 @@ func TranslateResource(nodeInfo *schedulercache.NodeInfo, container *v1.Containe
 	}
 
 	groupIndex := maxGroupIndex + 1
-	re2 := regexp.MustCompile(stagePrefix + "/" + nextStage + "/" + `((.*?)/(.*))`)
+	re2 := regexp.MustCompile(`(.*?/)` + nextStage + `/((.*?)/(.*))`)
 	newList := make(v1.ResourceList)
 	groupMap := make(map[string]string)
 	// ordered addition to make sure groupIndex is deterministic based on order
 	reqKeys := v1.SortedStringKeys(container.Resources.Requests)
+	resourceModified := false
 	for _, resKey := range reqKeys {
 		val := container.Resources.Requests[v1.ResourceName(resKey)]
 		matches := re.FindStringSubmatch(string(resKey))
 		newResKey := v1.ResourceName(resKey)
-		if len(matches) == 0 { // does not qualify as next stage resource
+		if len(matches) == 0 { // does not qualify as thisStage resource
 			matches = re2.FindStringSubmatch(string(resKey))
-			if len(matches) >= 4 {
-				mapGrp, available := groupMap[matches[2]]
+			if len(matches) >= 5 { // does qualify as next stage resource
+				mapGrp, available := groupMap[matches[3]]
 				if !available {
-					groupMap[matches[2]] = strconv.Itoa(groupIndex)
+					groupMap[matches[3]] = strconv.Itoa(groupIndex)
 					groupIndex++
-					mapGrp = groupMap[matches[2]]
+					mapGrp = groupMap[matches[3]]
 				}
-				newResKey = v1.ResourceName(stagePrefix + "/" + thisStage + "/" + mapGrp + "/" + nextStage + "/" + matches[1])
+				newResKey = v1.ResourceName(matches[1] + thisStage + "/" + mapGrp + "/" + nextStage + "/" + matches[2])
+				glog.V(7).Infof("Writing new resource %v - old %v", newResKey, resKey)
+				resourceModified = true
 			}
 		}
 		newList[newResKey] = val
 	}
 	container.Resources.Requests = newList
-	glog.V(5).Infoln("New Resources", container.Resources.Requests)
+	return resourceModified
 }
 
 // TranslateGPUResources translates GPU resources to max level
@@ -120,7 +123,7 @@ func TranslateGPUResources(nodeInfo *schedulercache.NodeInfo, container *v1.Cont
 	requests := container.Resources.Requests
 
 	// First stage translation, translate # of cards to simple GPU resources - extra stage
-	re := regexp.MustCompile(v1.ResourceGroupPrefix + "/gpu/" + `(.*?)/cards`)
+	re := regexp.MustCompile(v1.ResourceGroupPrefix + `.*/gpu/(.*?)/cards`)
 
 	neededGPUQ := requests[v1.ResourceNvidiaGPU]
 	neededGPUs := neededGPUQ.Value()
@@ -138,14 +141,22 @@ func TranslateGPUResources(nodeInfo *schedulercache.NodeInfo, container *v1.Cont
 			}
 		}
 	}
+	resourceModified := false
 	diffGPU := int(neededGPUs - int64(haveGPUs))
 	for i := 0; i < diffGPU; i++ {
 		gpuIndex := maxGPUIndex + i + 1
-		AddResource(requests, v1.ResourceGroupPrefix+"/gpu/"+strconv.Itoa(gpuIndex)+"/cards", 1)
+		AddResource(requests, "gpu/"+strconv.Itoa(gpuIndex)+"/cards", 1)
+		resourceModified = true
 	}
 
 	// perform 2nd stage translation if needed
-	TranslateResource(nodeInfo, container, v1.ResourceGroupPrefix, "gpugrp", "gpu")
+	resourceModified = resourceModified || TranslateResource(nodeInfo, container, "gpugrp0", "gpu")
+	// perform 3rd stage translation if needed
+	resourceModified = resourceModified || TranslateResource(nodeInfo, container, "gpugrp1", "gpugrp0")
+
+	if resourceModified {
+		glog.V(3).Infoln("New Resources", container.Resources.Requests)
+	}
 
 	return nil
 }

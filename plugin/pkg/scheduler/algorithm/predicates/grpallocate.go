@@ -151,7 +151,7 @@ func (grp *GrpAllocator) createSubGroup(
 	subGrp.GrpAllocResource = allocSubGrps[grpName]
 	subGrp.ReqBaseGroupName = grp.ReqBaseGroupName + "/" + grpName + "/" + grpIndex
 	subGrp.AllocBaseGroupPrefix = grp.AllocBaseGroupPrefix + "/" + resourceLocation + "/" + grpName
-	subGrp.Score = grp.Score
+	subGrp.Score = 0 // reset to zero
 
 	return &subGrp
 }
@@ -190,6 +190,12 @@ func (grp *GrpAllocator) takeGroup(grpTake *GrpAllocator) {
 	grp.Score = grpTake.Score
 }
 
+func (grp *GrpAllocator) resetGroup(restorePoint *GrpAllocator) {
+	grp.PodResource = restorePoint.PodResource
+	grp.NodeResource = restorePoint.NodeResource
+	grp.Score = restorePoint.Score
+}
+
 // returns whether resource available and score
 // can use hash of scorers for different resources
 // simple leftover for now for score, 0 is low, 1.0 is high score
@@ -201,8 +207,6 @@ func (grp *GrpAllocator) resourceAvailable(resourceLocation string) (bool, []alg
 	glog.V(5).Infoln("Available in group")
 	printResMap(grp.AllocResource, grpAllocRes, grp.IsAllocSubGrp)
 
-	score := 0.0
-	numCnt := 0
 	found := true
 	var predicateFails []algorithm.PredicateFailureReason
 	for grpReqKey, grpReqElem := range grp.GrpRequiredResource {
@@ -222,47 +226,20 @@ func (grp *GrpAllocator) resourceAvailable(resourceLocation string) (bool, []alg
 			usedPod := grp.PodResource[globalName]
 			usedNode := grp.NodeResource[globalName]
 			// alternatively, current score can be passed in, and new score returned if score not additive
-			foundR, scoreR, _, podR, nodeR := scoreFn(allocatable, usedPod, usedNode, required, grp.InitContainer)
+			foundR, scoreR, _, podR, nodeR := scoreFn(allocatable, usedPod, usedNode, []int64{required}, grp.InitContainer)
 			if !foundR {
 				found = false
 				predicateFails = append(predicateFails, NewInsufficientResourceError(
 					v1.ResourceName(grp.ContName+"/"+grpReqElem), required, usedNode, allocatable))
 				continue
 			}
-			score += scoreR
 			grp.PodResource[globalName] = podR
 			grp.NodeResource[globalName] = nodeR
 			grp.AllocateFrom[grpReqElem] = globalName
 			glog.V(5).Infoln("Resource", grpReqElem, "Available with score", scoreR)
-			numCnt++
 		} else {
 			glog.V(5).Infoln("No test for subgroup", grpReqElem)
 		}
-	}
-	// penalize for unused resources available
-	for grpAllocResKey, grpAllocResElem := range grpAllocRes {
-		if !grp.IsAllocSubGrp[grpAllocResKey] {
-			_, available := grp.GrpRequiredResource[grpAllocResKey]
-			if !available {
-				allocatable := grp.AllocResource[grpAllocResElem]
-				required := int64(0)
-				usedPod := grp.PodResource[grpAllocResElem]
-				usedNode := grp.NodeResource[grpAllocResElem]
-				scoreFn := grp.AllocScorer[grpAllocResElem]
-				if scoreFn != nil {
-					_, scoreR, _, podR, nodeR := scoreFn(allocatable, usedPod, usedNode, required, grp.InitContainer)
-					score += scoreR
-					grp.PodResource[grpAllocResElem] = podR
-					grp.NodeResource[grpAllocResElem] = nodeR
-				}
-				numCnt++
-			}
-		}
-	}
-	lenGrpF := float64(numCnt)
-	// score is average score for group
-	if numCnt > 0 {
-		grp.Score += score / lenGrpF
 	}
 
 	return found, predicateFails
@@ -298,6 +275,49 @@ func (grp *GrpAllocator) allocateSubGroups(
 	return found, predicateFails
 }
 
+func (grp *GrpAllocator) findScoreAndUpdate(location string) (bool, []algorithm.PredicateFailureReason) {
+	found := true
+	var predicateFails []algorithm.PredicateFailureReason
+
+	// first compute list of requested resources to alloctable resources
+	requestedResource := make(map[string]([]int64))
+	for _, grpReqElem := range grp.GrpRequiredResource {
+		allocFrom := string(grp.AllocateFrom[grpReqElem]) // may return "" if not available, but okay since next will return not available
+		_, available := grp.AllocResource[allocFrom]
+		if !available {
+			found = false
+			predicateFails = append(predicateFails,
+				NewInsufficientResourceError(v1.ResourceName(grpReqElem), grp.RequiredResource[grpReqElem], int64(0), int64(0)))
+			continue
+		}
+		requestedResource[allocFrom] = append(requestedResource[allocFrom], grp.RequiredResource[grpReqElem])
+	}
+
+	// now perform scoring over alloctable resources
+	grp.Score = 0.0
+	for _, key := range grp.GrpAllocResource[location] {
+		allocatable := grp.AllocResource[key]
+		scoreFn := grp.AllocScorer[key]
+		usedPod := grp.PodResource[key]
+		usedNode := grp.NodeResource[key]
+		foundR, scoreR, totalRequest, podR, nodeR := scoreFn(allocatable, usedPod, usedNode, requestedResource[key], grp.InitContainer)
+		if !foundR {
+			found = false
+			predicateFails = append(predicateFails,
+				NewInsufficientResourceError(v1.ResourceName(key), totalRequest, usedNode, allocatable))
+			continue
+		}
+		grp.Score += scoreR
+		grp.PodResource[key] = podR
+		grp.NodeResource[key] = nodeR
+	}
+	lenI := len(grp.GrpAllocResource[location])
+	lenF := float64(lenI)
+	grp.Score /= lenF
+
+	return found, predicateFails
+}
+
 func (grp *GrpAllocator) allocateGroupAt(location string,
 	subgrpsReq map[string](map[string](map[string]string))) (bool, []algorithm.PredicateFailureReason) {
 
@@ -306,14 +326,25 @@ func (grp *GrpAllocator) allocateGroupAt(location string,
 	subgrpsAllocRes, isSubGrp := findSubGroups(allocLocationName, grpsAllocResElem)
 	grp.IsAllocSubGrp = isSubGrp
 
+	grpR := grp.cloneGroup()
 	foundRes, reasons := grp.resourceAvailable(location)
-
-	if foundRes == true {
-		glog.V(5).Infoln("group", location, "base resource available with score", grp.Score)
-	}
+	glog.V(4).Infoln("group", location, "base resource available")
 
 	// next allocatable subgroups for this location
 	foundNext, reasonsNext := grp.allocateSubGroups(location, subgrpsReq, subgrpsAllocRes)
+	// find score for group
+	if foundRes && foundNext {
+		glog.V(4).Infoln("group", location, "resource available")
+		grp.resetGroup(grpR)
+		foundScore, reasonsScore := grp.findScoreAndUpdate(location)
+		if foundScore == false {
+			glog.Errorf("Unable to find allocation during scoring, even though it has already been found %v", reasonsScore)
+			foundNext = false
+			reasonsNext = append(reasonsNext, reasonsScore...)
+		} else {
+			glog.V(4).Infof("group %v available score %f", location, grp.Score)
+		}
+	}
 
 	return (foundRes && foundNext), append(reasons, reasonsNext...)
 }
@@ -360,7 +391,8 @@ func (grp *GrpAllocator) allocateGroup() (bool, []algorithm.PredicateFailureReas
 		allocLocationName := grp.AllocBaseGroupPrefix + "/" + grpsAllocResKey
 
 		if found {
-			glog.V(5).Infoln(allocLocationName, "total resource available with score", grpCheck.Score)
+			glog.V(5).Infof("For resource %v - available at %v with score - %v",
+				grp.ReqBaseGroupName, allocLocationName, grpCheck.Score)
 			takeNew := false
 			if !grp.PreferUsed {
 				if grpCheck.Score >= maxScoreGrp.Score {
@@ -387,7 +419,11 @@ func (grp *GrpAllocator) allocateGroup() (bool, []algorithm.PredicateFailureReas
 				maxIsUsedGroup = grp.UsedGroups[allocLocationName]
 				maxGroupName = allocLocationName
 			}
+		} else {
+			glog.V(5).Infof("For resource %v - not available at %v with score - %v",
+				grp.ReqBaseGroupName, allocLocationName, grpCheck.Score)
 		}
+
 		if len(grp.GrpAllocResource) == 1 {
 			predicateFails = append(predicateFails, reasons...)
 		}
@@ -401,36 +437,6 @@ func (grp *GrpAllocator) allocateGroup() (bool, []algorithm.PredicateFailureReas
 	}
 
 	return false, predicateFails
-}
-
-func (grp *GrpAllocator) checkGroupAlloc(grpName string, allocateFrom v1.ResourceLocation) (bool, []algorithm.PredicateFailureReason) {
-	found := true
-	score := 0.0
-	var predicateFails []algorithm.PredicateFailureReason
-	for key, required := range grp.RequiredResource {
-		allocFrom := string(allocateFrom[v1.ResourceName(key)])
-		allocatable, available := grp.AllocResource[allocFrom]
-		if !available {
-			found = false
-			predicateFails = append(predicateFails, NewInsufficientResourceError(v1.ResourceName(key), required, int64(0), int64(0)))
-			continue
-		}
-		scoreFn := grp.ReqScorer[key]
-		usedPod := grp.PodResource[allocFrom]
-		usedNode := grp.NodeResource[allocFrom]
-		foundR, scoreR, _, podR, nodeR := scoreFn(allocatable, usedPod, usedNode, required, grp.InitContainer)
-		if !foundR {
-			found = false
-			predicateFails = append(predicateFails, NewInsufficientResourceError(v1.ResourceName(key), required, usedNode, allocatable))
-			continue
-		}
-		score += scoreR
-		// if found update used resource
-		grp.PodResource[allocFrom] = podR
-		grp.NodeResource[allocFrom] = nodeR
-	}
-	grp.Score = score / float64(len(grp.RequiredResource))
-	return found, predicateFails
 }
 
 // allocate the main group
@@ -516,11 +522,13 @@ func containerFitsGroupConstraints(contReq *v1.Container, initContainer bool,
 			}
 		}
 	} else {
-		grpTest := grp.cloneGroup()
-		found, reasons = grpTest.checkGroupAlloc(grpName, contReq.Resources.AllocateFrom)
-		if found {
-			grp.takeGroup(grpTest)
+		glog.V(5).Infof("Performing only find and score -- allocatefrom already set")
+		// set grp allocate from
+		grp.AllocateFrom = make(map[string]string)
+		for key, val := range contReq.Resources.AllocateFrom {
+			grp.AllocateFrom[string(key)] = string(val)
 		}
+		found, reasons = grp.findScoreAndUpdate(grpName)
 		score = grp.Score
 	}
 
@@ -582,7 +590,8 @@ func PodFitsGroupConstraints(n *schedulercache.NodeInfo, spec *v1.PodSpec) (bool
 			found = false
 			predicateFails = append(predicateFails, reasons...)
 		} else {
-			totalScore += score
+			//totalScore += score
+			totalScore = score // assign to new value as it contains all info
 		}
 		podResource = grp.PodResource
 		nodeResource = grp.NodeResource
