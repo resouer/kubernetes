@@ -52,7 +52,10 @@ func setAllocFrom(info *gpusInfo, cont *v1.Container, from int, to int) {
 	fromS := strconv.Itoa(from)
 	toS := info.Gpus[to].ID
 	fromLoc := v1.ResourceName(string(v1.ResourceGroupPrefix) + "/gpu/" + fromS + "/cards")
-	toLoc := v1.ResourceName(string(v1.ResourceGroupPrefix) + "/gpu/" + toS + "/cards")
+	grp1 := to / 4
+	grp0 := to / 2
+	prefix := "/gpugrp1/" + strconv.Itoa(grp1) + "/gpugrp0/" + strconv.Itoa(grp0)
+	toLoc := v1.ResourceName(string(v1.ResourceGroupPrefix) + prefix + "/gpu/" + toS + "/cards")
 	cont.Resources.AllocateFrom[fromLoc] = toLoc
 }
 
@@ -88,7 +91,9 @@ func testAlloc(t *testing.T, ngm gpu.GPUManager, info *gpusInfo, alloc map[int]i
 	for from, to := range alloc {
 		setAllocFrom(info, &container, from, to)
 	}
-	volumeNameGet, volumeDriverGet, devicesGet, err := ngm.AllocateGPU(nil, &container)
+	pod := v1.Pod{}
+	pod.Name = "TestPod"
+	volumeNameGet, volumeDriverGet, devicesGet, err := ngm.AllocateGPU(&pod, &container)
 	if err != nil {
 		t.Errorf("Got error %v", err)
 	}
@@ -116,16 +121,20 @@ func TestAlloc(t *testing.T) {
 	if err != nil {
 		t.Errorf("Got error %v", err)
 	}
+	cap := ngm.Capacity()
 	//fmt.Println("Capacity")
 	//fmt.Println(ngm.Capacity())
-	cap := ngm.Capacity()
 
 	// test capacity returned
 	capExpected := make(map[string]int64)
 	capExpected[string(v1.ResourceNvidiaGPU)] = int64(len(info.Gpus))
 	for i := 0; i < len(info.Gpus); i++ {
-		capExpected[string(v1.ResourceGroupPrefix)+"/gpu/"+info.Gpus[i].ID+"/cards"] = 1
-		capExpected[string(v1.ResourceGroupPrefix)+"/gpu/"+info.Gpus[i].ID+"/memory"] = info.Gpus[i].Memory.Global * int64(1024) * int64(1024)
+		grp1 := i / 4
+		//grp0 := (i / 2) % 2
+		grp0 := i / 2
+		prefix := "/gpugrp1/" + strconv.Itoa(grp1) + "/gpugrp0/" + strconv.Itoa(grp0)
+		capExpected[string(v1.ResourceGroupPrefix)+prefix+"/gpu/"+info.Gpus[i].ID+"/cards"] = 1
+		capExpected[string(v1.ResourceGroupPrefix)+prefix+"/gpu/"+info.Gpus[i].ID+"/memory"] = info.Gpus[i].Memory.Global * int64(1024) * int64(1024)
 	}
 	assertMapEqual(t, cap, capExpected)
 

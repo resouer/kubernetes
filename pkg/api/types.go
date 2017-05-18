@@ -2678,18 +2678,18 @@ type ResourceList map[ResourceName]resource.Quantity
 // ResourceLocation is a set of (resource name, resource location on node) pairs.
 type ResourceLocation map[ResourceName]ResourceName
 
-// ResourceScorer is a set of (resource name, scorer) pairs.
+// ResourceScorer is a set of (resource name, scorer enum) pairs.
 type ResourceScorer map[ResourceName]int32
 
 const (
-	DefaultScorer = iota
+	DefaultScorer = iota // 0
 	LeftOverScorer
 	EnumLeftOverScorer
 )
 
 // ResourceScoreFunc is a function which takes in (allocatable, usedByPod, usedByNode, requested, initContainer) resources
 // and returns (resourceFits, score, usedByContainer, newUsedByPod, newUsedByNode)
-type ResourceScoreFunc func(alloctable int64, usedByPod int64, usedByNode int64, requested int64, initContainer bool) (bool, float64, int64, int64, int64)
+type ResourceScoreFunc func(alloctable int64, usedByPod int64, usedByNode int64, requested []int64, initContainer bool) (bool, float64, int64, int64, int64)
 
 // +genclient=true
 // +nonNamespaced=true

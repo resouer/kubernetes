@@ -155,6 +155,9 @@ func setExpectedResources(c *cont) {
 func createPod(name string, expScore float64, iconts []cont, rconts []cont) (*v1.Pod, *PodEx) {
 	pod := v1.Pod{ObjectMeta: v1.ObjectMeta{Name: name}, Spec: v1.PodSpec{}}
 	spec := &pod.Spec
+	pod.Spec.AllocatingResources = true
+
+	glog.V(2).Infof("Working on pod %s", pod.Name)
 
 	var contR v1.ResourceList
 
@@ -176,11 +179,12 @@ func createPod(name string, expScore float64, iconts []cont, rconts []cont) (*v1
 	return &pod, &podEx
 }
 
-func sampleTest(pod *v1.Pod, podEx *PodEx, nodeInfo *schedulercache.NodeInfo) {
+func sampleTest(pod *v1.Pod, podEx *PodEx, nodeInfo *schedulercache.NodeInfo, testCnt int) {
 	// now perform allocation
 	spec := &pod.Spec
 	found, reasons, score := PodFitsGroupConstraints(nodeInfo, spec)
 	//fmt.Println("AllocatedFromF", spec.InitContainers[0].Resources)
+	fmt.Printf("Test %d\n", testCnt)
 	fmt.Printf("Found: %t Score: %f\n", found, score)
 	fmt.Printf("Reasons\n")
 	for _, reason := range reasons {
@@ -203,14 +207,15 @@ func sampleTest(pod *v1.Pod, podEx *PodEx, nodeInfo *schedulercache.NodeInfo) {
 	}
 }
 
-func testContainerAllocs(t *testing.T, conts []cont, podConts []v1.Container) {
+func testContainerAllocs(t *testing.T, conts []cont, podConts []v1.Container, testCnt int) {
 	if len(conts) != len(podConts) {
-		t.Errorf("Number of containers don't match - expected %v - have %v", len(conts), len(podConts))
+		t.Errorf("Test %d Number of containers don't match - expected %v - have %v", testCnt, len(conts), len(podConts))
 		return
 	}
 	for ci, c := range conts {
 		if len(c.expectedGrpLoc) != len(podConts[ci].Resources.AllocateFrom) {
-			t.Errorf("Number of resources don't match - expected %v %v - have %v %v",
+			t.Errorf("Test %d Container %s Number of resources don't match - expected %v %v - have %v %v",
+				testCnt, c.name,
 				len(c.expectedGrpLoc), c.expectedGrpLoc,
 				len(podConts[ci].Resources.AllocateFrom), podConts[ci].Resources.AllocateFrom)
 			return
@@ -218,36 +223,75 @@ func testContainerAllocs(t *testing.T, conts []cont, podConts []v1.Container) {
 		for key, val := range c.expectedGrpLoc {
 			valP, available := podConts[ci].Resources.AllocateFrom[v1.ResourceName(key)]
 			if !available {
-				t.Errorf("Expected key %v not available", key)
+				t.Errorf("Test %d Container %s Expected key %v not available", testCnt, c.name, key)
 			} else if string(valP) != val {
-				t.Errorf("Expected value for key %v not same - expected %v - have %v",
-					key, val, valP)
+				t.Errorf("Test %d Container %s Expected value for key %v not same - expected %v - have %v",
+					testCnt, c.name, key, val, valP)
 			}
 		}
 	}
 }
 
-func testPodAllocs(t *testing.T, pod *v1.Pod, podEx *PodEx, nodeInfo *schedulercache.NodeInfo) {
+func testPodResourceUsage(t *testing.T, pod *v1.Pod, nodeInfo *schedulercache.NodeInfo, testCnt int) {
+	spec := &pod.Spec
+	usedResources, nodeResources := nodeInfo.ComputePodGroupResources(spec, false)
+	updatedNode := schedulercache.NewNodeInfo(pod) // addPod
+	if len(usedResources) == 0 {
+		t.Errorf("Test %d no resources being used", testCnt)
+	}
+	for usedRes, usedAmt := range updatedNode.RequestedResource().OpaqueIntResources {
+		val, available := nodeResources[usedRes]
+		if !available {
+			t.Errorf("Test %d - expected used resource %v not found", testCnt, usedRes)
+		} else {
+			if val != usedAmt {
+				t.Errorf("Test %d - expected used resource not match have %v - expected %v", testCnt, val, usedAmt)
+			}
+		}
+	}
+	// now return the resource and check
+	usedResourcesReturn, usedResourcesNode := updatedNode.ComputePodGroupResources(spec, true)
+	if len(usedResources) != len(usedResourcesReturn) {
+		t.Errorf("Test %d used resource lengths do not match - now %d - before %d",
+			testCnt, len(usedResourcesReturn), len(usedResources))
+	}
+	for usedRes, usedAmt := range usedResourcesNode {
+		if usedAmt != 0 {
+			t.Errorf("Test %d resource %v not zero - still have %d", testCnt, usedRes, usedAmt)
+		}
+	}
+}
+
+func testPodAllocs(t *testing.T, pod *v1.Pod, podEx *PodEx, nodeInfo *schedulercache.NodeInfo, testCnt int) {
 	spec := &pod.Spec
 	found, _, score := PodFitsGroupConstraints(nodeInfo, spec)
 	if found {
 		if podEx.rcont[0].expectedGrpLoc == nil {
-			t.Errorf("Group allocation found when it should not be found")
+			t.Errorf("Test %d Group allocation found when it should not be found", testCnt)
 		} else {
 			if math.Abs(score-podEx.expectedScore)/podEx.expectedScore > 0.01 {
-				t.Errorf("Score not correct - expected %v - have %v", podEx.expectedScore, score)
+				t.Errorf("Test %d Score not correct - expected %v - have %v", testCnt, podEx.expectedScore, score)
 			}
-			testContainerAllocs(t, podEx.icont, pod.Spec.InitContainers)
-			testContainerAllocs(t, podEx.rcont, pod.Spec.Containers)
+			testContainerAllocs(t, podEx.icont, pod.Spec.InitContainers, testCnt)
+			testContainerAllocs(t, podEx.rcont, pod.Spec.Containers, testCnt)
+			// repeat - now should go through findScoreAndUpdate path
+			found2, _, score2 := PodFitsGroupConstraints(nodeInfo, spec)
+			if found2 != found || math.Abs(score-score2)/score > 0.01 {
+				t.Errorf("Test %d Repeat Score does not match - expected %v %v - have %v %v",
+					testCnt, found, score, found2, score2)
+			}
+			// now test update & release of resources
+			testPodResourceUsage(t, pod, nodeInfo, testCnt)
 		}
 	} else {
 		if podEx.rcont[0].expectedGrpLoc != nil {
-			t.Errorf("Group allocation not found when it should be found")
+			t.Errorf("Test %d Group allocation not found when it should be found", testCnt)
 		}
 	}
 }
 
 func TestGrpAllocate1(t *testing.T) {
+	testCnt := 0
 	flag.Parse()
 
 	// allocatable resources
@@ -260,9 +304,8 @@ func TestGrpAllocate1(t *testing.T) {
 			"gpu/dev3/memory": 192000, "gpu/dev3/cards": 1, "gpu/dev3/enumType": int64(0x1),
 			"gpu/dev4/memory": 178000, "gpu/dev4/cards": 1},
 	)
-
 	// required resources
-	pod, podEx := createPod("pod1", 2.994582,
+	pod, podEx := createPod("pod1", 0.58214,
 		[]cont{
 			{name: "Init0",
 				res:            map[string]int64{"A1": 2200, "B1": 2000},
@@ -286,9 +329,9 @@ func TestGrpAllocate1(t *testing.T) {
 			},
 		},
 	)
-
-	//sampleTest(pod, podEx, nodeInfo)
-	testPodAllocs(t, pod, podEx, nodeInfo)
+	testCnt++
+	//sampleTest(pod, podEx, nodeInfo, testCnt)
+	testPodAllocs(t, pod, podEx, nodeInfo, testCnt)
 
 	// test with just numgpu
 	nodeInfo = createNodeArgs(&nodeArgs)
@@ -301,7 +344,7 @@ func TestGrpAllocate1(t *testing.T) {
 			"gpu/dev3/memory": 192000, "gpu/dev3/cards": 1,
 			"gpu/dev4/memory": 178000, "gpu/dev4/cards": 1},
 	)
-	pod, podEx = createPod("pod1", 1.5,
+	pod, podEx = createPod("pod2", 0.3,
 		[]cont{
 			{name: "Init0",
 				res:            map[string]int64{string(v1.ResourceNvidiaGPU): 1},
@@ -319,52 +362,117 @@ func TestGrpAllocate1(t *testing.T) {
 			},
 		},
 	)
-	//sampleTest(pod, podEx, nodeInfo)
-	testPodAllocs(t, pod, podEx, nodeInfo)
+	testCnt++
+	//sampleTest(pod, podEx, nodeInfo, testCnt)
+	testPodAllocs(t, pod, podEx, nodeInfo, testCnt)
 
 	// test gpu affinity group
 	nodeInfo, _ = createNode("node1",
 		map[string]int64{"A1": 4000, "B1": 3000},
 		map[string]int64{
-			"gpugrp/group0/gpu/dev0/memory": 100000, "gpugrp/group0/gpu/dev0/cards": 1,
-			"gpugrp/group0/gpu/dev1/memory": 256000, "gpugrp/group0/gpu/dev1/cards": 1,
-			"gpugrp/group1/gpu/dev2/memory": 257000, "gpugrp/group1/gpu/dev2/cards": 1,
-			"gpugrp/group2/gpu/dev3/memory": 192000, "gpugrp/group2/gpu/dev3/cards": 1,
-			"gpugrp/group2/gpu/dev4/memory": 178000, "gpugrp/group2/gpu/dev4/cards": 1},
+			"gpugrp0/group0/gpu/dev0/memory": 100000, "gpugrp0/group0/gpu/dev0/cards": 1,
+			"gpugrp0/group0/gpu/dev1/memory": 256000, "gpugrp0/group0/gpu/dev1/cards": 1,
+			"gpugrp0/group1/gpu/dev2/memory": 257000, "gpugrp0/group1/gpu/dev2/cards": 1,
+			"gpugrp0/group2/gpu/dev3/memory": 192000, "gpugrp0/group2/gpu/dev3/cards": 1,
+			"gpugrp0/group2/gpu/dev4/memory": 178000, "gpugrp0/group2/gpu/dev4/cards": 1},
 	)
 
 	// required resources
-	pod, podEx = createPod("pod1", 4.992846,
+	pod, podEx = createPod("pod3", 0.9985692,
 		[]cont{
 			// this goes to dev4 since all gpus are in use in running state, which is fine
 			{name: "Init0",
 				grpres:         map[string]int64{"gpu/0/memory": 100000, "gpu/0/cards": 1},
-				expectedGrpLoc: map[string]string{"gpugrp/0/gpu/0": "gpugrp/group2/gpu/dev4"}}},
+				expectedGrpLoc: map[string]string{"gpugrp0/0/gpu/0": "gpugrp0/group0/gpu/dev1"}}},
 		[]cont{
 			{name: "Run0",
 				grpres: map[string]int64{
-					"gpugrp/A/gpu/a/memory": 190000, "gpugrp/A/gpu/a/cards": 1,
-					"gpugrp/A/gpu/b/memory": 178000, "gpugrp/A/gpu/b/cards": 1},
+					"gpugrp0/A/gpu/a/memory": 190000, "gpugrp0/A/gpu/a/cards": 1,
+					"gpugrp0/A/gpu/b/memory": 178000, "gpugrp0/A/gpu/b/cards": 1},
 				expectedGrpLoc: map[string]string{
-					"gpugrp/A/gpu/a": "gpugrp/group2/gpu/dev3",
-					"gpugrp/A/gpu/b": "gpugrp/group2/gpu/dev4"},
+					"gpugrp0/A/gpu/a": "gpugrp0/group2/gpu/dev3",
+					"gpugrp0/A/gpu/b": "gpugrp0/group2/gpu/dev4"},
 			},
 			{name: "Run1",
 				grpres: map[string]int64{
 					"gpu/0/memory": 256000, "gpu/0/cards": 1},
-				expectedGrpLoc: map[string]string{"gpugrp/0/gpu/0": "gpugrp/group0/gpu/dev1"},
+				expectedGrpLoc: map[string]string{"gpugrp0/0/gpu/0": "gpugrp0/group1/gpu/dev2"},
 			},
 			{name: "Run2",
 				grpres: map[string]int64{
 					"gpu/0/memory": 256000, "gpu/0/cards": 1,
 					"gpu/1/memory": 100000, "gpu/1/cards": 1},
-				expectedGrpLoc: map[string]string{"gpugrp/0/gpu/0": "gpugrp/group1/gpu/dev2",
-					"gpugrp/1/gpu/1": "gpugrp/group0/gpu/dev0"},
+				expectedGrpLoc: map[string]string{
+					"gpugrp0/0/gpu/0": "gpugrp0/group0/gpu/dev1",
+					"gpugrp0/1/gpu/1": "gpugrp0/group0/gpu/dev0",
+				},
 			},
 		},
 	)
+	testCnt++
 	//sampleTest(pod, podEx, nodeInfo)
-	testPodAllocs(t, pod, podEx, nodeInfo)
+	testPodAllocs(t, pod, podEx, nodeInfo, testCnt)
+
+	// test gpu affinity group
+	nodeInfo, nodeArgs = createNode("node1",
+		map[string]int64{"A1": 4000, "B1": 3000},
+		map[string]int64{
+			"gpugrp1/0/gpugrp0/0/gpu/dev0/memory": 100000, "gpugrp1/0/gpugrp0/0/gpu/dev0/cards": 1,
+			"gpugrp1/0/gpugrp0/0/gpu/dev1/memory": 256000, "gpugrp1/0/gpugrp0/0/gpu/dev1/cards": 1,
+			"gpugrp1/0/gpugrp0/1/gpu/dev2/memory": 257000, "gpugrp1/0/gpugrp0/1/gpu/dev2/cards": 1,
+			"gpugrp1/0/gpugrp0/1/gpu/dev3/memory": 192000, "gpugrp1/0/gpugrp0/1/gpu/dev3/cards": 1,
+			"gpugrp1/1/gpugrp0/2/gpu/dev4/memory": 178000, "gpugrp1/1/gpugrp0/2/gpu/dev4/cards": 1,
+			"gpugrp1/1/gpugrp0/2/gpu/dev5/memory": 100000, "gpugrp1/1/gpugrp0/2/gpu/dev5/cards": 1,
+			"gpugrp1/1/gpugrp0/3/gpu/dev6/memory": 256000, "gpugrp1/1/gpugrp0/3/gpu/dev6/cards": 1,
+			"gpugrp1/1/gpugrp0/3/gpu/dev7/memory": 257000, "gpugrp1/1/gpugrp0/3/gpu/dev7/cards": 1,
+		},
+	)
+	pod, podEx = createPod("pod4", 0.125,
+		[]cont{},
+		[]cont{
+			{name: "Run0",
+				grpres: map[string]int64{
+					"gpugrp0/A/gpu/a/cards": 1,
+					"gpugrp0/A/gpu/b/cards": 1},
+				expectedGrpLoc: map[string]string{
+					"gpugrp1/0/gpugrp0/A/gpu/a": "gpugrp1/1/gpugrp0/3/gpu/dev7",
+					"gpugrp1/0/gpugrp0/A/gpu/b": "gpugrp1/1/gpugrp0/3/gpu/dev6"},
+			},
+		},
+	)
+	testCnt++
+	//sampleTest(pod, podEx, nodeInfo, testCnt)
+	testPodAllocs(t, pod, podEx, nodeInfo, testCnt)
+
+	// recreate node
+	nodeInfo = createNodeArgs(&nodeArgs)
+	pod, podEx = createPod("pod5", 0.375,
+		[]cont{},
+		[]cont{
+			{name: "Run0",
+				// try for 3 at lower level
+				grpres: map[string]int64{
+					"gpugrp1/0/gpugrp0/A/gpu/a/cards": 1,
+					"gpugrp1/0/gpugrp0/B/gpu/b/cards": 1,
+					"gpugrp1/0/gpugrp0/C/gpu/c/cards": 1,
+					"gpugrp1/0/gpugrp0/D/gpu/d/cards": 1,
+					"gpugrp0/A/gpu/a/cards":           1,
+					"gpugrp0/A/gpu/b/cards":           1,
+				},
+				expectedGrpLoc: map[string]string{
+					"gpugrp1/0/gpugrp0/A/gpu/a": "gpugrp1/1/gpugrp0/3/gpu/dev7",
+					"gpugrp1/0/gpugrp0/B/gpu/b": "gpugrp1/1/gpugrp0/3/gpu/dev6",
+					"gpugrp1/0/gpugrp0/C/gpu/c": "gpugrp1/1/gpugrp0/2/gpu/dev5",
+					"gpugrp1/0/gpugrp0/D/gpu/d": "gpugrp1/1/gpugrp0/2/gpu/dev4",
+					"gpugrp1/1/gpugrp0/A/gpu/a": "gpugrp1/0/gpugrp0/1/gpu/dev3",
+					"gpugrp1/1/gpugrp0/A/gpu/b": "gpugrp1/0/gpugrp0/1/gpu/dev2",
+				},
+			},
+		},
+	)
+	testCnt++
+	//sampleTest(pod, podEx, nodeInfo, testCnt)
+	testPodAllocs(t, pod, podEx, nodeInfo, testCnt)
 
 	glog.Flush()
 }

@@ -7,16 +7,24 @@ import (
 )
 
 // LeftoverScoreFunc provides default scoring function
-func LeftoverScoreFunc(allocatable int64, usedByPod int64, usedByNode int64, requested int64, initContainer bool) (
+func LeftoverScoreFunc(allocatable int64, usedByPod int64, usedByNode int64, requested []int64, initContainer bool) (
 	found bool, score float64, usedByContainer int64, newUsedByPod, newUsedByNode int64) {
 
-	usedByContainer = requested
+	totalRequested := int64(0)
+	if requested != nil {
+		for _, request := range requested {
+			totalRequested += request
+		}
+	}
+
+	usedByContainer = totalRequested
 
 	if !initContainer {
-		newUsedByPod = usedByPod + requested
+		newUsedByPod = usedByPod + totalRequested
 	} else {
-		if requested > usedByPod {
-			newUsedByPod = requested
+		// for InitContainers
+		if totalRequested > usedByPod {
+			newUsedByPod = totalRequested
 		} else {
 			newUsedByPod = usedByPod
 		}
@@ -33,19 +41,19 @@ func LeftoverScoreFunc(allocatable int64, usedByPod int64, usedByNode int64, req
 	}
 	found = (leftoverI >= 0)
 
-	return found, score, usedByContainer, newUsedByPod, newUsedByNode // score will be between 0.0 and 1.0 if found = true
+	return // score will be between 0.0 and 1.0 if found = true
 }
 
 // AlwaysFoundScoreFunc provides something that always returns true
 // want to make allocatable-used as close to requested
-func AlwaysFoundScoreFunc(allocatable int64, usedByPod int64, usedByNode int64, requested int64, initContainer bool) (
+func AlwaysFoundScoreFunc(allocatable int64, usedByPod int64, usedByNode int64, requested []int64, initContainer bool) (
 	found bool, score float64, usedByContainer int64, newUsedByPod, newUsedByNode int64) {
 
 	found, score, usedByContainer, newUsedByPod, newUsedByNode = LeftoverScoreFunc(allocatable, usedByPod, usedByNode, requested, initContainer)
 	diff := 1.0 - score          // between -Inf and 1.0
 	diff = math.Max(-1.0, diff)  // between -1.0 and 1.0
 	score = 1.0 - math.Abs(diff) // between 0.0 and 1.0
-	return found, score, usedByContainer, newUsedByPod, newUsedByNode
+	return
 }
 
 // Straight and simple C to Go translation from https://en.wikipedia.org/wiki/Hamming_weight
@@ -63,10 +71,17 @@ func popcount(x uint64) int {
 }
 
 // EnumScoreFunc returns bitwise score
-func EnumScoreFunc(allocatable int64, usedByPod int64, usedByNode int64, requested int64, initContainer bool) (
+func EnumScoreFunc(allocatable int64, usedByPod int64, usedByNode int64, requested []int64, initContainer bool) (
 	found bool, score float64, usedByContainer int64, newUsedByPod, newUsedByNode int64) {
 
-	usedMask := uint64(allocatable & (usedByPod | requested))
+	totalRequested := int64(0)
+	if requested != nil {
+		for _, request := range requested {
+			totalRequested |= request
+		}
+	}
+
+	usedMask := uint64(allocatable & (usedByPod | totalRequested))
 	bitCntAlloc := popcount(uint64(allocatable))
 	bitCntUsed := popcount(usedMask)
 	leftoverI := bitCntAlloc - bitCntUsed
@@ -77,12 +92,27 @@ func EnumScoreFunc(allocatable int64, usedByPod int64, usedByNode int64, request
 	} else {
 		score = 0.0
 	}
-	found = ((uint64(allocatable) & uint64(requested)) != 0) // at least one bit true
-	usedByContainer = allocatable & requested
+	if totalRequested != 0 {
+		found = ((uint64(allocatable) & uint64(totalRequested)) != 0) // at least one bit true
+	} else {
+		found = true
+	}
+	usedByContainer = totalRequested
 	newUsedByPod = int64(usedMask)
 	newUsedByNode = 0
 
-	return found, score, usedByContainer, newUsedByPod, newUsedByNode
+	return
+}
+
+// DefaultScorer returns default scorer given a name
+func DefaultScorer(resource v1.ResourceName) v1.ResourceScoreFunc {
+	if !PrecheckedResource(resource) {
+		if !v1.IsEnumResource(resource) {
+			return LeftoverScoreFunc
+		}
+		return EnumScoreFunc
+	}
+	return nil
 }
 
 func SetScorer(resource v1.ResourceName, scorerType int32) v1.ResourceScoreFunc {
@@ -100,15 +130,4 @@ func SetScorer(resource v1.ResourceName, scorerType int32) v1.ResourceScoreFunc 
 
 func PrecheckedResource(constraint v1.ResourceName) bool {
 	return !v1.IsGroupResourceName(constraint)
-}
-
-// DefaultScorer returns default scorer given a name
-func DefaultScorer(resource v1.ResourceName) v1.ResourceScoreFunc {
-	if !PrecheckedResource(resource) {
-		if !v1.IsEnumResource(resource) {
-			return LeftoverScoreFunc
-		}
-		return EnumScoreFunc
-	}
-	return nil
 }

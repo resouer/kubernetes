@@ -209,7 +209,7 @@ func (n *NodeInfo) updateGroupResourceForContainer(cont *api.Container, bInitCon
 		if scorerFn == nil {
 			scorerFn = scorer.SetScorer(resource, cont.Resources.Scorer[resource])
 		}
-		_, _, _, newPodUsed, newNodeUsed := scorerFn(allocatableRes, podRes, nodeRes, val, bInitContainer)
+		_, _, _, newPodUsed, newNodeUsed := scorerFn(allocatableRes, podRes, nodeRes, []int64{val}, bInitContainer)
 		podResources[allocatedFrom] = newPodUsed
 		updatedUsedByNode[allocatedFrom] = newNodeUsed
 	}
@@ -225,14 +225,23 @@ func (n *NodeInfo) ComputePodGroupResources(spec *api.PodSpec, bRemovePod bool) 
 		updatedUsedByNode[key] = val
 	}
 
+	// for removal, go over init containers first
+	if bRemovePod {
+		for _, cont := range spec.InitContainers {
+			n.updateGroupResourceForContainer(&cont, true, bRemovePod, podResources, updatedUsedByNode)
+		}
+	}
+
 	// go over running containers to compute utilized resources
 	for _, cont := range spec.Containers {
 		n.updateGroupResourceForContainer(&cont, false, bRemovePod, podResources, updatedUsedByNode)
 	}
 
 	// now go over init containers to compute resources required
-	for _, cont := range spec.InitContainers {
-		n.updateGroupResourceForContainer(&cont, true, bRemovePod, podResources, updatedUsedByNode)
+	if !bRemovePod {
+		for _, cont := range spec.InitContainers {
+			n.updateGroupResourceForContainer(&cont, true, bRemovePod, podResources, updatedUsedByNode)
+		}
 	}
 
 	return podResources, updatedUsedByNode

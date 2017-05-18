@@ -26,6 +26,8 @@ import (
 
 	"github.com/golang/glog"
 
+	"strconv"
+
 	v1 "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/kubelet/dockertools"
@@ -36,14 +38,28 @@ type memoryInfo struct {
 	Global int64 `json:"Global"`
 }
 
+type pciInfo struct {
+	BusID     string `json:"BusID"`
+	Bandwidth int64  `json:"Bandwidth"`
+}
+
+type topologyInfo struct {
+	BusID string `json:"BusID"`
+	Link  int32  `json:"Link"`
+}
+
 type gpuInfo struct {
-	ID     string     `json:"UUID"`
-	Model  string     `json:"Model"`
-	Path   string     `json:"Path"`
-	Memory memoryInfo `json:"Memory"`
-	Found  bool       `json:"-"`
-	Index  int        `json:"-"`
-	InUse  bool       `json:"-"`
+	ID       string         `json:"UUID"`
+	Model    string         `json:"Model"`
+	Path     string         `json:"Path"`
+	Memory   memoryInfo     `json:"Memory"`
+	PCI      pciInfo        `json:"PCI"`
+	Topology []topologyInfo `json:"Topology"`
+	Found    bool           `json:"-"`
+	Index    int            `json:"-"`
+	InUse    bool           `json:"-"`
+	TopoDone bool           `json:"-"`
+	Name     string         `json:"-"`
 }
 
 type versionInfo struct {
@@ -58,10 +74,12 @@ type gpusInfo struct {
 // nvidiaGPUManager manages nvidia gpu devices.
 type nvidiaGPUManager struct {
 	sync.Mutex
-	np       NvidiaPlugin
-	gpus     map[string]gpuInfo
-	pathToID map[string]string
-	numGpus  int
+	np        NvidiaPlugin
+	gpus      map[string]gpuInfo
+	pathToID  map[string]string
+	busIDToID map[string]string
+	indexToID []string
+	numGpus   int
 }
 
 // NewNvidiaGPUManager returns a GPUManager that manages local Nvidia GPUs.
@@ -72,6 +90,46 @@ func NewNvidiaGPUManager(dockerClient dockertools.DockerInterface) (gpu.GPUManag
 	}
 	plugin := &NvidiaDockerPlugin{}
 	return &nvidiaGPUManager{gpus: make(map[string]gpuInfo), np: plugin}, nil
+}
+
+func arrayContains(arr []int32, val int32) bool {
+	for _, elem := range arr {
+		if val == elem {
+			return true
+		}
+	}
+	return false
+}
+
+// topology discovery
+func (ngm *nvidiaGPUManager) topologyDiscovery(links []int32, level int32) {
+	for id, copy := range ngm.gpus {
+		copy.TopoDone = false
+		ngm.gpus[id] = copy
+	}
+	linkID := 0
+	for _, id := range ngm.indexToID {
+		copy := ngm.gpus[id]
+		if !ngm.gpus[id].Found || ngm.gpus[id].TopoDone {
+			continue
+		}
+		prefix := "gpugrp" + strconv.Itoa(int(level)) + "/" + strconv.Itoa(int(linkID))
+		linkID++
+		copy.Name = prefix + "/" + ngm.gpus[id].Name
+		copy.TopoDone = true
+		ngm.gpus[id] = copy
+		for _, topolink := range ngm.gpus[id].Topology {
+			if arrayContains(links, topolink.Link) {
+				idOnLink := ngm.busIDToID[topolink.BusID]
+				gpuOnLink := ngm.gpus[idOnLink]
+				if gpuOnLink.Found {
+					gpuOnLink.Name = prefix + "/" + gpuOnLink.Name
+					gpuOnLink.TopoDone = true
+					ngm.gpus[idOnLink] = gpuOnLink
+				}
+			}
+		}
+	}
 }
 
 // Initialize the GPU devices
@@ -88,6 +146,11 @@ func (ngm *nvidiaGPUManager) UpdateGPUInfo() error {
 	if err := json.Unmarshal(body, &gpus); err != nil {
 		return err
 	}
+	// convert certain resources to correct units, such as memory and Bandwidth
+	for i := range gpus.Gpus {
+		gpus.Gpus[i].Memory.Global *= int64(1024) * int64(1024) // in units of MiB
+		gpus.Gpus[i].PCI.Bandwidth *= int64(1000) * int64(1000) // in units of MB
+	}
 
 	for key := range ngm.gpus {
 		copy := ngm.gpus[key]
@@ -96,6 +159,8 @@ func (ngm *nvidiaGPUManager) UpdateGPUInfo() error {
 	}
 	// go over found GPUs and reassign
 	ngm.pathToID = make(map[string]string)
+	ngm.busIDToID = make(map[string]string)
+	ngm.indexToID = make([]string, len(gpus.Gpus))
 	for index, gpuFound := range gpus.Gpus {
 		gpu, available := ngm.gpus[gpuFound.ID]
 		if available {
@@ -103,10 +168,39 @@ func (ngm *nvidiaGPUManager) UpdateGPUInfo() error {
 		}
 		gpuFound.Found = true
 		gpuFound.Index = index
+		gpuFound.Name = "gpu/" + gpuFound.ID
 		ngm.gpus[gpuFound.ID] = gpuFound
 		ngm.pathToID[gpuFound.Path] = gpuFound.ID
+		ngm.busIDToID[gpuFound.PCI.BusID] = gpuFound.ID
+		ngm.indexToID[index] = gpuFound.ID
 	}
+	// set numGpus to number found -- not to len(ngm.gpus)
 	ngm.numGpus = len(gpus.Gpus) // if ngm.numGpus <> len(ngm.gpus), then some gpus have gone missing
+
+	// perform topology discovery to reassign name
+	// more information regarding various "link types" can be found in https://github.com/nvidia/nvidia-docker/blob/master/src/nvml/nvml.go
+	// const (
+	// 	P2PLinkUnknown P2PLinkType = iota
+	// 	P2PLinkCrossCPU
+	// 	P2PLinkSameCPU
+	// 	P2PLinkHostBridge
+	// 	P2PLinkMultiSwitch
+	// 	P2PLinkSingleSwitch
+	// 	P2PLinkSameBoard
+	// )
+	// For topology levels, see https://docs.nvidia.com/deploy/pdf/NVML_API_Reference_Guide.pdf
+	// NVML_TOPOLOGY_INTERNAL = 0 (translate to level 6)
+	// NVML_TOPOLOGY_SINGLE = 10 (level 5)
+	// NVML_TOPOLOGY_MULTIPLE = 20 (level 4)
+	// NVML_TOPOLOGY_HOSTBRIDGE = 30 (level 3)
+	// NVML_TOPOLOGY_CPU = 40 (level 2)
+	// NVML_TOPOLOGY_SYSTEM = 50 (level 1)
+	//
+	// can have more levels if desired, but perhaps two levels are sufficient
+	// link "5" discovery - put 6, 5, 4 in first group
+	ngm.topologyDiscovery([]int32{6, 5, 4}, 0)
+	// link "5, 3"" discovery - put all in higher group
+	ngm.topologyDiscovery([]int32{6, 5, 4, 3, 2, 1}, 1)
 
 	return nil
 }
@@ -119,14 +213,15 @@ func (ngm *nvidiaGPUManager) Start() error {
 // Get how many GPU cards we have.
 func (ngm *nvidiaGPUManager) Capacity() v1.ResourceList {
 	ngm.UpdateGPUInfo() // don't care about error, ignore it
-	gpus := resource.NewQuantity(int64(ngm.numGpus), resource.DecimalSI)
 	resourceList := make(v1.ResourceList)
+	// first add # of gpus to resource list
+	gpus := resource.NewQuantity(int64(ngm.numGpus), resource.DecimalSI)
 	resourceList[v1.ResourceNvidiaGPU] = *gpus
 	for _, val := range ngm.gpus {
-		//gpuID := strconv.Itoa(i)
-		gpuID := val.ID
-		gpu.AddResource(resourceList, v1.ResourceGroupPrefix+"/gpu/"+gpuID+"/memory", val.Memory.Global*int64(1024)*int64(1024))
-		gpu.AddResource(resourceList, v1.ResourceGroupPrefix+"/gpu/"+gpuID+"/cards", int64(1))
+		if val.Found { // if currently discovered
+			gpu.AddResource(resourceList, val.Name+"/memory", val.Memory.Global)
+			gpu.AddResource(resourceList, val.Name+"/cards", int64(1))
+		}
 	}
 	return resourceList
 }
@@ -139,7 +234,8 @@ func (ngm *nvidiaGPUManager) AllocateGPU(pod *v1.Pod, container *v1.Container) (
 	ngm.Lock()
 	defer ngm.Unlock()
 
-	re := regexp.MustCompile(v1.ResourceGroupPrefix + "/gpu/" + `(.*?)/cards`)
+	//re := regexp.MustCompile(v1.ResourceGroupPrefix + "/gpu/" + `(.*?)/cards`)
+	re := regexp.MustCompile(v1.ResourceGroupPrefix + "/gpugrp1/.*/gpugrp0/.*/gpu/" + `(.*?)/cards`)
 
 	devices := []int{}
 	for _, res := range container.Resources.AllocateFrom {
