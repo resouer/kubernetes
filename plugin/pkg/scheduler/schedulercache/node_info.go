@@ -205,10 +205,7 @@ func (n *NodeInfo) updateGroupResourceForContainer(cont *api.Container, bInitCon
 		allocatableRes := allocatable[allocatedFrom]
 		podRes := podResources[allocatedFrom]
 		nodeRes := updatedUsedByNode[allocatedFrom]
-		scorerFn := cont.Resources.ScorerFn[resource]
-		if scorerFn == nil {
-			scorerFn = scorer.SetScorer(resource, cont.Resources.Scorer[resource])
-		}
+		scorerFn := scorer.SetScorer(resource, cont.Resources.Scorer[resource])
 		_, _, _, newPodUsed, newNodeUsed := scorerFn(allocatableRes, podRes, nodeRes, []int64{val}, bInitContainer)
 		podResources[allocatedFrom] = newPodUsed
 		updatedUsedByNode[allocatedFrom] = newNodeUsed

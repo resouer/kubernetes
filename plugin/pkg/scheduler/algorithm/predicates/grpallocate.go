@@ -111,10 +111,10 @@ type GrpAllocator struct {
 	PreferUsed    bool
 	// required resource and scorer
 	RequiredResource map[string]int64
-	ReqScorer        map[string]v1.ResourceScoreFunc
+	ReqScorer        map[string]scorer.ResourceScoreFunc
 	// allocatable resource and scorer
 	AllocResource map[string]int64
-	AllocScorer   map[string]v1.ResourceScoreFunc
+	AllocScorer   map[string]scorer.ResourceScoreFunc
 
 	// Global read/write info
 	UsedGroups map[string]bool
@@ -441,7 +441,7 @@ func (grp *GrpAllocator) allocateGroup() (bool, []algorithm.PredicateFailureReas
 
 // allocate the main group
 func containerFitsGroupConstraints(contReq *v1.Container, initContainer bool,
-	allocatable *schedulercache.Resource, allocScorer map[string]v1.ResourceScoreFunc,
+	allocatable *schedulercache.Resource, allocScorer map[string]scorer.ResourceScoreFunc,
 	podResource map[string]int64, nodeResource map[string]int64,
 	usedGroups map[string]bool, bPreferUsed bool, bSetAllocateFrom bool) (
 	*GrpAllocator, bool, []algorithm.PredicateFailureReason, float64) {
@@ -451,22 +451,18 @@ func containerFitsGroupConstraints(contReq *v1.Container, initContainer bool,
 	// Required resources
 	reqName := make(map[string]string)
 	req := make(map[string]int64)
-	reqScorer := make(map[string]v1.ResourceScoreFunc)
+	reqScorer := make(map[string]scorer.ResourceScoreFunc)
 	// Quantitites available on NodeInfo
 	allocName := make(map[string](map[string]string))
 	alloc := make(map[string]int64)
 	glog.V(5).Infoln("Allocating for container", contReq.Name)
 	glog.V(7).Infoln("Requests", contReq.Resources.Requests)
 	glog.V(7).Infoln("AllocatableRes", allocatable.OpaqueIntResources)
-	if contReq.Resources.ScorerFn == nil {
-		contReq.Resources.ScorerFn = make(map[v1.ResourceName]v1.ResourceScoreFunc)
-	}
 	for reqRes, reqVal := range contReq.Resources.Requests {
 		if !scorer.PrecheckedResource(reqRes) {
 			reqName[string(reqRes)] = string(reqRes)
 			req[string(reqRes)] = reqVal.Value()
 			scoreFn := scorer.SetScorer(reqRes, contReq.Resources.Scorer[reqRes])
-			contReq.Resources.ScorerFn[reqRes] = scoreFn
 			reqScorer[string(reqRes)] = scoreFn
 		}
 	}
@@ -558,8 +554,8 @@ func PodClearAllocateFrom(spec *v1.PodSpec) {
 	}
 }
 
-func setScoreFunc(r *schedulercache.Resource) map[string]v1.ResourceScoreFunc {
-	scorerFn := make(map[string]v1.ResourceScoreFunc)
+func setScoreFunc(r *schedulercache.Resource) map[string]scorer.ResourceScoreFunc {
+	scorerFn := make(map[string]scorer.ResourceScoreFunc)
 	for key := range r.OpaqueIntResources {
 		keyS := string(key)
 		//scorerFn[keyS] = DefaultScorer(keyS)

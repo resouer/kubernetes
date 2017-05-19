@@ -1251,8 +1251,6 @@ type ResourceRequirements struct {
 	AllocateFrom ResourceLocation `json:"allocatefrom,omitempty"`
 	// Scorer describes scoring, checking, and taking of resource
 	Scorer ResourceScorer `json:"scorer,omitempty"`
-	// ScorerFn is the scoring function used
-	ScorerFn map[ResourceName]ResourceScoreFunc `json:"-"`
 }
 
 // Container represents a single container that is expected to be run on the host.
@@ -2686,10 +2684,6 @@ const (
 	LeftOverScorer
 	EnumLeftOverScorer
 )
-
-// ResourceScoreFunc is a function which takes in (allocatable, usedByPod, usedByNode, requested, initContainer) resources
-// and returns (resourceFits, score, usedByContainer, newUsedByPod, newUsedByNode)
-type ResourceScoreFunc func(alloctable int64, usedByPod int64, usedByNode int64, requested []int64, initContainer bool) (bool, float64, int64, int64, int64)
 
 // +genclient=true
 // +nonNamespaced=true

@@ -24,7 +24,6 @@ import (
 	"github.com/golang/glog"
 
 	v1 "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/plugin/pkg/scheduler/schedulercache"
 )
 
@@ -47,75 +46,6 @@ func (gms *gpuManagerStub) AllocateGPU(_ *v1.Pod, _ *v1.Container) (volumeName s
 
 func NewGPUManagerStub() GPUManager {
 	return &gpuManagerStub{}
-}
-
-func AddResource(list v1.ResourceList, key string, val int64) {
-	list[v1.ResourceName(v1.ResourceGroupPrefix+"/"+key)] = *resource.NewQuantity(val, resource.DecimalSI)
-}
-
-// Resource translation to max level specified in nodeInfo
-
-// TranslateResource translates resources to next level
-func TranslateResource(nodeInfo *schedulercache.NodeInfo, container *v1.Container,
-	thisStage string, nextStage string) bool {
-
-	// see if translation needed
-	translationNeeded := false
-	re := regexp.MustCompile(`.*/` + thisStage + `/(.*?)/` + nextStage + `(.*)`)
-	for key := range nodeInfo.AllocatableResource().OpaqueIntResources {
-		matches := re.FindStringSubmatch(string(key))
-		if (len(matches)) >= 2 {
-			translationNeeded = true
-			break
-		}
-	}
-	if !translationNeeded {
-		return false
-	}
-
-	// find max existing index
-	maxGroupIndex := -1
-	for res := range container.Resources.Requests {
-		matches := re.FindStringSubmatch(string(res))
-		if len(matches) >= 2 {
-			groupIndex, err := strconv.Atoi(matches[1])
-			if err == nil {
-				if groupIndex > maxGroupIndex {
-					maxGroupIndex = groupIndex
-				}
-			}
-		}
-	}
-
-	groupIndex := maxGroupIndex + 1
-	re2 := regexp.MustCompile(`(.*?/)` + nextStage + `/((.*?)/(.*))`)
-	newList := make(v1.ResourceList)
-	groupMap := make(map[string]string)
-	// ordered addition to make sure groupIndex is deterministic based on order
-	reqKeys := v1.SortedStringKeys(container.Resources.Requests)
-	resourceModified := false
-	for _, resKey := range reqKeys {
-		val := container.Resources.Requests[v1.ResourceName(resKey)]
-		matches := re.FindStringSubmatch(string(resKey))
-		newResKey := v1.ResourceName(resKey)
-		if len(matches) == 0 { // does not qualify as thisStage resource
-			matches = re2.FindStringSubmatch(string(resKey))
-			if len(matches) >= 5 { // does qualify as next stage resource
-				mapGrp, available := groupMap[matches[3]]
-				if !available {
-					groupMap[matches[3]] = strconv.Itoa(groupIndex)
-					groupIndex++
-					mapGrp = groupMap[matches[3]]
-				}
-				newResKey = v1.ResourceName(matches[1] + thisStage + "/" + mapGrp + "/" + nextStage + "/" + matches[2])
-				glog.V(7).Infof("Writing new resource %v - old %v", newResKey, resKey)
-				resourceModified = true
-			}
-		}
-		newList[newResKey] = val
-	}
-	container.Resources.Requests = newList
-	return resourceModified
 }
 
 // TranslateGPUResources translates GPU resources to max level
@@ -145,14 +75,16 @@ func TranslateGPUResources(nodeInfo *schedulercache.NodeInfo, container *v1.Cont
 	diffGPU := int(neededGPUs - int64(haveGPUs))
 	for i := 0; i < diffGPU; i++ {
 		gpuIndex := maxGPUIndex + i + 1
-		AddResource(requests, "gpu/"+strconv.Itoa(gpuIndex)+"/cards", 1)
+		v1.AddGroupResource(requests, "gpu/"+strconv.Itoa(gpuIndex)+"/cards", 1)
 		resourceModified = true
 	}
 
 	// perform 2nd stage translation if needed
-	resourceModified = resourceModified || TranslateResource(nodeInfo, container, "gpugrp0", "gpu")
+	resourceModified = resourceModified ||
+		v1.TranslateResource(nodeInfo.AllocatableResource().OpaqueIntResources, container, "gpugrp0", "gpu")
 	// perform 3rd stage translation if needed
-	resourceModified = resourceModified || TranslateResource(nodeInfo, container, "gpugrp1", "gpugrp0")
+	resourceModified = resourceModified ||
+		v1.TranslateResource(nodeInfo.AllocatableResource().OpaqueIntResources, container, "gpugrp1", "gpugrp0")
 
 	if resourceModified {
 		glog.V(3).Infoln("New Resources", container.Resources.Requests)
