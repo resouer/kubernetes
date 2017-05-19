@@ -3175,19 +3175,6 @@ func DeepCopy_v1_ResourceRequirements(in interface{}, out interface{}, c *conver
 		} else {
 			out.Scorer = nil
 		}
-		if in.ScorerFn != nil {
-			in, out := &in.ScorerFn, &out.ScorerFn
-			*out = make(map[ResourceName]ResourceScoreFunc)
-			for key, val := range *in {
-				if newVal, err := c.DeepCopy(&val); err != nil {
-					return err
-				} else {
-					(*out)[key] = *newVal.(*ResourceScoreFunc)
-				}
-			}
-		} else {
-			out.ScorerFn = nil
-		}
 		return nil
 	}
 }

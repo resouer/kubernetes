@@ -105,7 +105,7 @@ func EnumScoreFunc(allocatable int64, usedByPod int64, usedByNode int64, request
 }
 
 // DefaultScorer returns default scorer given a name
-func DefaultScorer(resource v1.ResourceName) v1.ResourceScoreFunc {
+func DefaultScorer(resource v1.ResourceName) ResourceScoreFunc {
 	if !PrecheckedResource(resource) {
 		if !v1.IsEnumResource(resource) {
 			return LeftoverScoreFunc
@@ -115,7 +115,7 @@ func DefaultScorer(resource v1.ResourceName) v1.ResourceScoreFunc {
 	return nil
 }
 
-func SetScorer(resource v1.ResourceName, scorerType int32) v1.ResourceScoreFunc {
+func SetScorer(resource v1.ResourceName, scorerType int32) ResourceScoreFunc {
 	if scorerType == v1.DefaultScorer {
 		return DefaultScorer(resource)
 	}

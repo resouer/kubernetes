@@ -1362,8 +1362,6 @@ type ResourceRequirements struct {
 	AllocateFrom ResourceLocation `json:"allocatefrom,omitempty" protobuf:"bytes,3,rep,name=allocatefrom,casttype=ResourceLocation,castkey=ResourceName"`
 	// Scorer describes scoring, checking, and taking of resource
 	Scorer ResourceScorer `json:"scorer,omitempty" protobuf:"bytes,4,rep,name=scorer,casttype=ResourceScorer,castkey=ResourceName"`
-	// ScorerFn is the scoring function used - always omit
-	ScorerFn map[ResourceName]ResourceScoreFunc `json:"-"`
 }
 
 const (

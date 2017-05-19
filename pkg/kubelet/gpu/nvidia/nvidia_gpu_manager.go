@@ -219,8 +219,8 @@ func (ngm *nvidiaGPUManager) Capacity() v1.ResourceList {
 	resourceList[v1.ResourceNvidiaGPU] = *gpus
 	for _, val := range ngm.gpus {
 		if val.Found { // if currently discovered
-			gpu.AddResource(resourceList, val.Name+"/memory", val.Memory.Global)
-			gpu.AddResource(resourceList, val.Name+"/cards", int64(1))
+			v1.AddGroupResource(resourceList, val.Name+"/memory", val.Memory.Global)
+			v1.AddGroupResource(resourceList, val.Name+"/cards", int64(1))
 		}
 	}
 	return resourceList
