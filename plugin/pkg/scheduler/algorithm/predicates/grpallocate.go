@@ -225,6 +225,10 @@ func (grp *GrpAllocator) resourceAvailable(resourceLocation string) (bool, []alg
 			allocatable := grp.AllocResource[globalName]
 			usedPod := grp.PodResource[globalName]
 			usedNode := grp.NodeResource[globalName]
+			if scoreFn == nil {
+				// if req scorer is nil (used to find if resource available), use nodeInfo score function
+				scoreFn = grp.AllocScorer[globalName]
+			}
 			// alternatively, current score can be passed in, and new score returned if score not additive
 			foundR, scoreR, _, podR, nodeR := scoreFn(allocatable, usedPod, usedNode, []int64{required}, grp.InitContainer)
 			if !foundR {
@@ -462,7 +466,13 @@ func containerFitsGroupConstraints(contReq *v1.Container, initContainer bool,
 		if !scorer.PrecheckedResource(reqRes) {
 			reqName[string(reqRes)] = string(reqRes)
 			req[string(reqRes)] = reqVal.Value()
-			scoreFn := scorer.SetScorer(reqRes, contReq.Resources.Scorer[reqRes])
+			scoreEnum, available := contReq.Resources.Scorer[reqRes]
+			var scoreFn scorer.ResourceScoreFunc
+			if available {
+				scoreFn = scorer.SetScorer(reqRes, scoreEnum)
+			} else {
+				scoreFn = nil
+			}
 			reqScorer[string(reqRes)] = scoreFn
 		}
 	}
@@ -554,11 +564,11 @@ func PodClearAllocateFrom(spec *v1.PodSpec) {
 	}
 }
 
+// set score function for alloctable resource at node
 func setScoreFunc(r *schedulercache.Resource) map[string]scorer.ResourceScoreFunc {
 	scorerFn := make(map[string]scorer.ResourceScoreFunc)
 	for key := range r.OpaqueIntResources {
 		keyS := string(key)
-		//scorerFn[keyS] = DefaultScorer(keyS)
 		scorerFn[keyS] = scorer.SetScorer(key, r.Scorer[key])
 	}
 	return scorerFn
@@ -575,6 +585,7 @@ func PodFitsGroupConstraints(n *schedulercache.NodeInfo, spec *v1.PodSpec) (bool
 
 	allocatableV := n.AllocatableResource()
 	allocatable := &allocatableV
+	// set score function for alloctable resources at node
 	scorer := setScoreFunc(allocatable)
 
 	// first go over running containers
