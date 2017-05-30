@@ -53,6 +53,7 @@ func AlwaysFoundScoreFunc(allocatable int64, usedByPod int64, usedByNode int64, 
 	diff := 1.0 - score          // between -Inf and 1.0
 	diff = math.Max(-1.0, diff)  // between -1.0 and 1.0
 	score = 1.0 - math.Abs(diff) // between 0.0 and 1.0
+	found = true
 	return
 }
 
