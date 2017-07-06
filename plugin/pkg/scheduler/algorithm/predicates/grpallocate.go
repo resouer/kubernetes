@@ -149,6 +149,9 @@ func (grp *GrpAllocator) createSubGroup(
 	// overwrite
 	subGrp.GrpRequiredResource = requiredSubGrps[grpName][grpIndex]
 	subGrp.GrpAllocResource = allocSubGrps[grpName]
+	if subGrp.GrpAllocResource == nil {
+		subGrp.GrpAllocResource = make(map[string](map[string]string))
+	}
 	subGrp.ReqBaseGroupName = grp.ReqBaseGroupName + "/" + grpName + "/" + grpIndex
 	subGrp.AllocBaseGroupPrefix = grp.AllocBaseGroupPrefix + "/" + resourceLocation + "/" + grpName
 	subGrp.Score = 0 // reset to zero
