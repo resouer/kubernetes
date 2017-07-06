@@ -333,8 +333,38 @@ func TestGrpAllocate1(t *testing.T) {
 	//sampleTest(pod, podEx, nodeInfo, testCnt)
 	testPodAllocs(t, pod, podEx, nodeInfo, testCnt)
 
-	// test with just numgpu
+	// test with init resources more than running
 	nodeInfo = createNodeArgs(&nodeArgs)
+	// required resources
+	pod, podEx = createPod("pod1", 0.58214,
+		[]cont{
+			{name: "Init0",
+				res:            map[string]int64{"A1": 2200, "B1": 2000},
+				grpres:         map[string]int64{"gpu/0/memory": 257000, "gpu/0/cards": 1},
+				expectedGrpLoc: map[string]string{"gpu/0": "gpu/dev2"}}},
+		[]cont{
+			{"Run0",
+				map[string]int64{"A1": 3000, "B1": 1000},
+				map[string]int64{
+					"gpu/a/memory": 256000, "gpu/a/cards": 1,
+					"gpu/b/memory": 178000, "gpu/b/cards": 1},
+				map[string]string{
+					"gpu/a": "gpu/dev2",
+					"gpu/b": "gpu/dev4"},
+			},
+			{name: "Run1",
+				res: map[string]int64{"A1": 1000, "B1": 2000},
+				grpres: map[string]int64{
+					"gpu/0/memory": 190000, "gpu/0/cards": 1, "gpu/0/enumType": int64(0x3)},
+				expectedGrpLoc: map[string]string{"gpu/0": "gpu/dev3"},
+			},
+		},
+	)
+	testCnt++
+	//sampleTest(pod, podEx, nodeInfo, testCnt)
+	testPodAllocs(t, pod, podEx, nodeInfo, testCnt)
+
+	// test with just numgpu
 	nodeInfo, nodeArgs = createNode("node1",
 		map[string]int64{"A1": 4000, "B1": 3000},
 		map[string]int64{

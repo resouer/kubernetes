@@ -212,8 +212,12 @@ func (ngm *nvidiaGPUManager) Start() error {
 
 // Get how many GPU cards we have.
 func (ngm *nvidiaGPUManager) Capacity() v1.ResourceList {
-	ngm.UpdateGPUInfo() // don't care about error, ignore it
+	err := ngm.UpdateGPUInfo() // don't care about error, ignore it
 	resourceList := make(v1.ResourceList)
+	if err != nil {
+		ngm.numGpus = 0
+		return resourceList // empty resource list
+	}
 	// first add # of gpus to resource list
 	gpus := resource.NewQuantity(int64(ngm.numGpus), resource.DecimalSI)
 	resourceList[v1.ResourceNvidiaGPU] = *gpus
