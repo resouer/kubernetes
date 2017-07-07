@@ -53,6 +53,9 @@ type NodeInfo struct {
 	// Whenever NodeInfo changes, generation is bumped.
 	// This is used to avoid cloning it if the object didn't change.
 	generation int64
+
+	// group score for group allocator
+	GroupScore map[string]float64
 }
 
 // Resource is a collection of compute resource.
@@ -94,6 +97,7 @@ func NewNodeInfo(pods ...*api.Pod) *NodeInfo {
 		allocatableResource: &Resource{},
 		allowedPodNumber:    0,
 		generation:          0,
+		GroupScore:          make(map[string]float64),
 	}
 	for _, pod := range pods {
 		ni.addPod(pod)

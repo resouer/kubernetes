@@ -86,6 +86,13 @@ type genericScheduler struct {
 	equivalenceCache *EquivalenceCache
 }
 
+func (g *genericScheduler) clearPodScoreFromNodes(pod *api.Pod, nodes []*api.Node) {
+	for _, node := range nodes {
+		info := g.cachedNodeInfoMap[node.Name]
+		delete(info.GroupScore, pod.Name)
+	}
+}
+
 // Schedule tries to schedule the given pod to one of node in the node list.
 // If it succeeds, it will return the name of the node.
 // If it fails, it will return a Fiterror error with reasons.
@@ -112,6 +119,8 @@ func (g *genericScheduler) Schedule(pod *api.Pod, nodeLister algorithm.NodeListe
 		return "", err
 	}
 
+	defer g.clearPodScoreFromNodes(pod, nodes)
+
 	// TODO(harryz) Check if equivalenceCache is enabled and call scheduleWithEquivalenceClass here
 
 	trace.Step("Computing predicates")
@@ -127,17 +136,29 @@ func (g *genericScheduler) Schedule(pod *api.Pod, nodeLister algorithm.NodeListe
 		}
 	}
 
+	originalPrioritizer := true
+
 	trace.Step("Prioritizing")
-	metaPrioritiesInterface := g.priorityMetaProducer(pod, g.cachedNodeInfoMap)
-	priorityList, err := PrioritizeNodes(pod, g.cachedNodeInfoMap, metaPrioritiesInterface, g.prioritizers, filteredNodes, g.extenders)
-	if err != nil {
-		return "", err
+	if originalPrioritizer {
+		metaPrioritiesInterface := g.priorityMetaProducer(pod, g.cachedNodeInfoMap)
+		priorityList, err := PrioritizeNodes(pod, g.cachedNodeInfoMap, metaPrioritiesInterface, g.prioritizers, filteredNodes, g.extenders)
+		if err != nil {
+			return "", err
+		}
+
+		trace.Step("Selecting host")
+		topNode, selectErr := g.selectHost(priorityList)
+
+		return topNode, selectErr
+	} else {
+		var hostList schedulerapi.HostPriorityList
+		for _, node := range filteredNodes {
+			hostList = append(hostList, schedulerapi.HostPriority{Host: node.Name, Score: int(g.cachedNodeInfoMap[node.Name].GroupScore[pod.Name] * 1000.0)})
+		}
+		sort.Sort(hostList)
+		index := len(hostList) / 4
+		return hostList[index].Host, nil
 	}
-
-	trace.Step("Selecting host")
-	topNode, selectErr := g.selectHost(priorityList)
-
-	return topNode, selectErr
 }
 
 // selectHost takes a prioritized list of nodes and then picks one

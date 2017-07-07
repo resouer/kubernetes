@@ -488,6 +488,7 @@ func podName(pod *api.Pod) string {
 
 func PodFitsResources(pod *api.Pod, meta interface{}, nodeInfo *schedulercache.NodeInfo) (bool, []algorithm.PredicateFailureReason, error) {
 	node := nodeInfo.Node()
+	nodeInfo.GroupScore[pod.Name] = 0.0
 	if node == nil {
 		return false, nil, fmt.Errorf("node not found")
 	}
@@ -527,8 +528,10 @@ func PodFitsResources(pod *api.Pod, meta interface{}, nodeInfo *schedulercache.N
 		}
 	}
 	// test for group resource constraints
-	if fits, reasons, _ := PodFitsGroupConstraints(nodeInfo, &pod.Spec); fits == false {
+	if fits, reasons, score := PodFitsGroupConstraints(nodeInfo, &pod.Spec); fits == false {
 		predicateFails = append(predicateFails, reasons...)
+	} else {
+		nodeInfo.GroupScore[pod.Name] = score
 	}
 
 	if glog.V(10) {
