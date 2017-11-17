@@ -20,6 +20,9 @@ import (
 	"sort"
 
 	"k8s.io/api/core/v1"
+	policy "k8s.io/api/policy/v1beta1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apiserver/pkg/util/feature"
 	"k8s.io/kubernetes/pkg/apis/scheduling"
 	"k8s.io/kubernetes/pkg/features"
@@ -209,4 +212,43 @@ func (l *SortableList) Sort() {
 // SortableList, but expects those arguments to be *v1.Pod.
 func HigherPriorityPod(pod1, pod2 interface{}) bool {
 	return GetPodPriority(pod1.(*v1.Pod)) > GetPodPriority(pod2.(*v1.Pod))
+}
+
+// FilterPodsWithPDBViolation groups the given "pods" into two groups of "violatingPods"
+// and "nonViolatingPods" based on whether their PDBs will be violated if they are
+// preempted.
+// This function is stable and does not change the order of received pods. So, if it
+// receives a sorted list, grouping will preserve the order of the input list.
+func FilterPodsWithPDBViolation(pods []interface{}, pdbs []*policy.PodDisruptionBudget) (violatingPods, nonViolatingPods []*v1.Pod) {
+	for _, obj := range pods {
+		pod := obj.(*v1.Pod)
+		pdbForPodIsViolated := false
+		// A pod with no labels will not match any PDB. So, no need to check.
+		if len(pod.Labels) != 0 {
+			for _, pdb := range pdbs {
+				if pdb.Namespace != pod.Namespace {
+					continue
+				}
+				selector, err := metav1.LabelSelectorAsSelector(pdb.Spec.Selector)
+				if err != nil {
+					continue
+				}
+				// A PDB with a nil or empty selector matches nothing.
+				if selector.Empty() || !selector.Matches(labels.Set(pod.Labels)) {
+					continue
+				}
+				// We have found a matching PDB.
+				if pdb.Status.PodDisruptionsAllowed <= 0 {
+					pdbForPodIsViolated = true
+					break
+				}
+			}
+		}
+		if pdbForPodIsViolated {
+			violatingPods = append(violatingPods, pod)
+		} else {
+			nonViolatingPods = append(nonViolatingPods, pod)
+		}
+	}
+	return violatingPods, nonViolatingPods
 }

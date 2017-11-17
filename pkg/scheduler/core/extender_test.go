@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"k8s.io/api/core/v1"
+	policy "k8s.io/api/policy/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/kubernetes/pkg/scheduler/algorithm"
@@ -112,20 +113,80 @@ type FakeExtender struct {
 	filteredNodes    []*v1.Node
 }
 
+// selectVictimsOnNodeByExtender checks the given nodes->pods map with predicates on extender's side.
+// Returns:
+// 1. More victim pods (if any) amended by preemption phase of extender.
+// 2. Number of violating victim (used to calculate PDB).
+// 3. Fits or not after preemption phase on extender's side.
+func (f *FakeExtender) selectVictimsOnNodeByExtender(
+	pod *v1.Pod,
+	node *v1.Node,
+	originVictims *schedulerapi.Victims,
+	pdbs []*policy.PodDisruptionBudget,
+) ([]*v1.Pod, int, bool) {
+	if fits, _ := f.runPredicate(pod, node); !fits {
+		return nil, 0, false
+	}
+
+	return []*v1.Pod{}, 0, true
+}
+
+func (f *FakeExtender) SupportsPreemption() bool {
+	return true
+}
+
+func (f *FakeExtender) ProcessPreemption(
+	pod *v1.Pod,
+	nodeToVictims map[string]*schedulerapi.Victims,
+	nodeNameToInfo map[string]*schedulercache.NodeInfo,
+	pdbs []*policy.PodDisruptionBudget,
+) (schedulerapi.ExtenderPreemptionResult, error) {
+	nodeToVictimsCopy := map[string]*schedulerapi.Victims{}
+	// We don't want to change the original nodeToVictims
+	for k, v := range nodeToVictims {
+		nodeToVictimsCopy[k] = v
+	}
+
+	for nodeName, victims := range nodeToVictimsCopy {
+		// Try to do preemption on extender side.
+		extenderVictimPods, extendernPDBViolations, fits := f.selectVictimsOnNodeByExtender(pod, nodeNameToInfo[nodeName].Node(), victims, pdbs)
+		// If it's unfit after extender's preemption, this node is unresolvable by preemption overall,
+		// let's remove it from potential preemption nodes.
+		if !fits {
+			delete(nodeToVictimsCopy, nodeName)
+		} else {
+			// Append new victims to original victims
+			nodeToVictimsCopy[nodeName].Pods = append(victims.Pods, extenderVictimPods...)
+			nodeToVictimsCopy[nodeName].NumPDBViolations = victims.NumPDBViolations + extendernPDBViolations
+		}
+	}
+	return nodeToVictimsCopy, nil
+}
+
+// runPredicate run predicates of extender one by one for given pod and node.
+// Returns: fits or not.
+func (f *FakeExtender) runPredicate(pod *v1.Pod, node *v1.Node) (bool, error) {
+	fits := true
+	var err error
+	for _, predicate := range f.predicates {
+		fits, err = predicate(pod, node)
+		if err != nil {
+			return false, err
+		}
+		if !fits {
+			break
+		}
+	}
+	return fits, nil
+}
+
 func (f *FakeExtender) Filter(pod *v1.Pod, nodes []*v1.Node, nodeNameToInfo map[string]*schedulercache.NodeInfo) ([]*v1.Node, schedulerapi.FailedNodesMap, error) {
 	filtered := []*v1.Node{}
 	failedNodesMap := schedulerapi.FailedNodesMap{}
 	for _, node := range nodes {
-		fits := true
-		for _, predicate := range f.predicates {
-			fit, err := predicate(pod, node)
-			if err != nil {
-				return []*v1.Node{}, schedulerapi.FailedNodesMap{}, err
-			}
-			if !fit {
-				fits = false
-				break
-			}
+		fits, err := f.runPredicate(pod, node)
+		if err != nil {
+			return []*v1.Node{}, schedulerapi.FailedNodesMap{}, err
 		}
 		if fits {
 			filtered = append(filtered, node)

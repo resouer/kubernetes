@@ -27,7 +27,6 @@ import (
 
 	"k8s.io/api/core/v1"
 	policy "k8s.io/api/policy/v1beta1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/errors"
 	utiltrace "k8s.io/apiserver/pkg/util/trace"
@@ -50,11 +49,6 @@ type FitError struct {
 	Pod              *v1.Pod
 	NumAllNodes      int
 	FailedPredicates FailedPredicateMap
-}
-
-type Victims struct {
-	pods             []*v1.Pod
-	numPDBViolations int
 }
 
 var ErrNoNodesAvailable = fmt.Errorf("no nodes available to schedule pods")
@@ -224,6 +218,7 @@ func (g *genericScheduler) Preempt(pod *v1.Pod, nodeLister algorithm.NodeLister,
 	if len(allNodes) == 0 {
 		return nil, nil, nil, ErrNoNodesAvailable
 	}
+
 	potentialNodes := nodesWherePreemptionMightHelp(pod, allNodes, fitError.FailedPredicates)
 	if len(potentialNodes) == 0 {
 		glog.V(3).Infof("Preemption will not help schedule pod %v on any node.", pod.Name)
@@ -234,31 +229,133 @@ func (g *genericScheduler) Preempt(pod *v1.Pod, nodeLister algorithm.NodeLister,
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	nodeToVictims, err := selectNodesForPreemption(pod, g.cachedNodeInfoMap, potentialNodes, g.predicates, g.predicateMetaProducer, g.schedulingQueue, pdbs)
+	nodeToVictims, err := selectNodesForPreemption(pod, g.cachedNodeInfoMap, potentialNodes, g.predicates,
+		g.predicateMetaProducer, g.schedulingQueue, pdbs)
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	for len(nodeToVictims) > 0 {
-		node := pickOneNodeForPreemption(nodeToVictims)
-		if node == nil {
-			return nil, nil, nil, err
+
+	candidateNodeName, err := g.processPreemptionWithExtenders(pod, nodeToVictims, pdbs)
+	if len(candidateNodeName) == 0 || err != nil {
+		return nil, nil, nil, err
+	}
+
+	// Lower priority pods nominated to run on this node, may no longer fit on
+	// this node. So, we should remove their nomination. Removing their
+	// nomination updates these pods and moves them to the active queue. It
+	// lets scheduler find another place for them.
+	nominatedPods := g.getLowerPriorityNominatedPods(pod, candidateNodeName)
+	if nodeInfo, ok := g.cachedNodeInfoMap[candidateNodeName]; ok {
+		return nodeInfo.Node(), nodeToVictims[candidateNodeName].Pods, nominatedPods, err
+	} else {
+		return nil, nil, nil, fmt.Errorf(
+			"preemption failed: the target node %s has been deleted from scheduler cache",
+			candidateNodeName)
+	}
+}
+
+// processPreemptionWithExtenders processes preemption with extenders
+func (g *genericScheduler) processPreemptionWithExtenders(
+	pod *v1.Pod,
+	nodeToVictims map[string]*schedulerapi.Victims,
+	pdbs []*policy.PodDisruptionBudget,
+) (string, error) {
+	// The final candidate node for preemption.
+	var candidateNodeName string
+
+	// Scheduler extenders that do not support preemption
+	nonPreemptingExtenders := []algorithm.SchedulerExtender{}
+
+	if len(nodeToVictims) > 0 {
+		for _, extender := range g.extenders {
+			if extender.SupportsPreemption() {
+				var err error
+				// Replace nodeToVictims with result after preemption from extender.
+				if nodeToVictims, err = extender.ProcessPreemption(pod,
+					nodeToVictims, g.cachedNodeInfoMap, pdbs); err != nil {
+					return "", err
+				}
+				// If node list has all removed, no preemption will happen, skip other extenders.
+				if len(nodeToVictims) == 0 {
+					break
+				}
+			} else {
+				nonPreemptingExtenders = append(nonPreemptingExtenders, extender)
+			}
 		}
-		passes, pErr := nodePassesExtendersForPreemption(pod, node.Name, nodeToVictims[node].pods, g.cachedNodeInfoMap, g.extenders)
+	}
+
+	// Unconditional call pickOneNodePassingNonPreemptingExtenders() since if nonPreemptingExtenders is empty,
+	// this will return result of pickOneNodeForPreemption() which is expected.
+	candidateNodeName = g.pickOneNodePassingNonPreemptingExtenders(pod, nodeToVictims, nonPreemptingExtenders)
+
+	return candidateNodeName, nil
+}
+
+// pickOneNodePassingNonPreemptingExtenders checks nodeToVictims with extenders which do not support ProcessPreemption(),
+// and returns the candidate node after checking.
+func (g *genericScheduler) pickOneNodePassingNonPreemptingExtenders(
+	pod *v1.Pod,
+	nodeToVictims map[string]*schedulerapi.Victims,
+	nonPreemptingExtenders []algorithm.SchedulerExtender) string {
+	for len(nodeToVictims) > 0 {
+		// 1. Pick a node from potential preemption node list
+		nodeName := pickOneNodeForPreemption(nodeToVictims)
+		if len(nodeName) == 0 {
+			return ""
+		}
+		// 2. Check if it passes Filter() check of all nonPreemptingExtenders
+		passes, pErr := nodePassesNonPreemptingExtenders(pod, nodeName, nodeToVictims[nodeName].Pods,
+			g.cachedNodeInfoMap, nonPreemptingExtenders)
+		// 3. If passes, we can use this node as preemption candidate.
 		if passes && pErr == nil {
-			// Lower priority pods nominated to run on this node, may no longer fit on
-			// this node. So, we should remove their nomination. Removing their
-			// nomination updates these pods and moves them to the active queue. It
-			// lets scheduler find another place for them.
-			nominatedPods := g.getLowerPriorityNominatedPods(pod, node.Name)
-			return node, nodeToVictims[node].pods, nominatedPods, err
+			return nodeName
 		}
 		if pErr != nil {
-			glog.Errorf("Error occurred while checking extenders for preemption on node %v: %v", node, pErr)
+			glog.Errorf("Error occurred while checking extenders for preemption on node %v: %v",
+				nodeName, pErr)
 		}
-		// Remove the node from the map and try to pick a different node.
-		delete(nodeToVictims, node)
+		// 4. Otherwise, remove the node from the map and try to pick a different node.
+		delete(nodeToVictims, nodeName)
 	}
-	return nil, nil, nil, err
+	return ""
+}
+
+// nodePassesNonPreemptingExtenders checks node with extenders' Filter() to make sure this node
+// is possible to be preempted.
+// This is a fall back method for those extenders that do not support preemption.
+func nodePassesNonPreemptingExtenders(
+	pod *v1.Pod,
+	nodeName string,
+	victims []*v1.Pod,
+	nodeNameToInfo map[string]*schedulercache.NodeInfo,
+	extenders []algorithm.SchedulerExtender) (bool, error) {
+	// If there are any extenders, run them and filter the list of candidate nodes.
+	if len(extenders) == 0 {
+		return true, nil
+	}
+	// Remove the victims from the corresponding nodeInfo and send nodes to the
+	// extenders for filtering.
+	originalNodeInfo := nodeNameToInfo[nodeName]
+	nodeInfoCopy := nodeNameToInfo[nodeName].Clone()
+	for _, victim := range victims {
+		nodeInfoCopy.RemovePod(victim)
+	}
+	nodeNameToInfo[nodeName] = nodeInfoCopy
+	defer func() { nodeNameToInfo[nodeName] = originalNodeInfo }()
+	filteredNodes := []*v1.Node{nodeInfoCopy.Node()}
+	for _, extender := range extenders {
+		var err error
+		var failedNodesMap map[string]string
+		filteredNodes, failedNodesMap, err = extender.Filter(pod, filteredNodes, nodeNameToInfo)
+		if err != nil {
+			return false, err
+		}
+		if _, found := failedNodesMap[nodeName]; found || len(filteredNodes) == 0 {
+			return false, nil
+		}
+	}
+	return true, nil
 }
 
 // GetLowerPriorityNominatedPods returns pods whose priority is smaller than the
@@ -664,27 +761,27 @@ func EqualPriorityMap(_ *v1.Pod, _ interface{}, nodeInfo *schedulercache.NodeInf
 // 4. If there are still ties, node with the minimum number of victims is picked.
 // 5. If there are still ties, the first such node is picked (sort of randomly).
 //TODO(bsalamat): Try to reuse the "min*Nodes" slices in order to save GC time.
-func pickOneNodeForPreemption(nodesToVictims map[*v1.Node]*Victims) *v1.Node {
+func pickOneNodeForPreemption(nodesToVictims map[string]*schedulerapi.Victims) string {
 	if len(nodesToVictims) == 0 {
-		return nil
+		return ""
 	}
 	minNumPDBViolatingPods := math.MaxInt32
-	var minPDBViolatingNodes []*v1.Node
-	for node, victims := range nodesToVictims {
-		if len(victims.pods) == 0 {
+	var minPDBViolatingNodes []string
+	for nodeName, victims := range nodesToVictims {
+		if len(victims.Pods) == 0 {
 			// We found a node that doesn't need any preemption. Return it!
 			// This should happen rarely when one or more pods are terminated between
 			// the time that scheduler tries to schedule the pod and the time that
 			// preemption logic tries to find nodes for preemption.
-			return node
+			return nodeName
 		}
-		numPDBViolatingPods := victims.numPDBViolations
+		numPDBViolatingPods := victims.NumPDBViolations
 		if numPDBViolatingPods < minNumPDBViolatingPods {
 			minNumPDBViolatingPods = numPDBViolatingPods
 			minPDBViolatingNodes = nil
 		}
 		if numPDBViolatingPods == minNumPDBViolatingPods {
-			minPDBViolatingNodes = append(minPDBViolatingNodes, node)
+			minPDBViolatingNodes = append(minPDBViolatingNodes, nodeName)
 		}
 	}
 	if len(minPDBViolatingNodes) == 1 {
@@ -694,17 +791,17 @@ func pickOneNodeForPreemption(nodesToVictims map[*v1.Node]*Victims) *v1.Node {
 	// There are more than one node with minimum number PDB violating pods. Find
 	// the one with minimum highest priority victim.
 	minHighestPriority := int32(math.MaxInt32)
-	var minPriorityNodes []*v1.Node
-	for _, node := range minPDBViolatingNodes {
-		victims := nodesToVictims[node]
+	var minPriorityNodes []string
+	for _, nodeName := range minPDBViolatingNodes {
+		victims := nodesToVictims[nodeName]
 		// highestPodPriority is the highest priority among the victims on this node.
-		highestPodPriority := util.GetPodPriority(victims.pods[0])
+		highestPodPriority := util.GetPodPriority(victims.Pods[0])
 		if highestPodPriority < minHighestPriority {
 			minHighestPriority = highestPodPriority
 			minPriorityNodes = nil
 		}
 		if highestPodPriority == minHighestPriority {
-			minPriorityNodes = append(minPriorityNodes, node)
+			minPriorityNodes = append(minPriorityNodes, nodeName)
 		}
 	}
 	if len(minPriorityNodes) == 1 {
@@ -714,10 +811,10 @@ func pickOneNodeForPreemption(nodesToVictims map[*v1.Node]*Victims) *v1.Node {
 	// There are a few nodes with minimum highest priority victim. Find the
 	// smallest sum of priorities.
 	minSumPriorities := int64(math.MaxInt64)
-	var minSumPriorityNodes []*v1.Node
-	for _, node := range minPriorityNodes {
+	var minSumPriorityNodes []string
+	for _, nodeName := range minPriorityNodes {
 		var sumPriorities int64
-		for _, pod := range nodesToVictims[node].pods {
+		for _, pod := range nodesToVictims[nodeName].Pods {
 			// We add MaxInt32+1 to all priorities to make all of them >= 0. This is
 			// needed so that a node with a few pods with negative priority is not
 			// picked over a node with a smaller number of pods with the same negative
@@ -729,7 +826,7 @@ func pickOneNodeForPreemption(nodesToVictims map[*v1.Node]*Victims) *v1.Node {
 			minSumPriorityNodes = nil
 		}
 		if sumPriorities == minSumPriorities {
-			minSumPriorityNodes = append(minSumPriorityNodes, node)
+			minSumPriorityNodes = append(minSumPriorityNodes, nodeName)
 		}
 	}
 	if len(minSumPriorityNodes) == 1 {
@@ -739,15 +836,15 @@ func pickOneNodeForPreemption(nodesToVictims map[*v1.Node]*Victims) *v1.Node {
 	// There are a few nodes with minimum highest priority victim and sum of priorities.
 	// Find one with the minimum number of pods.
 	minNumPods := math.MaxInt32
-	var minNumPodNodes []*v1.Node
-	for _, node := range minSumPriorityNodes {
-		numPods := len(nodesToVictims[node].pods)
+	var minNumPodNodes []string
+	for _, nodeName := range minSumPriorityNodes {
+		numPods := len(nodesToVictims[nodeName].Pods)
 		if numPods < minNumPods {
 			minNumPods = numPods
 			minNumPodNodes = nil
 		}
 		if numPods == minNumPods {
-			minNumPodNodes = append(minNumPodNodes, node)
+			minNumPodNodes = append(minNumPodNodes, nodeName)
 		}
 	}
 	// At this point, even if there are more than one node with the same score,
@@ -756,7 +853,7 @@ func pickOneNodeForPreemption(nodesToVictims map[*v1.Node]*Victims) *v1.Node {
 		return minNumPodNodes[0]
 	}
 	glog.Errorf("Error in logic of node scoring for preemption. We should never reach here!")
-	return nil
+	return ""
 }
 
 // selectNodesForPreemption finds all the nodes with possible victims for
@@ -768,9 +865,9 @@ func selectNodesForPreemption(pod *v1.Pod,
 	metadataProducer algorithm.PredicateMetadataProducer,
 	queue SchedulingQueue,
 	pdbs []*policy.PodDisruptionBudget,
-) (map[*v1.Node]*Victims, error) {
+) (map[string]*schedulerapi.Victims, error) {
 
-	nodeNameToVictims := map[*v1.Node]*Victims{}
+	nodeNameToVictims := map[string]*schedulerapi.Victims{}
 	var resultLock sync.Mutex
 
 	// We can use the same metadata producer for all nodes.
@@ -784,89 +881,16 @@ func selectNodesForPreemption(pod *v1.Pod,
 		pods, numPDBViolations, fits := selectVictimsOnNode(pod, metaCopy, nodeNameToInfo[nodeName], predicates, queue, pdbs)
 		if fits {
 			resultLock.Lock()
-			victims := Victims{
-				pods:             pods,
-				numPDBViolations: numPDBViolations,
+			victims := schedulerapi.Victims{
+				Pods:             pods,
+				NumPDBViolations: numPDBViolations,
 			}
-			nodeNameToVictims[potentialNodes[i]] = &victims
+			nodeNameToVictims[potentialNodes[i].Name] = &victims
 			resultLock.Unlock()
 		}
 	}
 	workqueue.Parallelize(16, len(potentialNodes), checkNode)
 	return nodeNameToVictims, nil
-}
-
-func nodePassesExtendersForPreemption(
-	pod *v1.Pod,
-	nodeName string,
-	victims []*v1.Pod,
-	nodeNameToInfo map[string]*schedulercache.NodeInfo,
-	extenders []algorithm.SchedulerExtender) (bool, error) {
-	// If there are any extenders, run them and filter the list of candidate nodes.
-	if len(extenders) == 0 {
-		return true, nil
-	}
-	// Remove the victims from the corresponding nodeInfo and send nodes to the
-	// extenders for filtering.
-	originalNodeInfo := nodeNameToInfo[nodeName]
-	nodeInfoCopy := nodeNameToInfo[nodeName].Clone()
-	for _, victim := range victims {
-		nodeInfoCopy.RemovePod(victim)
-	}
-	nodeNameToInfo[nodeName] = nodeInfoCopy
-	defer func() { nodeNameToInfo[nodeName] = originalNodeInfo }()
-	filteredNodes := []*v1.Node{nodeInfoCopy.Node()}
-	for _, extender := range extenders {
-		var err error
-		var failedNodesMap map[string]string
-		filteredNodes, failedNodesMap, err = extender.Filter(pod, filteredNodes, nodeNameToInfo)
-		if err != nil {
-			return false, err
-		}
-		if _, found := failedNodesMap[nodeName]; found || len(filteredNodes) == 0 {
-			return false, nil
-		}
-	}
-	return true, nil
-}
-
-// filterPodsWithPDBViolation groups the given "pods" into two groups of "violatingPods"
-// and "nonViolatingPods" based on whether their PDBs will be violated if they are
-// preempted.
-// This function is stable and does not change the order of received pods. So, if it
-// receives a sorted list, grouping will preserve the order of the input list.
-func filterPodsWithPDBViolation(pods []interface{}, pdbs []*policy.PodDisruptionBudget) (violatingPods, nonViolatingPods []*v1.Pod) {
-	for _, obj := range pods {
-		pod := obj.(*v1.Pod)
-		pdbForPodIsViolated := false
-		// A pod with no labels will not match any PDB. So, no need to check.
-		if len(pod.Labels) != 0 {
-			for _, pdb := range pdbs {
-				if pdb.Namespace != pod.Namespace {
-					continue
-				}
-				selector, err := metav1.LabelSelectorAsSelector(pdb.Spec.Selector)
-				if err != nil {
-					continue
-				}
-				// A PDB with a nil or empty selector matches nothing.
-				if selector.Empty() || !selector.Matches(labels.Set(pod.Labels)) {
-					continue
-				}
-				// We have found a matching PDB.
-				if pdb.Status.PodDisruptionsAllowed <= 0 {
-					pdbForPodIsViolated = true
-					break
-				}
-			}
-		}
-		if pdbForPodIsViolated {
-			violatingPods = append(violatingPods, pod)
-		} else {
-			nonViolatingPods = append(nonViolatingPods, pod)
-		}
-	}
-	return violatingPods, nonViolatingPods
 }
 
 // selectVictimsOnNode finds minimum set of pods on the given node that should
@@ -933,7 +957,7 @@ func selectVictimsOnNode(
 	// Try to reprieve as many pods as possible. We first try to reprieve the PDB
 	// violating victims and then other non-violating ones. In both cases, we start
 	// from the highest priority victims.
-	violatingVictims, nonViolatingVictims := filterPodsWithPDBViolation(potentialVictims.Items, pdbs)
+	violatingVictims, nonViolatingVictims := util.FilterPodsWithPDBViolation(potentialVictims.Items, pdbs)
 	reprievePod := func(p *v1.Pod) bool {
 		addPod(p)
 		fits, _, _ := podFitsOnNode(pod, meta, nodeInfoCopy, fitPredicates, nil, queue, false)
@@ -967,6 +991,7 @@ func nodesWherePreemptionMightHelp(pod *v1.Pod, nodes []*v1.Node, failedPredicat
 		// (which is the case today), the !found case should never happen, but we'd prefer
 		// to rely less on such assumptions in the code when checking does not impose
 		// significant overhead.
+		// Also, we currently assume all failures returned by extender as resolvable.
 		for _, failedPredicate := range failedPredicates {
 			switch failedPredicate {
 			case

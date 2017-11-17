@@ -660,11 +660,11 @@ func TestZeroRequest(t *testing.T) {
 	}
 }
 
-func printNodeToVictims(nodeToVictims map[*v1.Node]*Victims) string {
+func printNodeToVictims(nodeToVictims map[string]*schedulerapi.Victims) string {
 	var output string
-	for node, victims := range nodeToVictims {
-		output += node.Name + ": ["
-		for _, pod := range victims.pods {
+	for nodeName, victims := range nodeToVictims {
+		output += nodeName + ": ["
+		for _, pod := range victims.Pods {
 			output += pod.Name + ", "
 		}
 		output += "]"
@@ -672,15 +672,15 @@ func printNodeToVictims(nodeToVictims map[*v1.Node]*Victims) string {
 	return output
 }
 
-func checkPreemptionVictims(testName string, expected map[string]map[string]bool, nodeToPods map[*v1.Node]*Victims) error {
+func checkPreemptionVictims(testName string, expected map[string]map[string]bool, nodeToPods map[string]*schedulerapi.Victims) error {
 	if len(expected) == len(nodeToPods) {
 		for k, victims := range nodeToPods {
-			if expPods, ok := expected[k.Name]; ok {
-				if len(victims.pods) != len(expPods) {
+			if expPods, ok := expected[k]; ok {
+				if len(victims.Pods) != len(expPods) {
 					return fmt.Errorf("test [%v]: unexpected number of pods. expected: %v, got: %v", testName, expected, printNodeToVictims(nodeToPods))
 				}
 				prevPriority := int32(math.MaxInt32)
-				for _, p := range victims.pods {
+				for _, p := range victims.Pods {
 					// Check that pods are sorted by their priority.
 					if *p.Spec.Priority > prevPriority {
 						return fmt.Errorf("test [%v]: pod %v of node %v was not sorted by priority", testName, p.Name, k)
@@ -1050,16 +1050,16 @@ func TestPickOneNodeForPreemption(t *testing.T) {
 		}
 		nodeNameToInfo := schedulercache.CreateNodeNameToInfoMap(test.pods, nodes)
 		candidateNodes, _ := selectNodesForPreemption(test.pod, nodeNameToInfo, nodes, test.predicates, PredicateMetadata, nil, nil)
-		node := pickOneNodeForPreemption(candidateNodes)
+		nodeName := pickOneNodeForPreemption(candidateNodes)
 		found := false
-		for _, nodeName := range test.expected {
-			if node.Name == nodeName {
+		for _, name := range test.expected {
+			if nodeName == name {
 				found = true
 				break
 			}
 		}
 		if !found {
-			t.Errorf("test [%v]: unexpected node: %v", test.name, node)
+			t.Errorf("test [%v]: unexpected node: %v", test.name, nodeName)
 		}
 	}
 }
