@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"k8s.io/api/core/v1"
+	policy "k8s.io/api/policy/v1beta1"
 	utilnet "k8s.io/apimachinery/pkg/util/net"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/kubernetes/plugin/pkg/scheduler/algorithm"
@@ -39,6 +40,7 @@ const (
 // HTTPExtender implements the algorithm.SchedulerExtender interface.
 type HTTPExtender struct {
 	extenderURL      string
+	preemptVerb      string
 	filterVerb       string
 	prioritizeVerb   string
 	bindVerb         string
@@ -85,6 +87,7 @@ func NewHTTPExtender(config *schedulerapi.ExtenderConfig) (algorithm.SchedulerEx
 	}
 	return &HTTPExtender{
 		extenderURL:      config.URLPrefix,
+		preemptVerb:      config.PreemptVerb,
 		filterVerb:       config.FilterVerb,
 		prioritizeVerb:   config.PrioritizeVerb,
 		bindVerb:         config.BindVerb,
@@ -94,10 +97,45 @@ func NewHTTPExtender(config *schedulerapi.ExtenderConfig) (algorithm.SchedulerEx
 	}, nil
 }
 
+// ProcessPreemption returns new candidate nodes and victims pods after preemption in extender.
+func (h *HTTPExtender) ProcessPreemption(
+	pod *v1.Pod,
+	nodeToVictims map[*v1.Node]*schedulerapi.Victims,
+	nodeNameToInfo map[string]*schedulercache.NodeInfo,
+	pdbs []*policy.PodDisruptionBudget,
+) (schedulerapi.ExtenderPreemptionResult, error) {
+	var (
+		result schedulerapi.ExtenderPreemptionResult
+		args   *schedulerapi.ExtenderPreemptionArgs
+	)
+
+	if h.preemptVerb == "" {
+		return nodeToVictims, nil
+	}
+
+	args = &schedulerapi.ExtenderPreemptionArgs{
+		Pod:           *pod,
+		NodeToVictims: nodeToVictims,
+		// Node info is needed to do extender preemption logic.
+		NodeNameToInfo: nodeNameToInfo,
+		// Extender preemption is also expected to handle PodDisruptionBudget.
+		Pdbs: pdbs,
+	}
+
+	if err := h.send(h.preemptVerb, args, &result); err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
 // Filter based on extender implemented predicate functions. The filtered list is
 // expected to be a subset of the supplied list. failedNodesMap optionally contains
 // the list of failed nodes and failure reasons.
-func (h *HTTPExtender) Filter(pod *v1.Pod, nodes []*v1.Node, nodeNameToInfo map[string]*schedulercache.NodeInfo) ([]*v1.Node, schedulerapi.FailedNodesMap, error) {
+func (h *HTTPExtender) Filter(
+	pod *v1.Pod,
+	nodes []*v1.Node, nodeNameToInfo map[string]*schedulercache.NodeInfo,
+) ([]*v1.Node, schedulerapi.FailedNodesMap, error) {
 	var (
 		result     schedulerapi.ExtenderFilterResult
 		nodeList   *v1.NodeList

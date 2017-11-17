@@ -560,11 +560,11 @@ func TestZeroRequest(t *testing.T) {
 	}
 }
 
-func printNodeToVictims(nodeToVictims map[*v1.Node]*Victims) string {
+func printNodeToVictims(nodeToVictims map[*v1.Node]*schedulerapi.Victims) string {
 	var output string
 	for node, victims := range nodeToVictims {
 		output += node.Name + ": ["
-		for _, pod := range victims.pods {
+		for _, pod := range victims.Pods {
 			output += pod.Name + ", "
 		}
 		output += "]"
@@ -572,15 +572,15 @@ func printNodeToVictims(nodeToVictims map[*v1.Node]*Victims) string {
 	return output
 }
 
-func checkPreemptionVictims(testName string, expected map[string]map[string]bool, nodeToPods map[*v1.Node]*Victims) error {
+func checkPreemptionVictims(testName string, expected map[string]map[string]bool, nodeToPods map[*v1.Node]*schedulerapi.Victims) error {
 	if len(expected) == len(nodeToPods) {
 		for k, victims := range nodeToPods {
 			if expPods, ok := expected[k.Name]; ok {
-				if len(victims.pods) != len(expPods) {
+				if len(victims.Pods) != len(expPods) {
 					return fmt.Errorf("test [%v]: unexpected number of pods. expected: %v, got: %v", testName, expected, printNodeToVictims(nodeToPods))
 				}
 				prevPriority := int32(math.MaxInt32)
-				for _, p := range victims.pods {
+				for _, p := range victims.Pods {
 					// Check that pods are sorted by their priority.
 					if *p.Spec.Priority > prevPriority {
 						return fmt.Errorf("test [%v]: pod %v of node %v was not sorted by priority", testName, p.Name, k)
@@ -1173,6 +1173,66 @@ func TestPreempt(t *testing.T) {
 			},
 			expectedNode: "",
 			expectedPods: []string{},
+		},
+		{
+			name: "Scheduler extenders allow only nodes with 2*(pod request) free memory available, and two pods are chosen as victims",
+			// pod1: 2, high
+			pod: &v1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "pod1"}, Spec: v1.PodSpec{
+				Containers: mediumContainers,
+				Priority:   &highPriority},
+			},
+			pods: []*v1.Pod{
+				// machine1: 1 mem, 2*(2, low)
+				{ObjectMeta: metav1.ObjectMeta{Name: "m1.1"}, Spec: v1.PodSpec{Containers: mediumContainers, Priority: &lowPriority, NodeName: "machine1"}, Status: v1.PodStatus{Phase: v1.PodRunning}},
+				{ObjectMeta: metav1.ObjectMeta{Name: "m1.2"}, Spec: v1.PodSpec{Containers: mediumContainers, Priority: &lowPriority, NodeName: "machine1"}, Status: v1.PodStatus{Phase: v1.PodRunning}},
+
+				// machine2: 0 mem, 1*(5, high)
+				{ObjectMeta: metav1.ObjectMeta{Name: "m2.1"}, Spec: v1.PodSpec{Containers: veryLargeContainers, Priority: &highPriority, NodeName: "machine2"}, Status: v1.PodStatus{Phase: v1.PodRunning}},
+
+				// machine3: 0 mem, 1*(5, high)
+				{ObjectMeta: metav1.ObjectMeta{Name: "m3.1"}, Spec: v1.PodSpec{Containers: veryLargeContainers, Priority: &highPriority, NodeName: "machine3"}, Status: v1.PodStatus{Phase: v1.PodRunning}},
+			},
+			extenders: []*FakeExtender{
+				{
+					predicates: []fitPredicate{truePredicateExtender},
+				},
+				{
+					predicates: []fitPredicate{requestDoubleMemoryPredicateExtender},
+				},
+			},
+			// otherwise only one victim on machine1 were enough
+			expectedNode: "machine1",
+			expectedPods: []string{"m1.1", "m1.2"},
+		},
+		{
+			name: "Scheduler extenders allow only nodes with 2*(pod request) free memory available, and one preempt candidate (machine1) is removed",
+			// pod1: 2, high
+			pod: &v1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "pod1"}, Spec: v1.PodSpec{
+				Containers: mediumContainers,
+				Priority:   &highPriority},
+			},
+			pods: []*v1.Pod{
+				// machine1: 1 mem, 2*(1, low; 1, high)
+				{ObjectMeta: metav1.ObjectMeta{Name: "m1.1"}, Spec: v1.PodSpec{Containers: mediumContainers, Priority: &lowPriority, NodeName: "machine1"}, Status: v1.PodStatus{Phase: v1.PodRunning}},
+				{ObjectMeta: metav1.ObjectMeta{Name: "m1.2"}, Spec: v1.PodSpec{Containers: mediumContainers, Priority: &highPriority, NodeName: "machine1"}, Status: v1.PodStatus{Phase: v1.PodRunning}},
+
+				// machine2: 2 mem, 1*(3, high)
+				{ObjectMeta: metav1.ObjectMeta{Name: "m2.1"}, Spec: v1.PodSpec{Containers: largeContainers, Priority: &highPriority, NodeName: "machine2"}, Status: v1.PodStatus{Phase: v1.PodRunning}},
+
+				// machine3: 2 mem, 1*(3, high)
+				{ObjectMeta: metav1.ObjectMeta{Name: "m3.1"}, Spec: v1.PodSpec{Containers: mediumContainers, Priority: &lowPriority, NodeName: "machine3"}, Status: v1.PodStatus{Phase: v1.PodRunning}},
+			},
+			extenders: []*FakeExtender{
+				{
+					predicates: []fitPredicate{truePredicateExtender},
+				},
+				{
+					predicates: []fitPredicate{requestDoubleMemoryPredicateExtender},
+				},
+			},
+			// otherwise machine1 would have been chosen
+			expectedNode: "machine3",
+			expectedPods: []string{"m3.1"},
 		},
 	}
 

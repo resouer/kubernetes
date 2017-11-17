@@ -22,15 +22,18 @@ import (
 	"time"
 
 	"k8s.io/api/core/v1"
+	policy "k8s.io/api/policy/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/kubernetes/plugin/pkg/scheduler/algorithm"
+	"k8s.io/kubernetes/plugin/pkg/scheduler/algorithm/predicates"
 	schedulerapi "k8s.io/kubernetes/plugin/pkg/scheduler/api"
 	"k8s.io/kubernetes/plugin/pkg/scheduler/schedulercache"
 	schedulertesting "k8s.io/kubernetes/plugin/pkg/scheduler/testing"
+	"k8s.io/kubernetes/plugin/pkg/scheduler/util"
 )
 
-type fitPredicate func(pod *v1.Pod, node *v1.Node) (bool, error)
+type fitPredicate func(pod *v1.Pod, nodeInfo *schedulercache.NodeInfo) (bool, error)
 type priorityFunc func(pod *v1.Pod, nodes []*v1.Node) (*schedulerapi.HostPriorityList, error)
 
 type priorityConfig struct {
@@ -38,30 +41,41 @@ type priorityConfig struct {
 	weight   int
 }
 
-func errorPredicateExtender(pod *v1.Pod, node *v1.Node) (bool, error) {
+func errorPredicateExtender(pod *v1.Pod, nodeInfo *schedulercache.NodeInfo) (bool, error) {
 	return false, fmt.Errorf("Some error")
 }
 
-func falsePredicateExtender(pod *v1.Pod, node *v1.Node) (bool, error) {
+func falsePredicateExtender(pod *v1.Pod, nodeInfo *schedulercache.NodeInfo) (bool, error) {
 	return false, nil
 }
 
-func truePredicateExtender(pod *v1.Pod, node *v1.Node) (bool, error) {
+func truePredicateExtender(pod *v1.Pod, nodeInfo *schedulercache.NodeInfo) (bool, error) {
 	return true, nil
 }
 
-func machine1PredicateExtender(pod *v1.Pod, node *v1.Node) (bool, error) {
-	if node.Name == "machine1" {
+func machine1PredicateExtender(pod *v1.Pod, nodeInfo *schedulercache.NodeInfo) (bool, error) {
+	if nodeInfo.Node().GetName() == "machine1" {
 		return true, nil
 	}
 	return false, nil
 }
 
-func machine2PredicateExtender(pod *v1.Pod, node *v1.Node) (bool, error) {
-	if node.Name == "machine2" {
+func machine2PredicateExtender(pod *v1.Pod, nodeInfo *schedulercache.NodeInfo) (bool, error) {
+	if nodeInfo.Node().GetName() == "machine2" {
 		return true, nil
 	}
 	return false, nil
+}
+
+func requestDoubleMemoryPredicateExtender(pod *v1.Pod, nodeInfo *schedulercache.NodeInfo) (bool, error) {
+	podRequest := predicates.GetResourceRequest(pod)
+	allocatable := nodeInfo.AllocatableResource()
+
+	// This pod can only run on node with no less than 2*(pod memory request) available.
+	if allocatable.Memory-nodeInfo.RequestedResource().Memory < podRequest.Memory*2 {
+		return false, nil
+	}
+	return true, nil
 }
 
 func errorPrioritizerExtender(pod *v1.Pod, nodes []*v1.Node) (*schedulerapi.HostPriorityList, error) {
@@ -112,20 +126,130 @@ type FakeExtender struct {
 	filteredNodes    []*v1.Node
 }
 
+// selectVictimsOnNodeByExtender checks the given nodes->pods map with predicates on extender's side.
+// TODO(harry): This is now the same logic as default scheduler, consider simplify it.
+// Returns:
+// 1. More victim pods (if any) amended by preemption phase of extender.
+// 2. Fits or not after preemption phase on extender's side.
+func (f *FakeExtender) selectVictimsOnNodeByExtender(
+	pod *v1.Pod,
+	nodeInfo *schedulercache.NodeInfo,
+	originVictims *schedulerapi.Victims,
+	pdbs []*policy.PodDisruptionBudget,
+) ([]*v1.Pod, int, bool) {
+	potentialVictims := util.SortableList{CompFunc: util.HigherPriorityPod}
+	nodeInfoCopy := nodeInfo.Clone()
+
+	removePod := func(rp *v1.Pod) {
+		nodeInfoCopy.RemovePod(rp)
+	}
+	addPod := func(ap *v1.Pod) {
+		nodeInfoCopy.AddPod(ap)
+	}
+
+	// Remove existing victims as they should be preempted anyway
+	for _, p := range originVictims.Pods {
+		removePod(p)
+	}
+
+	// Then check the rest pods with extender. This should be similar to preemption process of default scheduler.
+	// As the first step, remove all the lower priority pods from the node and
+	// check if the given pod can be scheduled.
+	podPriority := util.GetPodPriority(pod)
+	for _, p := range nodeInfoCopy.Pods() {
+		if util.GetPodPriority(p) < podPriority {
+			potentialVictims.Items = append(potentialVictims.Items, p)
+			removePod(p)
+		}
+	}
+	potentialVictims.Sort()
+
+	// If the new pod does not fit after removing all the lower priority pods,
+	// we are almost done and this node is not suitable for preemption.
+	if fits, _ := f.doPredicate(pod, nodeInfoCopy); !fits {
+		return nil, 0, false
+	}
+
+	victims := []*v1.Pod{}
+	numViolatingVictim := 0
+	// Try to reprieve as many pods as possible. We first try to reprieve the PDB
+	// violating victims and then other non-violating ones. In both cases, we start
+	// from the highest priority victims.
+	violatingVictims, nonViolatingVictims := util.FilterPodsWithPDBViolation(potentialVictims.Items, pdbs)
+	reprievePod := func(p *v1.Pod) bool {
+		addPod(p)
+		fits, _ := f.doPredicate(pod, nodeInfoCopy)
+		if !fits {
+			removePod(p)
+			victims = append(victims, p)
+		}
+		return fits
+	}
+	for _, p := range violatingVictims {
+		if !reprievePod(p) {
+			numViolatingVictim++
+		}
+	}
+
+	// Now we try to reprieve non-violating victims.
+	for _, p := range nonViolatingVictims {
+		reprievePod(p)
+	}
+	return victims, numViolatingVictim, true
+}
+
+func (f *FakeExtender) ProcessPreemption(
+	pod *v1.Pod,
+	nodeToVictims map[*v1.Node]*schedulerapi.Victims,
+	nodeNameToInfo map[string]*schedulercache.NodeInfo,
+	pdbs []*policy.PodDisruptionBudget,
+) (schedulerapi.ExtenderPreemptionResult, error) {
+	nodeToVictimsCopy := map[*v1.Node]*schedulerapi.Victims{}
+	// We don't want to change the original nodeToVictims
+	for k, v := range nodeToVictims {
+		nodeToVictimsCopy[k] = v
+	}
+
+	for node, victims := range nodeToVictimsCopy {
+		// Try to do preemption on extender side.
+		extenderVictimPods, extendernPDBViolations, fits := f.selectVictimsOnNodeByExtender(pod, nodeNameToInfo[node.GetName()], victims, pdbs)
+		// If it's unfit after extender's preemption, this node is unresolvable by preemption overall,
+		// let's remove it from potential preemption nodes.
+		if !fits {
+			delete(nodeToVictimsCopy, node)
+		} else {
+			// Append new victims to original victims
+			nodeToVictimsCopy[node].Pods = append(victims.Pods, extenderVictimPods...)
+			nodeToVictimsCopy[node].NumPDBViolations = victims.NumPDBViolations + extendernPDBViolations
+		}
+	}
+	return nodeToVictimsCopy, nil
+}
+
+// doPredicate run predicates of extender one by one for given pod and node.
+// Returns: fits or not.
+func (f *FakeExtender) doPredicate(pod *v1.Pod, nodeInfo *schedulercache.NodeInfo) (bool, error) {
+	fits := true
+	for _, predicate := range f.predicates {
+		fit, err := predicate(pod, nodeInfo)
+		if err != nil {
+			return false, err
+		}
+		if !fit {
+			fits = false
+			break
+		}
+	}
+	return fits, nil
+}
+
 func (f *FakeExtender) Filter(pod *v1.Pod, nodes []*v1.Node, nodeNameToInfo map[string]*schedulercache.NodeInfo) ([]*v1.Node, schedulerapi.FailedNodesMap, error) {
 	filtered := []*v1.Node{}
 	failedNodesMap := schedulerapi.FailedNodesMap{}
 	for _, node := range nodes {
-		fits := true
-		for _, predicate := range f.predicates {
-			fit, err := predicate(pod, node)
-			if err != nil {
-				return []*v1.Node{}, schedulerapi.FailedNodesMap{}, err
-			}
-			if !fit {
-				fits = false
-				break
-			}
+		fits, err := f.doPredicate(pod, nodeNameToInfo[node.GetName()])
+		if err != nil {
+			return []*v1.Node{}, schedulerapi.FailedNodesMap{}, err
 		}
 		if fits {
 			filtered = append(filtered, node)
