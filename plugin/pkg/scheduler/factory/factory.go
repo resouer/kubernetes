@@ -72,7 +72,7 @@ const (
 
 var (
 	serviceAffinitySet           = sets.NewString("ServiceAffinity")
-	maxPDVolumeCountPredicateSet = sets.NewString("MaxPDVolumeCountPredicate")
+	maxPDVolumeCountPredicateSet = sets.NewString("MaxGCEPDVolumeCount", "MaxAzureDiskVolumeCount", "MaxEBSVolumeCount")
 	matchInterPodAffinitySet     = sets.NewString("MatchInterPodAffinity")
 	generalPredicatesSets        = sets.NewString("GeneralPredicates")
 	noDiskConflictSet            = sets.NewString("NoDiskConflict")
@@ -384,16 +384,7 @@ func (c *configFactory) onPvDelete(obj interface{}) {
 }
 
 func (c *configFactory) invalidatePredicatesForPv(pv *v1.PersistentVolume) {
-	invalidPredicates := sets.NewString("MaxPDVolumeCountPredicate")
-	if pv.Spec.AWSElasticBlockStore != nil {
-		invalidPredicates.Insert("MaxEBSVolumeCount")
-	}
-	if pv.Spec.GCEPersistentDisk != nil {
-		invalidPredicates.Insert("MaxGCEPDVolumeCount")
-	}
-	if pv.Spec.AzureDisk != nil {
-		invalidPredicates.Insert("MaxAzureDiskVolumeCount")
-	}
+	invalidPredicates := sets.NewString()
 
 	if utilfeature.DefaultFeatureGate.Enabled(features.VolumeScheduling) {
 		// Add/delete impacts the available PVs to choose from
@@ -541,7 +532,7 @@ func (c *configFactory) addPodToCache(obj interface{}) {
 	c.podQueue.AssignedPodAdded(pod)
 
 	// NOTE: Updating equivalence cache of addPodToCache has been
-	// handled optimistically in InvalidateCachedPredicateItemForPodAdd.
+	// handled optimistically in: plugin/pkg/scheduler/scheduler.go#assume()
 }
 
 func (c *configFactory) updatePodInCache(oldObj, newObj interface{}) {
