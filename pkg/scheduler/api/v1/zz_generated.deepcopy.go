@@ -22,7 +22,6 @@ package v1
 
 import (
 	core_v1 "k8s.io/api/core/v1"
-	v1beta1 "k8s.io/api/policy/v1beta1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	rest "k8s.io/client-go/rest"
 )
@@ -197,18 +196,6 @@ func (in *ExtenderPreemptionArgs) DeepCopyInto(out *ExtenderPreemptionArgs) {
 			} else {
 				(*out)[key] = new(Victims)
 				val.DeepCopyInto((*out)[key])
-			}
-		}
-	}
-	if in.Pdbs != nil {
-		in, out := &in.Pdbs, &out.Pdbs
-		*out = make([]*v1beta1.PodDisruptionBudget, len(*in))
-		for i := range *in {
-			if (*in)[i] == nil {
-				(*out)[i] = nil
-			} else {
-				(*out)[i] = new(v1beta1.PodDisruptionBudget)
-				(*in)[i].DeepCopyInto((*out)[i])
 			}
 		}
 	}
