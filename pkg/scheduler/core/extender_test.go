@@ -111,6 +111,10 @@ type FakeExtender struct {
 	weight           int
 	nodeCacheCapable bool
 	filteredNodes    []*v1.Node
+
+	// Cached information of fake extender
+	nodeNameToInfo map[string]*schedulercache.NodeInfo
+	pdbs           []*policy.PodDisruptionBudget
 }
 
 // selectVictimsOnNodeByExtender checks the given nodes->pods map with predicates on extender's side.
@@ -120,11 +124,11 @@ type FakeExtender struct {
 // 3. Fits or not after preemption phase on extender's side.
 func (f *FakeExtender) selectVictimsOnNodeByExtender(
 	pod *v1.Pod,
-	node *v1.Node,
-	originVictims *schedulerapi.Victims,
-	pdbs []*policy.PodDisruptionBudget,
+	nodeName string,
+	victims *schedulerapi.Victims,
 ) ([]*v1.Pod, int, bool) {
-	if fits, _ := f.runPredicate(pod, node); !fits {
+	// TODO(harry): add preemption logic based on cached nodeInfo and PBDs.
+	if fits, _ := f.runPredicate(pod, f.nodeNameToInfo[nodeName].Node()); !fits {
 		return nil, 0, false
 	}
 
@@ -132,14 +136,13 @@ func (f *FakeExtender) selectVictimsOnNodeByExtender(
 }
 
 func (f *FakeExtender) SupportsPreemption() bool {
-	return true
+	// Assume preempt verb is always defined.
+	return f.nodeCacheCapable
 }
 
 func (f *FakeExtender) ProcessPreemption(
 	pod *v1.Pod,
 	nodeToVictims map[string]*schedulerapi.Victims,
-	nodeNameToInfo map[string]*schedulercache.NodeInfo,
-	pdbs []*policy.PodDisruptionBudget,
 ) (schedulerapi.ExtenderPreemptionResult, error) {
 	nodeToVictimsCopy := map[string]*schedulerapi.Victims{}
 	// We don't want to change the original nodeToVictims
@@ -149,7 +152,7 @@ func (f *FakeExtender) ProcessPreemption(
 
 	for nodeName, victims := range nodeToVictimsCopy {
 		// Try to do preemption on extender side.
-		extenderVictimPods, extendernPDBViolations, fits := f.selectVictimsOnNodeByExtender(pod, nodeNameToInfo[nodeName].Node(), victims, pdbs)
+		extenderVictimPods, extendernPDBViolations, fits := f.selectVictimsOnNodeByExtender(pod, nodeName, victims)
 		// If it's unfit after extender's preemption, this node is unresolvable by preemption overall,
 		// let's remove it from potential preemption nodes.
 		if !fits {

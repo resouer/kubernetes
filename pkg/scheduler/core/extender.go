@@ -25,7 +25,6 @@ import (
 	"time"
 
 	"k8s.io/api/core/v1"
-	policy "k8s.io/api/policy/v1beta1"
 	utilnet "k8s.io/apimachinery/pkg/util/net"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/kubernetes/pkg/scheduler/algorithm"
@@ -97,16 +96,16 @@ func NewHTTPExtender(config *schedulerapi.ExtenderConfig) (algorithm.SchedulerEx
 	}, nil
 }
 
+// SupportsPreemption returns if a extender support preemption.
+// A extender should have preempt verb defined and enabled its own node cache.
 func (h *HTTPExtender) SupportsPreemption() bool {
-	return len(h.preemptVerb) > 0
+	return len(h.preemptVerb) > 0 && h.nodeCacheCapable
 }
 
 // ProcessPreemption returns filtered candidate nodes and victims after running preemption logic in extender.
 func (h *HTTPExtender) ProcessPreemption(
 	pod *v1.Pod,
 	nodeToVictims map[string]*schedulerapi.Victims,
-	nodeNameToInfo map[string]*schedulercache.NodeInfo,
-	pdbs []*policy.PodDisruptionBudget,
 ) (schedulerapi.ExtenderPreemptionResult, error) {
 	var (
 		result schedulerapi.ExtenderPreemptionResult
@@ -120,8 +119,6 @@ func (h *HTTPExtender) ProcessPreemption(
 	args = &schedulerapi.ExtenderPreemptionArgs{
 		Pod:           pod,
 		NodeToVictims: nodeToVictims,
-		// Extender preemption is also expected to handle PodDisruptionBudget.
-		Pdbs: pdbs,
 	}
 
 	if err := h.send(h.preemptVerb, args, &result); err != nil {

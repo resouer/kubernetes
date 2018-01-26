@@ -27,6 +27,7 @@ import (
 
 	"k8s.io/api/core/v1"
 	policy "k8s.io/api/policy/v1beta1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/errors"
 	utiltrace "k8s.io/apiserver/pkg/util/trace"
@@ -235,8 +236,14 @@ func (g *genericScheduler) Preempt(pod *v1.Pod, nodeLister algorithm.NodeLister,
 		return nil, nil, nil, err
 	}
 
-	candidateNodeName, err := g.processPreemptionWithExtenders(pod, nodeToVictims, pdbs)
-	if len(candidateNodeName) == 0 || err != nil {
+	// TODO(harry): this only work for preempt-able extenders, so we need to change TestPreemt()
+	nodeToVictims, err = g.processPreemptionWithExtenders(pod, nodeToVictims)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	candidateNodeName := pickOneNodeForPreemption(nodeToVictims)
+	if len(candidateNodeName) == 0 {
 		return nil, nil, nil, err
 	}
 
@@ -258,104 +265,24 @@ func (g *genericScheduler) Preempt(pod *v1.Pod, nodeLister algorithm.NodeLister,
 func (g *genericScheduler) processPreemptionWithExtenders(
 	pod *v1.Pod,
 	nodeToVictims map[string]*schedulerapi.Victims,
-	pdbs []*policy.PodDisruptionBudget,
-) (string, error) {
-	// The final candidate node for preemption.
-	var candidateNodeName string
-
-	// Scheduler extenders that do not support preemption
-	nonPreemptingExtenders := []algorithm.SchedulerExtender{}
-
+) (map[string]*schedulerapi.Victims, error) {
 	if len(nodeToVictims) > 0 {
 		for _, extender := range g.extenders {
 			if extender.SupportsPreemption() {
 				var err error
 				// Replace nodeToVictims with result after preemption from extender.
-				if nodeToVictims, err = extender.ProcessPreemption(pod,
-					nodeToVictims, g.cachedNodeInfoMap, pdbs); err != nil {
-					return "", err
+				if nodeToVictims, err = extender.ProcessPreemption(pod, nodeToVictims); err != nil {
+					return nil, err
 				}
-				// If node list has all removed, no preemption will happen, skip other extenders.
+				// If node list is empty, no preemption will happen, skip other extenders.
 				if len(nodeToVictims) == 0 {
 					break
 				}
-			} else {
-				nonPreemptingExtenders = append(nonPreemptingExtenders, extender)
 			}
 		}
 	}
 
-	// Unconditional call pickOneNodePassingNonPreemptingExtenders() since if nonPreemptingExtenders is empty,
-	// this will return result of pickOneNodeForPreemption() which is expected.
-	candidateNodeName = g.pickOneNodePassingNonPreemptingExtenders(pod, nodeToVictims, nonPreemptingExtenders)
-
-	return candidateNodeName, nil
-}
-
-// pickOneNodePassingNonPreemptingExtenders checks nodeToVictims with extenders which do not support ProcessPreemption(),
-// and returns the candidate node after checking.
-func (g *genericScheduler) pickOneNodePassingNonPreemptingExtenders(
-	pod *v1.Pod,
-	nodeToVictims map[string]*schedulerapi.Victims,
-	nonPreemptingExtenders []algorithm.SchedulerExtender) string {
-	for len(nodeToVictims) > 0 {
-		// 1. Pick a node from potential preemption node list
-		nodeName := pickOneNodeForPreemption(nodeToVictims)
-		if len(nodeName) == 0 {
-			return ""
-		}
-		// 2. Check if it passes Filter() check of all nonPreemptingExtenders
-		passes, pErr := nodePassesNonPreemptingExtenders(pod, nodeName, nodeToVictims[nodeName].Pods,
-			g.cachedNodeInfoMap, nonPreemptingExtenders)
-		// 3. If passes, we can use this node as preemption candidate.
-		if passes && pErr == nil {
-			return nodeName
-		}
-		if pErr != nil {
-			glog.Errorf("Error occurred while checking extenders for preemption on node %v: %v",
-				nodeName, pErr)
-		}
-		// 4. Otherwise, remove the node from the map and try to pick a different node.
-		delete(nodeToVictims, nodeName)
-	}
-	return ""
-}
-
-// nodePassesNonPreemptingExtenders checks node with extenders' Filter() to make sure this node
-// is possible to be preempted.
-// This is a fall back method for those extenders that do not support preemption.
-func nodePassesNonPreemptingExtenders(
-	pod *v1.Pod,
-	nodeName string,
-	victims []*v1.Pod,
-	nodeNameToInfo map[string]*schedulercache.NodeInfo,
-	extenders []algorithm.SchedulerExtender) (bool, error) {
-	// If there are any extenders, run them and filter the list of candidate nodes.
-	if len(extenders) == 0 {
-		return true, nil
-	}
-	// Remove the victims from the corresponding nodeInfo and send nodes to the
-	// extenders for filtering.
-	originalNodeInfo := nodeNameToInfo[nodeName]
-	nodeInfoCopy := nodeNameToInfo[nodeName].Clone()
-	for _, victim := range victims {
-		nodeInfoCopy.RemovePod(victim)
-	}
-	nodeNameToInfo[nodeName] = nodeInfoCopy
-	defer func() { nodeNameToInfo[nodeName] = originalNodeInfo }()
-	filteredNodes := []*v1.Node{nodeInfoCopy.Node()}
-	for _, extender := range extenders {
-		var err error
-		var failedNodesMap map[string]string
-		filteredNodes, failedNodesMap, err = extender.Filter(pod, filteredNodes, nodeNameToInfo)
-		if err != nil {
-			return false, err
-		}
-		if _, found := failedNodesMap[nodeName]; found || len(filteredNodes) == 0 {
-			return false, nil
-		}
-	}
-	return true, nil
+	return nodeToVictims, nil
 }
 
 // GetLowerPriorityNominatedPods returns pods whose priority is smaller than the
@@ -856,6 +783,45 @@ func pickOneNodeForPreemption(nodesToVictims map[string]*schedulerapi.Victims) s
 	return ""
 }
 
+// filterPodsWithPDBViolation groups the given "pods" into two groups of "violatingPods"
+// and "nonViolatingPods" based on whether their PDBs will be violated if they are
+// preempted.
+// This function is stable and does not change the order of received pods. So, if it
+// receives a sorted list, grouping will preserve the order of the input list.
+func filterPodsWithPDBViolation(pods []interface{}, pdbs []*policy.PodDisruptionBudget) (violatingPods, nonViolatingPods []*v1.Pod) {
+	for _, obj := range pods {
+		pod := obj.(*v1.Pod)
+		pdbForPodIsViolated := false
+		// A pod with no labels will not match any PDB. So, no need to check.
+		if len(pod.Labels) != 0 {
+			for _, pdb := range pdbs {
+				if pdb.Namespace != pod.Namespace {
+					continue
+				}
+				selector, err := metav1.LabelSelectorAsSelector(pdb.Spec.Selector)
+				if err != nil {
+					continue
+				}
+				// A PDB with a nil or empty selector matches nothing.
+				if selector.Empty() || !selector.Matches(labels.Set(pod.Labels)) {
+					continue
+				}
+				// We have found a matching PDB.
+				if pdb.Status.PodDisruptionsAllowed <= 0 {
+					pdbForPodIsViolated = true
+					break
+				}
+			}
+		}
+		if pdbForPodIsViolated {
+			violatingPods = append(violatingPods, pod)
+		} else {
+			nonViolatingPods = append(nonViolatingPods, pod)
+		}
+	}
+	return violatingPods, nonViolatingPods
+}
+
 // selectNodesForPreemption finds all the nodes with possible victims for
 // preemption in parallel.
 func selectNodesForPreemption(pod *v1.Pod,
@@ -957,7 +923,7 @@ func selectVictimsOnNode(
 	// Try to reprieve as many pods as possible. We first try to reprieve the PDB
 	// violating victims and then other non-violating ones. In both cases, we start
 	// from the highest priority victims.
-	violatingVictims, nonViolatingVictims := util.FilterPodsWithPDBViolation(potentialVictims.Items, pdbs)
+	violatingVictims, nonViolatingVictims := filterPodsWithPDBViolation(potentialVictims.Items, pdbs)
 	reprievePod := func(p *v1.Pod) bool {
 		addPod(p)
 		fits, _, _ := podFitsOnNode(pod, meta, nodeInfoCopy, fitPredicates, nil, queue, false)
