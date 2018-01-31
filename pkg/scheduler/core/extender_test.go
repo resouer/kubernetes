@@ -127,7 +127,6 @@ func (f *FakeExtender) selectVictimsOnNodeByExtender(
 	nodeName string,
 	victims *schedulerapi.Victims,
 ) ([]*v1.Pod, int, bool) {
-	// TODO(harry): add preemption logic based on cached nodeInfo and PBDs.
 	if fits, _ := f.runPredicate(pod, f.nodeNameToInfo[nodeName].Node()); !fits {
 		return nil, 0, false
 	}
@@ -137,7 +136,7 @@ func (f *FakeExtender) selectVictimsOnNodeByExtender(
 
 func (f *FakeExtender) SupportsPreemption() bool {
 	// Assume preempt verb is always defined.
-	return f.nodeCacheCapable
+	return true
 }
 
 func (f *FakeExtender) ProcessPreemption(
@@ -377,7 +376,7 @@ func TestGenericSchedulerWithExtenders(t *testing.T) {
 		}
 		cache := schedulercache.New(time.Duration(0), wait.NeverStop)
 		for _, name := range test.nodes {
-			cache.AddNode(&v1.Node{ObjectMeta: metav1.ObjectMeta{Name: name}})
+			cache.AddNode(createNode(name))
 		}
 		queue := NewSchedulingQueue()
 		scheduler := NewGenericScheduler(
@@ -398,4 +397,8 @@ func TestGenericSchedulerWithExtenders(t *testing.T) {
 			}
 		}
 	}
+}
+
+func createNode(name string) *v1.Node {
+	return &v1.Node{ObjectMeta: metav1.ObjectMeta{Name: name}}
 }

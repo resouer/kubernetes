@@ -1284,11 +1284,19 @@ func TestPreempt(t *testing.T) {
 		for _, pod := range test.pods {
 			cache.AddPod(pod)
 		}
+		nodeInfoMap := map[string]*schedulercache.NodeInfo{}
 		for _, name := range nodeNames {
-			cache.AddNode(makeNode(name, priorityutil.DefaultMilliCpuRequest*5, priorityutil.DefaultMemoryRequest*5))
+			node := makeNode(name, priorityutil.DefaultMilliCpuRequest*5, priorityutil.DefaultMemoryRequest*5)
+			cache.AddNode(node)
+
+			// Set nodeInfo to extenders to mock extenders' cache for preemption.
+			nodeInfo := schedulercache.NewNodeInfo()
+			nodeInfo.SetNode(node)
+			nodeInfoMap[name] = nodeInfo
 		}
 		extenders := []algorithm.SchedulerExtender{}
 		for _, extender := range test.extenders {
+			extender.nodeNameToInfo = nodeInfoMap
 			extenders = append(extenders, extender)
 		}
 		scheduler := NewGenericScheduler(

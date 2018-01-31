@@ -99,7 +99,7 @@ func NewHTTPExtender(config *schedulerapi.ExtenderConfig) (algorithm.SchedulerEx
 // SupportsPreemption returns if a extender support preemption.
 // A extender should have preempt verb defined and enabled its own node cache.
 func (h *HTTPExtender) SupportsPreemption() bool {
-	return len(h.preemptVerb) > 0 && h.nodeCacheCapable
+	return len(h.preemptVerb) > 0
 }
 
 // ProcessPreemption returns filtered candidate nodes and victims after running preemption logic in extender.

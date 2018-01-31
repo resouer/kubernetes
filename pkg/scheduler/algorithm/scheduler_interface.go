@@ -51,7 +51,6 @@ type SchedulerExtender interface {
 	// The possible changes made by extender may include:
 	//   1. Subset of given candidate nodes after preemption phase of extender.
 	//   2. A different set of victim pod for every given candidate node after preemption phase of extender.
-	// If you do not want to implement preemption, just return nodeToVictims.
 	ProcessPreemption(
 		pod *v1.Pod,
 		nodeToVictims map[string]*schedulerapi.Victims,
