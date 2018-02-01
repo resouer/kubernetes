@@ -29,6 +29,7 @@ import (
 	schedulerapi "k8s.io/kubernetes/pkg/scheduler/api"
 	"k8s.io/kubernetes/pkg/scheduler/schedulercache"
 	schedulertesting "k8s.io/kubernetes/pkg/scheduler/testing"
+	"k8s.io/kubernetes/pkg/scheduler/util"
 )
 
 type fitPredicate func(pod *v1.Pod, node *v1.Node) (bool, error)
@@ -113,8 +114,8 @@ type FakeExtender struct {
 	filteredNodes    []*v1.Node
 
 	// Cached information of fake extender
-	nodeNameToInfo map[string]*schedulercache.NodeInfo
-	pdbs           []*policy.PodDisruptionBudget
+	cachedNodeNameToInfo map[string]*schedulercache.NodeInfo
+	cachedPDBs           []*policy.PodDisruptionBudget
 }
 
 // selectVictimsOnNodeByExtender checks the given nodes->pods map with predicates on extender's side.
@@ -125,13 +126,65 @@ type FakeExtender struct {
 func (f *FakeExtender) selectVictimsOnNodeByExtender(
 	pod *v1.Pod,
 	nodeName string,
-	victims *schedulerapi.Victims,
+	originalVictims *schedulerapi.Victims,
 ) ([]*v1.Pod, int, bool) {
-	if fits, _ := f.runPredicate(pod, f.nodeNameToInfo[nodeName].Node()); !fits {
+	// If a extender support preemption but have no cached node info, just return preemption allowed. It's
+	// fine in test.
+	if !f.nodeCacheCapable {
+		return []*v1.Pod{}, 0, true
+	}
+
+	// Otherwise, as a extender support preemption and have cached node info, we will assume cachedNodeNameToInfo is available
+	// and get cached node info by given nodeName.
+	nodeInfoCopy := f.cachedNodeNameToInfo[nodeName].Clone()
+
+	potentialVictims := util.SortableList{CompFunc: util.HigherPriorityPod}
+
+	removePod := func(rp *v1.Pod) {
+		nodeInfoCopy.RemovePod(rp)
+	}
+	addPod := func(ap *v1.Pod) {
+		nodeInfoCopy.AddPod(ap)
+	}
+	// As the first step, remove all the lower priority pods from the node and
+	// check if the given pod can be scheduled.
+	podPriority := util.GetPodPriority(pod)
+	for _, p := range nodeInfoCopy.Pods() {
+		if util.GetPodPriority(p) < podPriority {
+			potentialVictims.Items = append(potentialVictims.Items, p)
+			removePod(p)
+		}
+	}
+	potentialVictims.Sort()
+
+	// If the new pod does not fit after removing all the lower priority pods,
+	// we are almost done and this node is not suitable for preemption.
+	if fits, _ := f.runPredicate(pod, nodeInfoCopy.Node()); !fits {
 		return nil, 0, false
 	}
 
-	return []*v1.Pod{}, 0, true
+	var victims []*v1.Pod
+
+	// TODO(harry): handle PDBs in the future.
+	numViolatingVictim := 0
+
+	reprievePod := func(p *v1.Pod) bool {
+		addPod(p)
+		fits, _ := f.runPredicate(pod, nodeInfoCopy.Node())
+		if !fits {
+			removePod(p)
+			victims = append(victims, p)
+		}
+		return fits
+	}
+
+	// For now, assume all potential victims to be non-violating.
+	// Now we try to reprieve non-violating victims.
+	for _, p := range potentialVictims.Items {
+		reprievePod(p.(*v1.Pod))
+	}
+
+	return victims, numViolatingVictim, true
 }
 
 func (f *FakeExtender) SupportsPreemption() bool {

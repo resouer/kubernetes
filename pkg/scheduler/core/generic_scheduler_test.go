@@ -1296,7 +1296,7 @@ func TestPreempt(t *testing.T) {
 		}
 		extenders := []algorithm.SchedulerExtender{}
 		for _, extender := range test.extenders {
-			extender.nodeNameToInfo = nodeInfoMap
+			extender.cachedNodeNameToInfo = nodeInfoMap
 			extenders = append(extenders, extender)
 		}
 		scheduler := NewGenericScheduler(
