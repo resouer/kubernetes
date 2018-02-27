@@ -234,13 +234,6 @@ func (in *ExtenderPreemptionResult) DeepCopyInto(out *ExtenderPreemptionResult) 
 			}
 		}
 	}
-	if in.NodeToVictims != nil {
-		in, out := &in.NodeToVictims, &out.NodeToVictims
-		*out = make(map[*v1.Node]*Victims, len(*in))
-		for range *in {
-			// FIXME: Copying unassignable keys unsupported *v1.Node
-		}
-	}
 	return
 }
 
