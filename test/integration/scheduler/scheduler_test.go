@@ -512,7 +512,8 @@ func TestMultiScheduler(t *testing.T) {
 	}
 
 	// 5. create and start a scheduler with name "foo-scheduler"
-	initTestScheduler(fooScheduler, t, context, nil, true, nil)
+	context2 := initTestScheduler(fooScheduler, t, context, nil, true, nil)
+	defer cleanupTest(t, context2)
 
 	//	6. **check point-2**:
 	//		- testPodWithAnnotationFitsFoo should be scheduled

@@ -143,16 +143,20 @@ func initTestScheduler(
 	context.ns = masterContext.ns
 	context.closeFn = masterContext.closeFn
 	context.httpServer = masterContext.httpServer
-	context.clientSet = masterContext.clientSet
+	context.clientSet = clientset.NewForConfigOrDie(&restclient.Config{
+		QPS:  -1,
+		Host: context.httpServer.URL,
+		ContentConfig: restclient.ContentConfig{
+			GroupVersion: testapi.Groups[v1.GroupName].GroupVersion()}})
 
 	// 1. Create scheduler
-	context.informerFactory = informers.NewSharedInformerFactory(context.clientSet, time.Second)
+	context.informerFactory = informers.NewSharedInformerFactory(masterContext.clientSet, time.Second)
 
 	var podInformer coreinformers.PodInformer
 
 	// create independent pod informer if required
 	if setPodInformer {
-		podInformer = factory.NewPodInformer(context.clientSet, 12*time.Hour, v1.DefaultSchedulerName)
+		podInformer = factory.NewPodInformer(masterContext.clientSet, 12*time.Hour, schedulerName)
 	} else {
 		podInformer = context.informerFactory.Core().V1().Pods()
 	}
@@ -183,7 +187,7 @@ func initTestScheduler(
 	}
 
 	eventBroadcaster := record.NewBroadcaster()
-	context.schedulerConfig.Recorder = eventBroadcaster.NewRecorder(legacyscheme.Scheme, v1.EventSource{Component: v1.DefaultSchedulerName})
+	context.schedulerConfig.Recorder = eventBroadcaster.NewRecorder(legacyscheme.Scheme, v1.EventSource{Component: schedulerName})
 	eventBroadcaster.StartRecordingToSink(&clientv1core.EventSinkImpl{Interface: clientv1core.New(context.clientSet.CoreV1().RESTClient()).Events("")})
 
 	context.informerFactory.Start(context.schedulerConfig.StopEverything)
