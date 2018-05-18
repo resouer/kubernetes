@@ -32,6 +32,8 @@ import (
 	"k8s.io/kubernetes/pkg/scheduler/algorithm/predicates"
 	"k8s.io/kubernetes/pkg/scheduler/schedulercache"
 	schedulertesting "k8s.io/kubernetes/pkg/scheduler/testing"
+
+	"github.com/cornelk/hashmap"
 )
 
 // makeBasicPod returns a Pod object with many of the fields populated.
@@ -253,9 +255,9 @@ func TestRunPredicate(t *testing.T) {
 			ecache := NewEquivalenceCache()
 			equivClass := ecache.getEquivalenceClassInfo(pod)
 			if test.expectCacheHit {
-				ecache.mu.Lock()
+
 				ecache.updateResult(pod.Name, node.Node().Name, "testPredicate", test.expectFit, test.expectedReasons, equivClass.hash)
-				ecache.mu.Unlock()
+
 			}
 
 			fit, reasons, err := ecache.RunPredicate(test.pred.predicate, "testPredicate", pod, meta, node, equivClass, test.cache)
@@ -289,9 +291,9 @@ func TestRunPredicate(t *testing.T) {
 			if !test.expectCacheHit && test.pred.callCount == 0 {
 				t.Errorf("Predicate should be called")
 			}
-			ecache.mu.Lock()
+
 			_, _, invalid := ecache.lookupResult(pod.Name, node.Node().Name, "testPredicate", equivClass.hash)
-			ecache.mu.Unlock()
+
 			if invalid && test.expectCacheWrite {
 				t.Errorf("Cache write should happen")
 			}
@@ -345,16 +347,19 @@ func TestUpdateResult(t *testing.T) {
 	for _, test := range tests {
 		ecache := NewEquivalenceCache()
 		if test.expectPredicateMap {
-			ecache.algorithmCache[test.nodeName] = AlgorithmCache{}
-			predicateItem := HostPredicate{
-				Fit: true,
-			}
-			ecache.algorithmCache[test.nodeName][test.predicateKey] =
-				PredicateMap{
-					test.equivalenceHash: predicateItem,
-				}
+			newPredicateMap := &hashmap.HashMap{}
+			newPredicateMap.Set(test.equivalenceHash,
+				HostPredicate{
+					Fit: true,
+				},
+			)
+
+			newAlgorithmCache := &hashmap.HashMap{}
+			newAlgorithmCache.Set(test.predicateKey, newPredicateMap)
+
+			ecache.algorithmCache.Set(test.nodeName, newAlgorithmCache)
 		}
-		ecache.mu.Lock()
+
 		ecache.updateResult(
 			test.pod,
 			test.nodeName,
@@ -363,17 +368,22 @@ func TestUpdateResult(t *testing.T) {
 			test.reasons,
 			test.equivalenceHash,
 		)
-		ecache.mu.Unlock()
 
-		cachedMapItem, ok := ecache.algorithmCache[test.nodeName][test.predicateKey]
-		if !ok {
+		found := false
+		if algorithmCache, ok := ecache.algorithmCache.Get(test.nodeName); ok {
+			if predicateMap, ok := algorithmCache.(*hashmap.HashMap).Get(test.predicateKey); ok {
+				if cachedMapItem, ok := predicateMap.(*hashmap.HashMap).Get(test.equivalenceHash); ok {
+					found = true
+					if !reflect.DeepEqual(cachedMapItem, test.expectCacheItem) {
+						t.Errorf("Failed: %s, expected cached item: %v, but got: %v",
+							test.name, test.expectCacheItem, cachedMapItem)
+					}
+				}
+			}
+		}
+		if !found {
 			t.Errorf("Failed: %s, can't find expected cache item: %v",
 				test.name, test.expectCacheItem)
-		} else {
-			if !reflect.DeepEqual(cachedMapItem[test.equivalenceHash], test.expectCacheItem) {
-				t.Errorf("Failed: %s, expected cached item: %v, but got: %v",
-					test.name, test.expectCacheItem, cachedMapItem[test.equivalenceHash])
-			}
 		}
 	}
 }
@@ -464,7 +474,7 @@ func TestLookupResult(t *testing.T) {
 	for _, test := range tests {
 		ecache := NewEquivalenceCache()
 		// set cached item to equivalence cache
-		ecache.mu.Lock()
+
 		ecache.updateResult(
 			test.podName,
 			test.nodeName,
@@ -473,7 +483,7 @@ func TestLookupResult(t *testing.T) {
 			test.cachedItem.reasons,
 			test.equivalenceHashForUpdatePredicate,
 		)
-		ecache.mu.Unlock()
+
 		// if we want to do invalid, invalid the cached item
 		if test.expectedInvalidPredicateKey {
 			predicateKeys := sets.NewString()
@@ -481,13 +491,13 @@ func TestLookupResult(t *testing.T) {
 			ecache.InvalidateCachedPredicateItem(test.nodeName, predicateKeys)
 		}
 		// calculate predicate with equivalence cache
-		ecache.mu.Lock()
+
 		fit, reasons, invalid := ecache.lookupResult(test.podName,
 			test.nodeName,
 			test.predicateKey,
 			test.equivalenceHashForCalPredicate,
 		)
-		ecache.mu.Unlock()
+
 		// returned invalid should match expectedInvalidPredicateKey or expectedInvalidEquivalenceHash
 		if test.equivalenceHashForUpdatePredicate != test.equivalenceHashForCalPredicate {
 			if invalid != test.expectedInvalidEquivalenceHash {
@@ -674,7 +684,7 @@ func TestInvalidateCachedPredicateItemOfAllNodes(t *testing.T) {
 
 	for _, test := range tests {
 		// set cached item to equivalence cache
-		ecache.mu.Lock()
+
 		ecache.updateResult(
 			test.podName,
 			test.nodeName,
@@ -683,7 +693,7 @@ func TestInvalidateCachedPredicateItemOfAllNodes(t *testing.T) {
 			test.cachedItem.reasons,
 			test.equivalenceHashForUpdatePredicate,
 		)
-		ecache.mu.Unlock()
+
 	}
 
 	// invalidate cached predicate for all nodes
@@ -691,8 +701,8 @@ func TestInvalidateCachedPredicateItemOfAllNodes(t *testing.T) {
 
 	// there should be no cached predicate any more
 	for _, test := range tests {
-		if algorithmCache, exist := ecache.algorithmCache[test.nodeName]; exist {
-			if _, exist := algorithmCache[testPredicate]; exist {
+		if algorithmCache, exist := ecache.algorithmCache.Get(test.nodeName); exist {
+			if _, exist := algorithmCache.(*hashmap.HashMap).Get(testPredicate); exist {
 				t.Errorf("Failed: cached item for predicate key: %v on node: %v should be invalidated",
 					testPredicate, test.nodeName)
 				break
@@ -742,7 +752,7 @@ func TestInvalidateAllCachedPredicateItemOfNode(t *testing.T) {
 
 	for _, test := range tests {
 		// set cached item to equivalence cache
-		ecache.mu.Lock()
+
 		ecache.updateResult(
 			test.podName,
 			test.nodeName,
@@ -751,13 +761,13 @@ func TestInvalidateAllCachedPredicateItemOfNode(t *testing.T) {
 			test.cachedItem.reasons,
 			test.equivalenceHashForUpdatePredicate,
 		)
-		ecache.mu.Unlock()
+
 	}
 
 	for _, test := range tests {
 		// invalidate cached predicate for all nodes
 		ecache.InvalidateAllCachedPredicateItemOfNode(test.nodeName)
-		if _, exist := ecache.algorithmCache[test.nodeName]; exist {
+		if _, exist := ecache.algorithmCache.Get(test.nodeName); exist {
 			t.Errorf("Failed: cached item for node: %v should be invalidated", test.nodeName)
 			break
 		}
