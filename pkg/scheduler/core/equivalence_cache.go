@@ -27,8 +27,6 @@ import (
 	"k8s.io/kubernetes/pkg/scheduler/algorithm/predicates"
 	"k8s.io/kubernetes/pkg/scheduler/schedulercache"
 	hashutil "k8s.io/kubernetes/pkg/util/hash"
-
-	"github.com/golang/glog"
 )
 
 // EquivalenceCache holds:
@@ -124,7 +122,6 @@ func (ec *EquivalenceCache) updateResult(
 				equivalenceHash: predicateItem,
 			}
 	}
-	glog.V(5).Infof("Updated cached predicate: %v for pod: %v on node: %s, with item %v", predicateKey, podName, nodeName, predicateItem)
 }
 
 // lookupResult returns cached predicate results:
@@ -137,8 +134,6 @@ func (ec *EquivalenceCache) lookupResult(
 ) (bool, []algorithm.PredicateFailureReason, bool) {
 	ec.mu.RLock()
 	defer ec.mu.RUnlock()
-	glog.V(5).Infof("Begin to calculate predicate: %v for pod: %s on node: %s based on equivalence cache",
-		predicateKey, podName, nodeName)
 	if hostPredicate, exist := ec.algorithmCache[nodeName][predicateKey][equivalenceHash]; exist {
 		if hostPredicate.Fit {
 			return true, []algorithm.PredicateFailureReason{}, false
@@ -159,7 +154,6 @@ func (ec *EquivalenceCache) InvalidateCachedPredicateItem(nodeName string, predi
 	for predicateKey := range predicateKeys {
 		delete(ec.algorithmCache[nodeName], predicateKey)
 	}
-	glog.V(5).Infof("Done invalidating cached predicates: %v on node: %s", predicateKeys, nodeName)
 }
 
 // InvalidateCachedPredicateItemOfAllNodes marks all items of given predicateKeys, of all pods, on all node as invalid
@@ -175,7 +169,6 @@ func (ec *EquivalenceCache) InvalidateCachedPredicateItemOfAllNodes(predicateKey
 			delete(algorithmCache, predicateKey)
 		}
 	}
-	glog.V(5).Infof("Done invalidating cached predicates: %v on all node", predicateKeys)
 }
 
 // InvalidateAllCachedPredicateItemOfNode marks all cached items on given node as invalid
@@ -183,7 +176,6 @@ func (ec *EquivalenceCache) InvalidateAllCachedPredicateItemOfNode(nodeName stri
 	ec.mu.Lock()
 	defer ec.mu.Unlock()
 	delete(ec.algorithmCache, nodeName)
-	glog.V(5).Infof("Done invalidating all cached predicates on node: %s", nodeName)
 }
 
 // InvalidateCachedPredicateItemForPodAdd is a wrapper of InvalidateCachedPredicateItem for pod add case
