@@ -18,6 +18,11 @@ package benchmark
 
 import (
 	"fmt"
+	"math"
+	"strconv"
+	"testing"
+	"time"
+
 	"github.com/golang/glog"
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -25,10 +30,6 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/kubernetes/pkg/scheduler"
 	testutils "k8s.io/kubernetes/test/utils"
-	"math"
-	"strconv"
-	"testing"
-	"time"
 )
 
 const (
@@ -53,7 +54,7 @@ var (
 		Status: v1.NodeStatus{
 			Capacity: v1.ResourceList{
 				v1.ResourcePods:   *resource.NewQuantity(110, resource.DecimalSI),
-				v1.ResourceCPU:    resource.MustParse("4"),
+				v1.ResourceCPU:    resource.MustParse("16"), // 4 cpu is too small.
 				v1.ResourceMemory: resource.MustParse("32Gi"),
 			},
 			Phase: v1.NodeRunning,
@@ -65,24 +66,76 @@ var (
 )
 
 // TestSchedule100Node3KPods schedules 3k pods on 100 nodes.
-func TestSchedule100Node3KPods(t *testing.T) {
+// func TestSchedule100Node3KPods(t *testing.T) {
+// 	if testing.Short() {
+// 		t.Skip("Skipping because we want to run short tests")
+// 	}
+
+// 	config := getBaseConfig(100, 3000)
+// 	err := writePodAndNodeTopologyToConfig(config)
+// 	if err != nil {
+// 		t.Errorf("Misconfiguration happened for nodes/pods chosen to have predicates and priorities")
+// 	}
+// 	min := schedulePods(config)
+// 	if min < threshold3K {
+// 		t.Errorf("Failing: Scheduling rate was too low for an interval, we saw rate of %v, which is the allowed minimum of %v ! ", min, threshold3K)
+// 	} else if min < warning3K {
+// 		fmt.Printf("Warning: pod scheduling throughput for 3k pods was slow for an interval... Saw a interval with very low (%v) scheduling rate!", min)
+// 	} else {
+// 		fmt.Printf("Minimal observed throughput for 3k pod test: %v\n", min)
+// 	}
+// }
+
+// TestSchedule100Node3KPods schedules 3k pods on 100 nodes and verify the pods distribution.
+func TestScheduleDistribution100Node3KPods(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping because we want to run short tests")
 	}
 
 	config := getBaseConfig(100, 3000)
+
+	// Given 1.5GB image for some nodes.
+	config.existingImages = map[string]int64{"kubernetes/pause:v1": 500 * 1024 * 1024}
+
 	err := writePodAndNodeTopologyToConfig(config)
 	if err != nil {
 		t.Errorf("Misconfiguration happened for nodes/pods chosen to have predicates and priorities")
 	}
-	min := schedulePods(config)
-	if min < threshold3K {
-		t.Errorf("Failing: Scheduling rate was too low for an interval, we saw rate of %v, which is the allowed minimum of %v ! ", min, threshold3K)
-	} else if min < warning3K {
-		fmt.Printf("Warning: pod scheduling throughput for 3k pods was slow for an interval... Saw a interval with very low (%v) scheduling rate!", min)
-	} else {
-		fmt.Printf("Minimal observed throughput for 3k pod test: %v\n", min)
+	schedulePods(config)
+
+	hotNodes := calculateDistribution(config)
+	if len(hotNodes) != 0 {
+		t.Errorf("Failing: Scheduling distribution is not balance across these nodes: %v, target avg pods: %v",
+			hotNodes,
+			config.numPods/config.numNodes,
+		)
 	}
+}
+
+func calculateDistribution(config *testConfig) map[string]int {
+	nodeInfo := map[string]int{}
+	hotNodes := map[string]int{}
+
+	// Now that scheduling has finished, lets record which node every pod is assigned.
+	scheduled, err := config.schedulerSupportFunctions.GetScheduledPodLister().List(labels.Everything())
+	if err != nil {
+		glog.Fatalf("%v", err)
+	}
+
+	for _, pod := range scheduled {
+		nodeInfo[pod.Spec.NodeName] = nodeInfo[pod.Spec.NodeName] + 1
+	}
+
+	avg := config.numPods / config.numNodes
+	for node, count := range nodeInfo {
+		// Assigned pods count is more than 50% of avg, it's hot.
+		// TOOO(harry): define "hot"!
+		if count > avg {
+			hotNodes[node] = count
+		}
+	}
+
+	return hotNodes
 }
 
 // TestSchedule2000Node60KPods schedules 60k pods on 2000 nodes.
@@ -107,6 +160,7 @@ type testConfig struct {
 	mutatedPodTemplate        *v1.Pod
 	schedulerSupportFunctions scheduler.Configurator
 	destroyFunc               func()
+	existingImages            map[string]int64
 }
 
 // getBaseConfig returns baseConfig after initializing number of nodes and pods.
@@ -215,13 +269,36 @@ func (na nodeAffinity) mutatePodTemplate(pod *v1.Pod) {
 
 // generateNodes generates nodes to be used for scheduling.
 func (inputConfig *schedulerPerfConfig) generateNodes(config *testConfig) {
-	for i := 0; i < inputConfig.NodeCount; i++ {
-		config.schedulerSupportFunctions.GetClient().CoreV1().Nodes().Create(config.mutatedNodeTemplate)
-
+	// add existing images to first 5% node.
+	seed := (inputConfig.NodeCount * 5) / 100
+	if seed <= 0 {
+		seed = 1
 	}
+
+	// NodeCount - seed nodes without pre-pulled image.
+	for i := 0; i < inputConfig.NodeCount-seed; i++ {
+		config.schedulerSupportFunctions.GetClient().CoreV1().Nodes().Create(config.mutatedNodeTemplate)
+	}
+
+	// Seed nodes with pre-pulled large image.
+	for i := 0; i < seed; i++ {
+		if i == 0 && len(config.existingImages) != 0 {
+			config.mutatedNodeTemplate.Status.Images = []v1.ContainerImage{}
+			for img, size := range config.existingImages {
+				config.mutatedNodeTemplate.Status.Images = append(
+					config.mutatedNodeTemplate.Status.Images,
+					v1.ContainerImage{
+						Names:     []string{img},
+						SizeBytes: size,
+					},
+				)
+			}
+		}
+		config.schedulerSupportFunctions.GetClient().CoreV1().Nodes().Create(config.mutatedNodeTemplate)
+	}
+
 	for i := 0; i < config.numNodes-inputConfig.NodeCount; i++ {
 		config.schedulerSupportFunctions.GetClient().CoreV1().Nodes().Create(baseNodeTemplate)
-
 	}
 }
 
@@ -245,7 +322,9 @@ func (inputConfig *schedulerPerfConfig) generatePodAndNodeTopology(config *testC
 		nodeAffinity.mutateNodeTemplate(mutatedNodeTemplate)
 		nodeAffinity.mutatePodTemplate(mutatedPodTemplate)
 
-	} // TODO: other predicates/priorities will be processed in subsequent if statements or a switch:).
+	}
+
+	// TODO: other predicates/priorities will be processed in subsequent if statements or a switch:).
 	config.mutatedPodTemplate = mutatedPodTemplate
 	config.mutatedNodeTemplate = mutatedNodeTemplate
 	inputConfig.generateNodes(config)

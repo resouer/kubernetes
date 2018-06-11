@@ -40,6 +40,8 @@ func mustSetupScheduler() (scheduler.Configurator, util.ShutdownFunc) {
 		QPS:           5000.0,
 		Burst:         5000,
 	})
+
+	// TODO(harry): no policy passed, have to modify priority weight in code for now.
 	schedulerConfig, schedulerShutdown := util.StartScheduler(clientSet)
 
 	shutdownFunc := func() {

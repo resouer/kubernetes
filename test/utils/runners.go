@@ -1019,18 +1019,9 @@ func MakePodSpec() v1.PodSpec {
 	return v1.PodSpec{
 		Containers: []v1.Container{{
 			Name:  "pause",
-			Image: "kubernetes/pause",
+			Image: "kubernetes/pause:v1",
 			Ports: []v1.ContainerPort{{ContainerPort: 80}},
-			Resources: v1.ResourceRequirements{
-				Limits: v1.ResourceList{
-					v1.ResourceCPU:    resource.MustParse("100m"),
-					v1.ResourceMemory: resource.MustParse("500Mi"),
-				},
-				Requests: v1.ResourceList{
-					v1.ResourceCPU:    resource.MustParse("100m"),
-					v1.ResourceMemory: resource.MustParse("500Mi"),
-				},
-			},
+			// TODO(harry): No resource request, pods will definitely cumulate to hot nodes until reach certain limit.
 		}},
 	}
 }

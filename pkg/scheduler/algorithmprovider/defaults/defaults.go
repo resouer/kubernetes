@@ -226,7 +226,7 @@ func defaultPriorities() sets.String {
 				MapReduceFunction: func(args factory.PluginFactoryArgs) (algorithm.PriorityMapFunction, algorithm.PriorityReduceFunction) {
 					return priorities.NewSelectorSpreadPriority(args.ServiceLister, args.ControllerLister, args.ReplicaSetLister, args.StatefulSetLister)
 				},
-				Weight: 1,
+				Weight: 10,
 			},
 		),
 		// pods should be placed in the same topological domain (e.g. same node, same rack, same zone, same power domain, etc.)
@@ -237,30 +237,30 @@ func defaultPriorities() sets.String {
 				Function: func(args factory.PluginFactoryArgs) algorithm.PriorityFunction {
 					return priorities.NewInterPodAffinityPriority(args.NodeInfo, args.NodeLister, args.PodLister, args.HardPodAffinitySymmetricWeight)
 				},
-				Weight: 1,
+				Weight: 10,
 			},
 		),
 
 		// Prioritize nodes by least requested utilization.
-		factory.RegisterPriorityFunction2("LeastRequestedPriority", priorities.LeastRequestedPriorityMap, nil, 1),
+		factory.RegisterPriorityFunction2("LeastRequestedPriority", priorities.LeastRequestedPriorityMap, nil, 10),
 
 		// Prioritizes nodes to help achieve balanced resource usage
-		factory.RegisterPriorityFunction2("BalancedResourceAllocation", priorities.BalancedResourceAllocationMap, nil, 1),
+		factory.RegisterPriorityFunction2("BalancedResourceAllocation", priorities.BalancedResourceAllocationMap, nil, 10),
 
 		// Set this weight large enough to override all other priority functions.
 		// TODO: Figure out a better way to do this, maybe at same time as fixing #24720.
 		factory.RegisterPriorityFunction2("NodePreferAvoidPodsPriority", priorities.CalculateNodePreferAvoidPodsPriorityMap, nil, 10000),
 
 		// Prioritizes nodes that have labels matching NodeAffinity
-		factory.RegisterPriorityFunction2("NodeAffinityPriority", priorities.CalculateNodeAffinityPriorityMap, priorities.CalculateNodeAffinityPriorityReduce, 1),
+		factory.RegisterPriorityFunction2("NodeAffinityPriority", priorities.CalculateNodeAffinityPriorityMap, priorities.CalculateNodeAffinityPriorityReduce, 10),
 
 		// Prioritizes nodes that marked with taint which pod can tolerate.
-		factory.RegisterPriorityFunction2("TaintTolerationPriority", priorities.ComputeTaintTolerationPriorityMap, priorities.ComputeTaintTolerationPriorityReduce, 1),
+		factory.RegisterPriorityFunction2("TaintTolerationPriority", priorities.ComputeTaintTolerationPriorityMap, priorities.ComputeTaintTolerationPriorityReduce, 10),
 
 		// ImageLocalityPriority prioritizes nodes based on locality of images requested by a pod. Nodes with larger size
 		// of already-installed packages required by the pod will be preferred over nodes with no already-installed
 		// packages required by the pod or a small total size of already-installed packages required by the pod.
-		factory.RegisterPriorityFunction2("ImageLocalityPriority", priorities.ImageLocalityPriorityMap, nil, 1),
+		factory.RegisterPriorityFunction2("ImageLocalityPriority", priorities.ImageLocalityPriorityMap, nil, 4),
 	)
 }
 
