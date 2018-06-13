@@ -260,7 +260,15 @@ func defaultPriorities() sets.String {
 		// ImageLocalityPriority prioritizes nodes based on locality of images requested by a pod. Nodes with larger size
 		// of already-installed packages required by the pod will be preferred over nodes with no already-installed
 		// packages required by the pod or a small total size of already-installed packages required by the pod.
-		factory.RegisterPriorityFunction2("ImageLocalityPriority", priorities.ImageLocalityPriorityMap, nil, 4),
+		factory.RegisterPriorityConfigFactory(
+			"ImageLocalityPriority",
+			factory.PriorityConfigFactory{
+				MapReduceFunction: func(args factory.PluginFactoryArgs) (algorithm.PriorityMapFunction, algorithm.PriorityReduceFunction) {
+					return priorities.NewImageLocalityPriority(args.NodeLister)
+				},
+				Weight: 10,
+			},
+		),
 	)
 }
 

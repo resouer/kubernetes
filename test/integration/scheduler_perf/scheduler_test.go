@@ -95,7 +95,7 @@ func TestScheduleDistribution100Node3KPods(t *testing.T) {
 	config := getBaseConfig(100, 3000)
 
 	// Given 1.5GB image for some nodes.
-	config.existingImages = map[string]int64{"kubernetes/pause:v1": 500 * 1024 * 1024}
+	config.existingImages = map[string]int64{"kubernetes/pause:v1": 1500 * 1024 * 1024}
 
 	err := writePodAndNodeTopologyToConfig(config)
 	if err != nil {

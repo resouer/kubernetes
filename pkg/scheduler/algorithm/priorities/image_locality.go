@@ -18,9 +18,11 @@ package priorities
 
 import (
 	"fmt"
+	"math"
 	"strings"
 
 	"k8s.io/api/core/v1"
+	"k8s.io/kubernetes/pkg/scheduler/algorithm"
 	schedulerapi "k8s.io/kubernetes/pkg/scheduler/api"
 	schedulercache "k8s.io/kubernetes/pkg/scheduler/cache"
 	"k8s.io/kubernetes/pkg/util/parsers"
@@ -33,55 +35,103 @@ const (
 	maxImgSize int64 = 1000 * mb
 )
 
-// ImageLocalityPriorityMap is a priority function that favors nodes that already have requested pod container's images.
+// ImageLocality contains information to calculate image locality priority.
+type ImageLocality struct {
+	nodeLister algorithm.NodeLister
+}
+
+func NewImageLocalityPriority(nodeLister algorithm.NodeLister) (algorithm.PriorityMapFunction, algorithm.PriorityReduceFunction) {
+	imageLocality := &ImageLocality{
+		nodeLister: nodeLister,
+	}
+
+	// TODO(harry): reduce?
+	return imageLocality.CalculateSpreadPriorityMap, nil
+}
+
+// CalculateSpreadPriorityMap is a priority function that favors nodes that already have requested pod container's images.
 // It will detect whether the requested images are present on a node, and then calculate a score ranging from 0 to 10
 // based on the total size of those images.
 // - If none of the images are present, this node will be given the lowest priority.
 // - If some of the images are present on a node, the larger their sizes' sum, the higher the node's priority.
-func ImageLocalityPriorityMap(pod *v1.Pod, meta interface{}, nodeInfo *schedulercache.NodeInfo) (schedulerapi.HostPriority, error) {
+func (i *ImageLocality) CalculateSpreadPriorityMap(pod *v1.Pod, meta interface{}, nodeInfo *schedulercache.NodeInfo) (schedulerapi.HostPriority, error) {
 	node := nodeInfo.Node()
 	if node == nil {
 		return schedulerapi.HostPriority{}, fmt.Errorf("node not found")
 	}
 
-	sumSize := totalImageSize(nodeInfo, pod.Spec.Containers)
-
+	nodes, err := i.nodeLister.List()
+	if err != nil {
+		return schedulerapi.HostPriority{}, fmt.Errorf("failed to list nodes")
+	}
+	sumSize, discount := totalImageSize(nodeInfo, pod.Spec.Containers, nodes)
+	// TODO(harry): Evaluate the performance impact.
 	return schedulerapi.HostPriority{
 		Host:  node.Name,
-		Score: calculateScoreFromSize(sumSize),
+		Score: calculateScoreFromSize(sumSize, discount),
 	}, nil
+
 }
 
 // calculateScoreFromSize calculates the priority of a node. sumSize is sum size of requested images on this node.
 // 1. Split image size range into 10 buckets.
 // 2. Decide the priority of a given sumSize based on which bucket it belongs to.
-func calculateScoreFromSize(sumSize int64) int {
+func calculateScoreFromSize(sumSize int64, discount float64) int {
+	var score int
 	switch {
 	case sumSize == 0 || sumSize < minImgSize:
 		// 0 means none of the images required by this pod are present on this
 		// node or the total size of the images present is too small to be taken into further consideration.
-		return 0
-
+		score = 0
 	case sumSize >= maxImgSize:
 		// If existing images' total size is larger than max, just make it highest priority.
-		return schedulerapi.MaxPriority
+		score = schedulerapi.MaxPriority
+	default:
+		score = int((int64(schedulerapi.MaxPriority) * (sumSize - minImgSize) / (maxImgSize - minImgSize)) + 1)
 	}
-
-	return int((int64(schedulerapi.MaxPriority) * (sumSize - minImgSize) / (maxImgSize - minImgSize)) + 1)
+	// TODO(harry): or, when score > 5, give it a discount?
+	return int(math.Ceil(float64(score) * discount))
 }
 
 // totalImageSize returns the total image size of all the containers that are already on the node.
-func totalImageSize(nodeInfo *schedulercache.NodeInfo, containers []v1.Container) int64 {
-	var total int64
+func totalImageSize(nodeInfo *schedulercache.NodeInfo, containers []v1.Container, nodes []*v1.Node) (int64, float64) {
+	var (
+		total    int64
+		discount float64
+	)
 
 	imageSizes := nodeInfo.ImageSizes()
 	for _, container := range containers {
-		if size, ok := imageSizes[normalizedImageName(container.Image)]; ok {
+		imageNameOnNode := normalizedImageName(container.Image)
+		discount = distributionDiscount(imageNameOnNode, nodes)
+		if size, ok := imageSizes[imageNameOnNode]; ok {
 			total += size
 		}
 	}
 
-	return total
+	return total, discount
+}
+
+func distributionDiscount(image string, nodes []*v1.Node) float64 {
+	var count float64
+	for _, node := range nodes {
+		if imagePresents(node, image) {
+			count++
+		}
+	}
+	return count / float64(len(nodes))
+}
+
+// TODO(harry): this is tricky, we may want to prepare this information in other place.
+func imagePresents(node *v1.Node, imageName string) bool {
+	for _, containerImg := range node.Status.Images {
+		for _, name := range containerImg.Names {
+			if name == imageName {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // normalizedImageName returns the CRI compliant name for a given image.
