@@ -29,9 +29,129 @@ import (
 	"k8s.io/kubernetes/pkg/scheduler/algorithm/predicates"
 	schedulercache "k8s.io/kubernetes/pkg/scheduler/cache"
 	hashutil "k8s.io/kubernetes/pkg/util/hash"
-
-	"github.com/golang/glog"
 )
+
+// nodeMap is type for a map of nodeName:Cache
+type nodeMap map[string]*Cache
+
+// TopLevelEquivCache is a thread safe nodeMap
+type TopLevelEquivCache struct {
+	nodeToCache nodeMap
+}
+
+// NewTopLevelEquivCache populate equiv class cache with all existing nodes
+// It should called before scheduling process begin.
+// TODO(harry): evaluate sync.Map here. If we require lock invalidates as well.
+func NewTopLevelEquivCache() *TopLevelEquivCache {
+	return &TopLevelEquivCache{
+		nodeToCache: make(nodeMap),
+	}
+}
+
+// PopulateNodes initializes TopLevelEquivCache with given nodes before scheduling
+// loop begin.
+func (n *TopLevelEquivCache) PopulateNodes(nodes []*v1.Node) {
+	for _, node := range nodes {
+		n.AddNode(node.GetName())
+	}
+}
+
+// AddNode adds node to TopLevelEquivCache
+func (n *TopLevelEquivCache) AddNode(name string) {
+	n.nodeToCache[name] = newCache()
+}
+
+// AddNode removes node from TopLevelEquivCache
+func (n *TopLevelEquivCache) RemoveNode(name string) {
+	c := n.GetCache(name)
+	// In case scheduling is using this second level Cache.
+	c.cu.Lock()
+	defer c.cu.Unlock()
+	delete(n.nodeToCache, name)
+}
+
+// GetCache returns the second level Cache for given node name.
+func (n *TopLevelEquivCache) GetCache(name string) *Cache {
+	return n.nodeToCache[name]
+}
+
+// removeCachedPreds deletes cached predicates by given keys.
+// This function is thread safe for second level Cache, no need to sync with top level cache.
+func (c *Cache) removeCachedPreds(predicateKeys sets.String) {
+	c.cu.Lock()
+	defer c.cu.Unlock()
+	for predicateKey := range predicateKeys {
+		delete(c.cache, predicateKey)
+	}
+}
+
+// InvalidatePredicates clears all cached results for the given predicates.
+// TODO(harry): This function is expensive, think twice before use it.
+func (n *TopLevelEquivCache) InvalidatePredicates(predicateKeys sets.String) {
+	if len(predicateKeys) == 0 {
+		return
+	}
+	for _, c := range n.nodeToCache {
+		c.removeCachedPreds(predicateKeys)
+	}
+}
+
+// InvalidatePredicatesOnNode clears cached results for the given predicates on one node.
+func (n *TopLevelEquivCache) InvalidatePredicatesOnNode(nodeName string, predicateKeys sets.String) {
+	if len(predicateKeys) == 0 {
+		return
+	}
+	c := n.GetCache(nodeName)
+	c.removeCachedPreds(predicateKeys)
+}
+
+// InvalidateAllPredicatesOnNode clears all cached results for one node.
+func (n *TopLevelEquivCache) InvalidateAllPredicatesOnNode(nodeName string) {
+	c := n.GetCache(nodeName)
+	// In case scheduling is using this second level Cache.
+	c.cu.Lock()
+	defer c.cu.Unlock()
+	n.nodeToCache[nodeName] = newCache()
+}
+
+// InvalidateCachedPredicateItemForPodAdd is a wrapper of
+// InvalidateCachedPredicateItem for pod add case
+// TODO: This does not belong with the equivalence cache implementation.
+func (n *TopLevelEquivCache) InvalidateCachedPredicateItemForPodAdd(pod *v1.Pod, nodeName string) {
+	// MatchInterPodAffinity: we assume scheduler can make sure newly bound pod
+	// will not break the existing inter pod affinity. So we does not need to
+	// invalidate MatchInterPodAffinity when pod added.
+	//
+	// But when a pod is deleted, existing inter pod affinity may become invalid.
+	// (e.g. this pod was preferred by some else, or vice versa)
+	//
+	// NOTE: assumptions above will not stand when we implemented features like
+	// RequiredDuringSchedulingRequiredDuringExecution.
+
+	// NoDiskConflict: the newly scheduled pod fits to existing pods on this node,
+	// it will also fits to equivalence class of existing pods
+
+	// GeneralPredicates: will always be affected by adding a new pod
+	invalidPredicates := sets.NewString(predicates.GeneralPred)
+
+	// MaxPDVolumeCountPredicate: we check the volumes of pod to make decision.
+	for _, vol := range pod.Spec.Volumes {
+		if vol.PersistentVolumeClaim != nil {
+			invalidPredicates.Insert(predicates.MaxEBSVolumeCountPred, predicates.MaxGCEPDVolumeCountPred, predicates.MaxAzureDiskVolumeCountPred)
+		} else {
+			if vol.AWSElasticBlockStore != nil {
+				invalidPredicates.Insert(predicates.MaxEBSVolumeCountPred)
+			}
+			if vol.GCEPersistentDisk != nil {
+				invalidPredicates.Insert(predicates.MaxGCEPDVolumeCountPred)
+			}
+			if vol.AzureDisk != nil {
+				invalidPredicates.Insert(predicates.MaxAzureDiskVolumeCountPred)
+			}
+		}
+	}
+	n.InvalidatePredicatesOnNode(nodeName, invalidPredicates)
+}
 
 // Cache saves and reuses the output of predicate functions. Use RunPredicate to
 // get or update the cached results. An appropriate Invalidate* function should
@@ -41,14 +161,14 @@ import (
 // class". (Equivalence class is defined in the `Class` type.) Saved results
 // will be reused until an appropriate invalidation function is called.
 type Cache struct {
-	mu    sync.RWMutex
-	cache nodeMap
+	cu    sync.RWMutex
+	cache predicateMap
 }
 
-// NewCache returns an empty Cache.
-func NewCache() *Cache {
+// newCache returns an empty Cache.
+func newCache() *Cache {
 	return &Cache{
-		cache: make(nodeMap),
+		cache: make(predicateMap),
 	}
 }
 
@@ -77,9 +197,6 @@ func NewClass(pod *v1.Pod) *Class {
 	}
 	return nil
 }
-
-// nodeMap stores PredicateCaches with node name as the key.
-type nodeMap map[string]predicateMap
 
 // predicateMap stores resultMaps with predicate name as the key.
 type predicateMap map[string]resultMap
@@ -126,6 +243,7 @@ func (c *Cache) RunPredicate(
 }
 
 // updateResult updates the cached result of a predicate.
+// This function is thread safe for second level Cache, no need to sync with top level cache.
 func (c *Cache) updateResult(
 	podName, predicateKey string,
 	fit bool,
@@ -134,8 +252,8 @@ func (c *Cache) updateResult(
 	cache schedulercache.Cache,
 	nodeInfo *schedulercache.NodeInfo,
 ) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
+	c.cu.Lock()
+	defer c.cu.Unlock()
 	if nodeInfo == nil || nodeInfo.Node() == nil {
 		// This may happen during tests.
 		return
@@ -144,114 +262,34 @@ func (c *Cache) updateResult(
 	if !cache.IsUpToDate(nodeInfo) {
 		return
 	}
-	nodeName := nodeInfo.Node().GetName()
-	if _, exist := c.cache[nodeName]; !exist {
-		c.cache[nodeName] = make(predicateMap)
-	}
+
 	predicateItem := predicateResult{
 		Fit:         fit,
 		FailReasons: reasons,
 	}
 	// if cached predicate map already exists, just update the predicate by key
-	if predicates, ok := c.cache[nodeName][predicateKey]; ok {
+	if predicates, ok := c.cache[predicateKey]; ok {
 		// maps in golang are references, no need to add them back
 		predicates[equivalenceHash] = predicateItem
 	} else {
-		c.cache[nodeName][predicateKey] =
+		c.cache[predicateKey] =
 			resultMap{
 				equivalenceHash: predicateItem,
 			}
 	}
-	glog.V(5).Infof("Cache update: node=%s,predicate=%s,pod=%s,value=%v", nodeName, predicateKey, podName, predicateItem)
 }
 
 // lookupResult returns cached predicate results and a bool saying whether a
 // cache entry was found.
+// This function is thread safe for second level Cache, no need to sync with top level cache.
 func (c *Cache) lookupResult(
 	podName, nodeName, predicateKey string,
 	equivalenceHash uint64,
 ) (value predicateResult, ok bool) {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
-	glog.V(5).Infof("Cache lookup: node=%s,predicate=%s,pod=%s", nodeName, predicateKey, podName)
-	value, ok = c.cache[nodeName][predicateKey][equivalenceHash]
+	c.cu.RLock()
+	defer c.cu.RUnlock()
+	value, ok = c.cache[predicateKey][equivalenceHash]
 	return value, ok
-}
-
-// InvalidatePredicates clears all cached results for the given predicates.
-func (c *Cache) InvalidatePredicates(predicateKeys sets.String) {
-	if len(predicateKeys) == 0 {
-		return
-	}
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	// c.cache uses nodeName as key, so we just iterate it and invalid given predicates
-	for _, predicates := range c.cache {
-		for predicateKey := range predicateKeys {
-			delete(predicates, predicateKey)
-		}
-	}
-	glog.V(5).Infof("Cache invalidation: node=*,predicates=%v", predicateKeys)
-}
-
-// InvalidatePredicatesOnNode clears cached results for the given predicates on one node.
-func (c *Cache) InvalidatePredicatesOnNode(nodeName string, predicateKeys sets.String) {
-	if len(predicateKeys) == 0 {
-		return
-	}
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	for predicateKey := range predicateKeys {
-		delete(c.cache[nodeName], predicateKey)
-	}
-	glog.V(5).Infof("Cache invalidation: node=%s,predicates=%v", nodeName, predicateKeys)
-}
-
-// InvalidateAllPredicatesOnNode clears all cached results for one node.
-func (c *Cache) InvalidateAllPredicatesOnNode(nodeName string) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	delete(c.cache, nodeName)
-	glog.V(5).Infof("Cache invalidation: node=%s,predicates=*", nodeName)
-}
-
-// InvalidateCachedPredicateItemForPodAdd is a wrapper of
-// InvalidateCachedPredicateItem for pod add case
-// TODO: This does not belong with the equivalence cache implementation.
-func (c *Cache) InvalidateCachedPredicateItemForPodAdd(pod *v1.Pod, nodeName string) {
-	// MatchInterPodAffinity: we assume scheduler can make sure newly bound pod
-	// will not break the existing inter pod affinity. So we does not need to
-	// invalidate MatchInterPodAffinity when pod added.
-	//
-	// But when a pod is deleted, existing inter pod affinity may become invalid.
-	// (e.g. this pod was preferred by some else, or vice versa)
-	//
-	// NOTE: assumptions above will not stand when we implemented features like
-	// RequiredDuringSchedulingRequiredDuringExecution.
-
-	// NoDiskConflict: the newly scheduled pod fits to existing pods on this node,
-	// it will also fits to equivalence class of existing pods
-
-	// GeneralPredicates: will always be affected by adding a new pod
-	invalidPredicates := sets.NewString(predicates.GeneralPred)
-
-	// MaxPDVolumeCountPredicate: we check the volumes of pod to make decision.
-	for _, vol := range pod.Spec.Volumes {
-		if vol.PersistentVolumeClaim != nil {
-			invalidPredicates.Insert(predicates.MaxEBSVolumeCountPred, predicates.MaxGCEPDVolumeCountPred, predicates.MaxAzureDiskVolumeCountPred)
-		} else {
-			if vol.AWSElasticBlockStore != nil {
-				invalidPredicates.Insert(predicates.MaxEBSVolumeCountPred)
-			}
-			if vol.GCEPersistentDisk != nil {
-				invalidPredicates.Insert(predicates.MaxGCEPDVolumeCountPred)
-			}
-			if vol.AzureDisk != nil {
-				invalidPredicates.Insert(predicates.MaxAzureDiskVolumeCountPred)
-			}
-		}
-	}
-	c.InvalidatePredicatesOnNode(nodeName, invalidPredicates)
 }
 
 // equivalencePod is the set of pod attributes which must match for two pods to

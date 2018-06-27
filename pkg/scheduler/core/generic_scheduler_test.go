@@ -1405,14 +1405,16 @@ func TestCacheInvalidationRace(t *testing.T) {
 
 	// Set up the mock cache.
 	cache := schedulercache.New(time.Duration(0), wait.NeverStop)
-	cache.AddNode(&v1.Node{ObjectMeta: metav1.ObjectMeta{Name: "machine1"}})
+	testNode := &v1.Node{ObjectMeta: metav1.ObjectMeta{Name: "machine1"}}
+	cache.AddNode(testNode)
 	mockCache := &syncingMockCache{
 		Cache:            cache,
 		cycleStart:       make(chan struct{}),
 		cacheInvalidated: make(chan struct{}),
 	}
 
-	eCache := equivalence.NewCache()
+	eCache := equivalence.NewTopLevelEquivCache()
+	eCache.PopulateNodes([]*v1.Node{testNode})
 	// Ensure that equivalence cache invalidation happens after the scheduling cycle starts, but before
 	// the equivalence cache would be updated.
 	go func() {

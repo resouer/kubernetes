@@ -124,7 +124,7 @@ type configFactory struct {
 	hardPodAffinitySymmetricWeight int32
 
 	// Equivalence class cache
-	equivalencePodCache *equivalence.Cache
+	equivalencePodCache *equivalence.TopLevelEquivCache
 
 	// Enable equivalence class cache
 	enableEquivalenceClassCache bool
@@ -767,6 +767,10 @@ func (c *configFactory) addNodeToCache(obj interface{}) {
 		glog.Errorf("scheduler cache AddNode failed: %v", err)
 	}
 
+	if c.enableEquivalenceClassCache {
+		c.equivalencePodCache.AddNode(node.GetName())
+	}
+
 	c.podQueue.MoveAllToActiveQueue()
 	// NOTE: add a new node does not affect existing predicates in equivalence cache
 }
@@ -886,6 +890,7 @@ func (c *configFactory) deleteNodeFromCache(obj interface{}) {
 		glog.Errorf("scheduler cache RemoveNode failed: %v", err)
 	}
 	if c.enableEquivalenceClassCache {
+		// We do not delete node from ecache here in case of nil pointers.
 		c.equivalencePodCache.InvalidateAllPredicatesOnNode(node.GetName())
 	}
 }
@@ -1075,8 +1080,8 @@ func (c *configFactory) CreateFromKeys(predicateKeys, priorityKeys sets.String, 
 
 	// Init equivalence class cache
 	if c.enableEquivalenceClassCache {
-		c.equivalencePodCache = equivalence.NewCache()
-		glog.Info("Created equivalence class cache")
+		c.equivalencePodCache = equivalence.NewTopLevelEquivCache()
+		glog.Infof("Created equivalence class cache")
 	}
 
 	algo := core.NewGenericScheduler(
@@ -1316,7 +1321,7 @@ func (c *configFactory) MakeDefaultErrorFunc(backoff *util.PodBackoff, podQueue 
 						c.schedulerCache.RemoveNode(&node)
 						// invalidate cached predicate for the node
 						if c.enableEquivalenceClassCache {
-							c.equivalencePodCache.InvalidateAllPredicatesOnNode(nodeName)
+							c.equivalencePodCache.RemoveNode(nodeName)
 						}
 					}
 				}

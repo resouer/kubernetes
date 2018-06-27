@@ -35,10 +35,10 @@ import (
 // various quantities of nodes and scheduled pods.
 func BenchmarkScheduling(b *testing.B) {
 	tests := []struct{ nodes, existingPods, minPods int }{
-		{nodes: 100, existingPods: 0, minPods: 100},
-		{nodes: 100, existingPods: 1000, minPods: 100},
-		{nodes: 1000, existingPods: 0, minPods: 100},
-		{nodes: 1000, existingPods: 1000, minPods: 100},
+		{nodes: 1000, existingPods: 0, minPods: 10000},
+		// {nodes: 100, existingPods: 1000, minPods: 100},
+		// {nodes: 1000, existingPods: 0, minPods: 100},
+		// {nodes: 1000, existingPods: 1000, minPods: 100},
 	}
 	setupStrategy := testutils.NewSimpleWithControllerCreatePodStrategy("rc1")
 	testStrategy := testutils.NewSimpleWithControllerCreatePodStrategy("rc2")
