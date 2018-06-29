@@ -252,8 +252,6 @@ func (c *Cache) updateResult(
 	cache schedulercache.Cache,
 	nodeInfo *schedulercache.NodeInfo,
 ) {
-	c.cu.Lock()
-	defer c.cu.Unlock()
 	if nodeInfo == nil || nodeInfo.Node() == nil {
 		// This may happen during tests.
 		return
@@ -267,6 +265,9 @@ func (c *Cache) updateResult(
 		Fit:         fit,
 		FailReasons: reasons,
 	}
+
+	c.cu.Lock()
+	defer c.cu.Unlock()
 	// if cached predicate map already exists, just update the predicate by key
 	if predicates, ok := c.cache[predicateKey]; ok {
 		// maps in golang are references, no need to add them back
