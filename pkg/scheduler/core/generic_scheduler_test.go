@@ -1414,7 +1414,7 @@ func TestCacheInvalidationRace(t *testing.T) {
 	}
 
 	eCache := equivalence.NewTopLevelEquivCache()
-	eCache.PopulateNodes([]*v1.Node{testNode})
+	eCache.SetNode(testNode.Name)
 	// Ensure that equivalence cache invalidation happens after the scheduling cycle starts, but before
 	// the equivalence cache would be updated.
 	go func() {

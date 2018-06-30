@@ -768,7 +768,7 @@ func (c *configFactory) addNodeToCache(obj interface{}) {
 	}
 
 	if c.enableEquivalenceClassCache {
-		c.equivalencePodCache.AddNode(node.GetName())
+		c.equivalencePodCache.SetNode(node.GetName())
 	}
 
 	c.podQueue.MoveAllToActiveQueue()

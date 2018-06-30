@@ -31,64 +31,42 @@ import (
 	hashutil "k8s.io/kubernetes/pkg/util/hash"
 )
 
-// nodeMap is type for a map of nodeName:Cache
-type nodeMap map[string]*Cache
-
 // TopLevelEquivCache is a thread safe nodeMap
-// TODO(harry): use sync.Map for better performance in 8+ Cores machine.
 type TopLevelEquivCache struct {
-	mu          sync.RWMutex
-	nodeToCache nodeMap
+	sync.Map
 }
 
 // NewTopLevelEquivCache populate equiv class cache with all existing nodes
 // It should called before scheduling process begin.
 // TODO(harry): evaluate sync.Map here. If we require lock invalidates as well.
 func NewTopLevelEquivCache() *TopLevelEquivCache {
-	return &TopLevelEquivCache{
-		nodeToCache: make(nodeMap),
-	}
+	return &TopLevelEquivCache{}
 }
 
-// PopulateNodes initializes TopLevelEquivCache with given nodes before scheduling
-// loop begin.
-func (n *TopLevelEquivCache) PopulateNodes(nodes []*v1.Node) {
-	for _, node := range nodes {
-		n.mu.Lock()
-		defer n.mu.Unlock()
-		if _, ok := n.nodeToCache[node.Name]; !ok {
-			n.nodeToCache[node.Name] = newCache()
-		}
-	}
+// SetNode overidely sets node to TopLevelEquivCache
+func (n *TopLevelEquivCache) SetNode(name string) {
+	n.Store(name, newCache())
 }
 
-// AddNode adds node to TopLevelEquivCache
-func (n *TopLevelEquivCache) AddNode(name string) {
-	n.mu.Lock()
-	defer n.mu.Unlock()
-	if _, ok := n.nodeToCache[name]; !ok {
-		n.nodeToCache[name] = newCache()
-	}
-}
-
-// AddNode removes node from TopLevelEquivCache
+// RemoveNode removes node from TopLevelEquivCache
 func (n *TopLevelEquivCache) RemoveNode(name string) {
-	n.mu.Lock()
-	defer n.mu.Unlock()
-
-	c := n.nodeToCache[name]
-	// In case this internal cache is being used
-	c.cu.Lock()
-	defer c.cu.Unlock()
-
-	delete(n.nodeToCache, name)
+	n.Delete(name)
 }
 
-// GetCache returns the second level Cache for given node name.
-func (n *TopLevelEquivCache) GetCache(name string) *Cache {
-	n.mu.RLock()
-	defer n.mu.RUnlock()
-	return n.nodeToCache[name]
+// LoadOrCreateCache returns the second level Cache for given node name.
+// If the Cache does not exist, just create it, this should only be called in generic scheduler.
+func (n *TopLevelEquivCache) LoadOrCreateCache(name string) *Cache {
+	v, _ := n.LoadOrStore(name, newCache())
+	return v.(*Cache)
+}
+
+// LoadCache returns the second level Cache for given node name.
+func (n *TopLevelEquivCache) LoadCache(name string) *Cache {
+	if v, ok := n.Load(name); !ok {
+		return nil
+	} else {
+		return v.(*Cache)
+	}
 }
 
 // removeCachedPreds deletes cached predicates by given keys.
@@ -102,17 +80,18 @@ func (c *Cache) removeCachedPreds(predicateKeys sets.String) {
 }
 
 // InvalidatePredicates clears all cached results for the given predicates.
-// TODO(harry): This function is expensive, think twice before use it.
+// TODO(harry): This may be expensive, re-evaluate it.
 func (n *TopLevelEquivCache) InvalidatePredicates(predicateKeys sets.String) {
 	if len(predicateKeys) == 0 {
 		return
 	}
-
-	n.mu.Lock()
-	defer n.mu.Unlock()
-	for _, c := range n.nodeToCache {
+	// Delete cached result for every node.
+	// Note: Please do not delete the entry for this node: it only happens when node is deleted.
+	n.Range(func(k, v interface{}) bool {
+		c := v.(*Cache)
 		c.removeCachedPreds(predicateKeys)
-	}
+		return true
+	})
 }
 
 // InvalidatePredicatesOnNode clears cached results for the given predicates on one node.
@@ -120,22 +99,21 @@ func (n *TopLevelEquivCache) InvalidatePredicatesOnNode(nodeName string, predica
 	if len(predicateKeys) == 0 {
 		return
 	}
-	n.mu.Lock()
-	defer n.mu.Unlock()
-	c := n.nodeToCache[nodeName]
-	c.removeCachedPreds(predicateKeys)
+	if v, ok := n.Load(nodeName); ok {
+		c := v.(*Cache)
+		c.removeCachedPreds(predicateKeys)
+	}
 }
 
 // InvalidateAllPredicatesOnNode clears all cached results for one node.
 func (n *TopLevelEquivCache) InvalidateAllPredicatesOnNode(nodeName string) {
-	n.mu.Lock()
-	defer n.mu.Unlock()
-	if c, ok := n.nodeToCache[nodeName]; ok {
-		// In case this internal cache is being used
-		c.cu.Lock()
-		defer c.cu.Unlock()
-
-		n.nodeToCache[nodeName] = newCache()
+	if v, ok := n.Load(nodeName); ok {
+		c := v.(*Cache)
+		predicateKeys := sets.NewString()
+		for k, _ := range c.cache {
+			predicateKeys.Insert(k)
+		}
+		c.removeCachedPreds(predicateKeys)
 	}
 }
 

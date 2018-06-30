@@ -126,12 +126,6 @@ func (g *genericScheduler) Schedule(pod *v1.Pod, nodeLister algorithm.NodeLister
 		return "", err
 	}
 
-	// Use existing node list to populate equivalence class cache.
-	if g.equivalenceCache != nil {
-		// TODO(harry): could we move this to some place earlier?
-		g.equivalenceCache.PopulateNodes(nodes)
-	}
-
 	trace.Step("Computing predicates")
 	startPredicateEvalTime := time.Now()
 	filteredNodes, failedPredicateMap, err := g.findNodesThatFit(pod, nodes)
@@ -361,19 +355,17 @@ func (g *genericScheduler) findNodesThatFit(pod *v1.Pod, nodes []*v1.Node) ([]*v
 		// We can use the same metadata producer for all nodes.
 		meta := g.predicateMetaProducer(pod, g.cachedNodeInfoMap)
 
-		var (
-			equivClass *equivalence.Class
-			equivCache *equivalence.Cache
-		)
+		var equivClass *equivalence.Class
 		if g.equivalenceCache != nil {
 			// getEquivalenceClassInfo will return immediately if no equivalence pod found
 			equivClass = equivalence.NewClass(pod)
 		}
 
 		checkNode := func(i int) {
+			var equivCache *equivalence.Cache
 			nodeName := nodes[i].Name
 			if g.equivalenceCache != nil {
-				equivCache = g.equivalenceCache.GetCache(nodeName)
+				equivCache = g.equivalenceCache.LoadOrCreateCache(nodeName)
 			}
 			fits, failedPredicates, err := podFitsOnNode(
 				pod,
