@@ -697,7 +697,7 @@ func TestInvalidateCachedPredicateItemOfAllNodes(t *testing.T) {
 		node := schedulercache.NewNodeInfo()
 		testNode := &v1.Node{ObjectMeta: metav1.ObjectMeta{Name: test.nodeName}}
 		node.SetNode(testNode)
-		ecache.AddNode(testNode.Name)
+		ecache.PopulateNodes([]*v1.Node{testNode})
 		// set cached item to equivalence cache
 		ecache.nodeToCache[testNode.Name].updateResult(
 			test.podName,
@@ -771,7 +771,7 @@ func TestInvalidateAllCachedPredicateItemOfNode(t *testing.T) {
 		node := schedulercache.NewNodeInfo()
 		testNode := &v1.Node{ObjectMeta: metav1.ObjectMeta{Name: test.nodeName}}
 		node.SetNode(testNode)
-		ecache.AddNode(testNode.Name)
+		ecache.PopulateNodes([]*v1.Node{testNode})
 		// set cached item to equivalence cache
 		ecache.nodeToCache[testNode.Name].updateResult(
 			test.podName,

@@ -35,7 +35,9 @@ import (
 type nodeMap map[string]*Cache
 
 // TopLevelEquivCache is a thread safe nodeMap
+// TODO(harry): use sync.Map for better performance in 8+ Cores machine.
 type TopLevelEquivCache struct {
+	mu          sync.RWMutex
 	nodeToCache nodeMap
 }
 
@@ -52,26 +54,40 @@ func NewTopLevelEquivCache() *TopLevelEquivCache {
 // loop begin.
 func (n *TopLevelEquivCache) PopulateNodes(nodes []*v1.Node) {
 	for _, node := range nodes {
-		n.AddNode(node.GetName())
+		n.mu.Lock()
+		defer n.mu.Unlock()
+		if _, ok := n.nodeToCache[node.Name]; !ok {
+			n.nodeToCache[node.Name] = newCache()
+		}
 	}
 }
 
 // AddNode adds node to TopLevelEquivCache
 func (n *TopLevelEquivCache) AddNode(name string) {
-	n.nodeToCache[name] = newCache()
+	n.mu.Lock()
+	defer n.mu.Unlock()
+	if _, ok := n.nodeToCache[name]; !ok {
+		n.nodeToCache[name] = newCache()
+	}
 }
 
 // AddNode removes node from TopLevelEquivCache
 func (n *TopLevelEquivCache) RemoveNode(name string) {
-	c := n.GetCache(name)
-	// In case scheduling is using this second level Cache.
+	n.mu.Lock()
+	defer n.mu.Unlock()
+
+	c := n.nodeToCache[name]
+	// In case this internal cache is being used
 	c.cu.Lock()
 	defer c.cu.Unlock()
+
 	delete(n.nodeToCache, name)
 }
 
 // GetCache returns the second level Cache for given node name.
 func (n *TopLevelEquivCache) GetCache(name string) *Cache {
+	n.mu.RLock()
+	defer n.mu.RUnlock()
 	return n.nodeToCache[name]
 }
 
@@ -91,6 +107,9 @@ func (n *TopLevelEquivCache) InvalidatePredicates(predicateKeys sets.String) {
 	if len(predicateKeys) == 0 {
 		return
 	}
+
+	n.mu.Lock()
+	defer n.mu.Unlock()
 	for _, c := range n.nodeToCache {
 		c.removeCachedPreds(predicateKeys)
 	}
@@ -101,17 +120,23 @@ func (n *TopLevelEquivCache) InvalidatePredicatesOnNode(nodeName string, predica
 	if len(predicateKeys) == 0 {
 		return
 	}
-	c := n.GetCache(nodeName)
+	n.mu.Lock()
+	defer n.mu.Unlock()
+	c := n.nodeToCache[nodeName]
 	c.removeCachedPreds(predicateKeys)
 }
 
 // InvalidateAllPredicatesOnNode clears all cached results for one node.
 func (n *TopLevelEquivCache) InvalidateAllPredicatesOnNode(nodeName string) {
-	c := n.GetCache(nodeName)
-	// In case scheduling is using this second level Cache.
-	c.cu.Lock()
-	defer c.cu.Unlock()
-	n.nodeToCache[nodeName] = newCache()
+	n.mu.Lock()
+	defer n.mu.Unlock()
+	if c, ok := n.nodeToCache[nodeName]; ok {
+		// In case this internal cache is being used
+		c.cu.Lock()
+		defer c.cu.Unlock()
+
+		n.nodeToCache[nodeName] = newCache()
+	}
 }
 
 // InvalidateCachedPredicateItemForPodAdd is a wrapper of
