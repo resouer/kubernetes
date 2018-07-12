@@ -79,7 +79,9 @@ func (c *Cache) InvalidatePredicates(predicateKeys sets.String) {
 	for _, n := range c.nodeToCache {
 		n.invalidatePreds(predicateKeys)
 	}
-	glog.V(5).Infof("Cache invalidation: node=*,predicates=%v", predicateKeys)
+	if glog.V(5) {
+		glog.Infof("Cache invalidation: node=*,predicates=%v", predicateKeys)
+	}
 }
 
 // InvalidatePredicatesOnNode clears cached results for the given predicates on one node.
@@ -92,7 +94,9 @@ func (c *Cache) InvalidatePredicatesOnNode(nodeName string, predicateKeys sets.S
 	if n, ok := c.nodeToCache[nodeName]; ok {
 		n.invalidatePreds(predicateKeys)
 	}
-	glog.V(5).Infof("Cache invalidation: node=%s,predicates=%v", nodeName, predicateKeys)
+	if glog.V(5) {
+		glog.Infof("Cache invalidation: node=%s,predicates=%v", nodeName, predicateKeys)
+	}
 }
 
 // InvalidateAllPredicatesOnNode clears all cached results for one node.
@@ -100,7 +104,9 @@ func (c *Cache) InvalidateAllPredicatesOnNode(nodeName string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	delete(c.nodeToCache, nodeName)
-	glog.V(5).Infof("Cache invalidation: node=%s,predicates=*", nodeName)
+	if glog.V(5) {
+		glog.Infof("Cache invalidation: node=%s,predicates=*", nodeName)
+	}
 }
 
 // InvalidateCachedPredicateItemForPodAdd is a wrapper of
@@ -269,8 +275,10 @@ func (n *NodeCache) updateResult(
 			}
 	}
 
-	glog.V(5).Infof("Cache update: node=%s, predicate=%s,pod=%s,value=%v",
-		nodeInfo.Node().Name, predicateKey, podName, predicateItem)
+	if glog.V(5) {
+		glog.Infof("Cache update: node=%s, predicate=%s,pod=%s,value=%v",
+			nodeInfo.Node().Name, predicateKey, podName, predicateItem)
+	}
 }
 
 // lookupResult returns cached predicate results and a bool saying whether a
@@ -279,9 +287,11 @@ func (n *NodeCache) lookupResult(
 	podName, nodeName, predicateKey string,
 	equivalenceHash uint64,
 ) (value predicateResult, ok bool) {
+	if glog.V(5) {
+		glog.Infof("Cache lookup: node=%s,predicate=%s,pod=%s", nodeName, predicateKey, podName)
+	}
 	n.mu.RLock()
 	defer n.mu.RUnlock()
-	glog.V(5).Infof("Cache lookup: node=%s,predicate=%s,pod=%s", nodeName, predicateKey, podName)
 	value, ok = n.cache[predicateKey][equivalenceHash]
 	return value, ok
 }
