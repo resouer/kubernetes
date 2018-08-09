@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"hash/fnv"
 	"sync"
+	"time"
 
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -66,14 +67,16 @@ func NewCache() *Cache {
 //
 // NodeCache objects are thread safe within the context of NodeCache,
 type NodeCache struct {
-	mu    sync.RWMutex
-	cache predicateMap
+	mu               sync.RWMutex
+	cache            predicateMap
+	cheapPredMetrics map[uint64]string
 }
 
 // newNodeCache returns an empty NodeCache.
 func newNodeCache() *NodeCache {
 	return &NodeCache{
-		cache: make(predicateMap),
+		cache:            make(predicateMap),
+		cheapPredMetrics: make(map[uint64]string),
 	}
 }
 
@@ -219,16 +222,26 @@ func (n *NodeCache) RunPredicate(
 		return false, []algorithm.PredicateFailureReason{}, fmt.Errorf("nodeInfo is nil or node is invalid")
 	}
 
-	result, ok := n.lookupResult(pod.GetName(), nodeInfo.Node().GetName(), predicateKey, equivClass.hash)
-	if ok {
-		return result.Fit, result.FailReasons, nil
+	// If predicate is not cheap, try to use ecache to speed up it first.
+	if p, cheap := n.cheapPredMetrics[equivClass.hash]; p == predicateKey && !cheap {
+		result, ok := n.lookupResult(pod.GetName(), nodeInfo.Node().GetName(), predicateKey, equivClass.hash)
+		if ok {
+			return result.Fit, result.FailReasons, nil
+		}
 	}
+
+	start := time.Now()
 	fit, reasons, err := pred(pod, meta, nodeInfo)
 	if err != nil {
 		return fit, reasons, err
 	}
 	if cache != nil {
-		n.updateResult(pod.GetName(), predicateKey, fit, reasons, equivClass.hash, cache, nodeInfo)
+		// If this predicate cost less than 100ns, mark it as cheap.
+		if time.Since(start).Nanoseconds() < 100 {
+			n.cheapPredMetrics[equivClass.hash] = predicateKey
+		} else {
+			n.updateResult(pod.GetName(), predicateKey, fit, reasons, equivClass.hash, cache, nodeInfo)
+		}
 	}
 	return fit, reasons, nil
 }
