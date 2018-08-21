@@ -130,16 +130,6 @@ func (c *Cache) InvalidateAllPredicatesOnNode(nodeName string) {
 // InvalidateCachedPredicateItem for pod add case
 // TODO: This does not belong with the equivalence cache implementation.
 func (c *Cache) InvalidateCachedPredicateItemForPodAdd(pod *v1.Pod, nodeName string) {
-	// MatchInterPodAffinity: we assume scheduler can make sure newly bound pod
-	// will not break the existing inter pod affinity. So we does not need to
-	// invalidate MatchInterPodAffinity when pod added.
-	//
-	// But when a pod is deleted, existing inter pod affinity may become invalid.
-	// (e.g. this pod was preferred by some else, or vice versa)
-	//
-	// NOTE: assumptions above will not stand when we implemented features like
-	// RequiredDuringSchedulingRequiredDuringExecutioc.
-
 	// NoDiskConflict: the newly scheduled pod fits to existing pods on this node,
 	// it will also fits to equivalence class of existing pods
 
@@ -162,7 +152,15 @@ func (c *Cache) InvalidateCachedPredicateItemForPodAdd(pod *v1.Pod, nodeName str
 			}
 		}
 	}
+
 	c.InvalidatePredicatesOnNode(nodeName, invalidPredicates)
+
+	// If this pod has labels, it may affect anti-affinity results. Have to
+	// invalidate this predicate for all nodes in same failure domain.
+	// TODO(harry): use failure domain as an extra parameter.
+	if len(pod.Labels) != 0 {
+		c.InvalidatePredicates(sets.NewString(predicates.MatchInterPodAffinityPred))
+	}
 }
 
 // Class represents a set of pods which are equivalent from the perspective of
