@@ -74,9 +74,58 @@ func BenchmarkSchedulingAntiAffinity(b *testing.B) {
 
 }
 
+// BenchmarkSchedulingPodAffinity benchmarks the scheduling rate of pods with
+// PodAffinity rules when the cluster has various quantities of nodes and
+// scheduled pods.
+func BenchmarkSchedulingPodAffinity(b *testing.B) {
+	tests := []struct{ nodes, existingPods, minPods int }{
+		{nodes: 500, existingPods: 250, minPods: 250},
+		{nodes: 500, existingPods: 5000, minPods: 250},
+	}
+	// The setup strategy creates pods with no affinity rules.
+	setupStrategy := testutils.NewSimpleWithControllerCreatePodStrategy("setup")
+	// The test strategy creates pods with anti-affinity for each other.
+	testBasePod := makeBasePodWithAffinity(
+		map[string]string{"name": "test", "color": "green"},
+		map[string]string{"color": "green"})
+	testStrategy := testutils.NewCustomCreatePodStrategy(testBasePod)
+	for _, test := range tests {
+		name := fmt.Sprintf("%vNodes/%vPods", test.nodes, test.existingPods)
+		b.Run(name, func(b *testing.B) {
+			benchmarkScheduling(test.nodes, test.existingPods, test.minPods, setupStrategy, testStrategy, b)
+		})
+	}
+
+}
+
 // makeBasePodWithAntiAffinity creates a Pod object to be used as a template.
 // The Pod has a PodAntiAffinity requirement against pods with the given labels.
 func makeBasePodWithAntiAffinity(podLabels, affinityLabels map[string]string) *v1.Pod {
+	basePod := &v1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			GenerateName: "anti-affinity-pod-",
+			Labels:       podLabels,
+		},
+		Spec: testutils.MakePodSpec(),
+	}
+	basePod.Spec.Affinity = &v1.Affinity{
+		PodAntiAffinity: &v1.PodAntiAffinity{
+			RequiredDuringSchedulingIgnoredDuringExecution: []v1.PodAffinityTerm{
+				{
+					LabelSelector: &metav1.LabelSelector{
+						MatchLabels: affinityLabels,
+					},
+					TopologyKey: apis.LabelHostname,
+				},
+			},
+		},
+	}
+	return basePod
+}
+
+// makeBasePodWithAffinity creates a Pod object to be used as a template.
+// The Pod has a PodAffinity requirement with pods with the given labels.
+func makeBasePodWithAffinity(podLabels, affinityLabels map[string]string) *v1.Pod {
 	basePod := &v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "affinity-pod-",
@@ -85,7 +134,7 @@ func makeBasePodWithAntiAffinity(podLabels, affinityLabels map[string]string) *v
 		Spec: testutils.MakePodSpec(),
 	}
 	basePod.Spec.Affinity = &v1.Affinity{
-		PodAntiAffinity: &v1.PodAntiAffinity{
+		PodAffinity: &v1.PodAffinity{
 			RequiredDuringSchedulingIgnoredDuringExecution: []v1.PodAffinityTerm{
 				{
 					LabelSelector: &metav1.LabelSelector{
