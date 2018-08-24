@@ -816,6 +816,82 @@ func TestInvalidateAllCachedPredicateItemOfNode(t *testing.T) {
 	}
 }
 
+func TestInvalidateAllPredicatesOnNodeForPod(t *testing.T) {
+	testPod := makeBasicPod("testPod")
+	testNode := &v1.Node{ObjectMeta: metav1.ObjectMeta{Name: "testNode"}}
+	testEquivalenceHash := NewClass(testPod).hash
+
+	tests := []struct {
+		name         string
+		predicateKey string
+		cachedItem   predicateItemType
+		cache        schedulercache.Cache
+	}{
+		{
+			name:         "GeneralPredicates not fits host ports",
+			predicateKey: "GeneralPredicates",
+			cachedItem: predicateItemType{
+				fit:     false,
+				reasons: []algorithm.PredicateFailureReason{predicates.ErrPodNotFitsHostPorts},
+			},
+			cache: &upToDateCache{},
+		},
+		{
+			name:         "CheckVolumeBinding fits",
+			predicateKey: "CheckVolumeBinding",
+			cachedItem: predicateItemType{
+				fit: true,
+			},
+			cache: &upToDateCache{},
+		},
+		{
+			name:         "NoVolumeZoneConflict fits",
+			predicateKey: "NoVolumeZoneConflict",
+			cachedItem: predicateItemType{
+				fit: true,
+			},
+			cache: &upToDateCache{},
+		},
+	}
+	ecache := NewCache()
+
+	for _, test := range tests {
+		node := schedulercache.NewNodeInfo()
+		node.SetNode(testNode)
+		nodeCache, _ := ecache.GetNodeCache(testNode.Name)
+		// set cached item to equivalence cache
+		nodeCache.updateResult(
+			testPod.Name,
+			test.predicateKey,
+			test.cachedItem.fit,
+			test.cachedItem.reasons,
+			testEquivalenceHash,
+			test.cache,
+			node,
+		)
+	}
+
+	ecache.InvalidateAllPredicatesOnNodeForPod(testPod, testNode.Name)
+
+	if n, ok := ecache.GetNodeCache(testNode.Name); ok {
+		for _, test := range tests {
+			// For all predicates, the cached item for given equivalence class should be invalidated.
+			t.Run(test.name, func(t *testing.T) {
+				if v, found := n.cache[test.predicateKey]; found {
+					if _, hit := v[testEquivalenceHash]; hit {
+						t.Errorf("Failed: cached item for pod: %v, node: %v should be invalidated",
+							testPod.Name, testNode.Name)
+					}
+				} else {
+					t.Errorf("Failed: predicate map for predicate: %v, pod: %v, node: %v should be found",
+						test.predicateKey, testPod.Name, testNode.Name)
+				}
+			})
+		}
+	}
+
+}
+
 func BenchmarkEquivalenceHash(b *testing.B) {
 	pod := makeBasicPod("test")
 	for i := 0; i < b.N; i++ {
