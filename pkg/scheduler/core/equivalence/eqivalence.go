@@ -113,6 +113,21 @@ func (c *Cache) InvalidateAllPredicatesOnNode(nodeName string) {
 	glog.V(5).Infof("Cache invalidation: node=%s,predicates=*", nodeName)
 }
 
+// InvalidateAllPredicatesOnNodeForPod invalidates cached results for the given equivalence class pod and node.
+func (c *Cache) InvalidateAllPredicatesOnNodeForPod(pod *v1.Pod, nodeName string) {
+	if v, ok := c.Load(nodeName); ok {
+		class := NewClass(pod)
+		n := v.(*NodeCache)
+
+		n.mu.Lock()
+		defer n.mu.Unlock()
+		for _, result := range n.cache {
+			delete(result, class.hash)
+		}
+	}
+	glog.V(5).Infof("Cache invalidation: pod=%s,node=%s,predicates=*", pod.Name, nodeName)
+}
+
 // InvalidateCachedPredicateItemForPodAdd is a wrapper of
 // InvalidateCachedPredicateItem for pod add case
 // TODO: This does not belong with the equivalence cache implementation.

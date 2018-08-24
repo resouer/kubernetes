@@ -305,6 +305,15 @@ func (sched *Scheduler) assumeAndBindVolumes(assumed *v1.Pod, host string) error
 	return nil
 }
 
+// invalideEcacheOnAssumeErr invalidates eCache for assumed pod and host when assume fails.
+// It's because the assumed pod is not on the host currently, thus the up-coming equivalent pods
+// (including assumed pod itself) are exposed to stale eCache info.
+func (sched *Scheduler) invalideEcacheOnAssumeErr(assumed *v1.Pod, host string) {
+	if sched.config.Ecache != nil {
+		sched.config.Ecache.InvalidateAllPredicatesOnNodeForPod(assumed, host)
+	}
+}
+
 // bindVolumesWorker() processes pods queued in assumeAndBindVolumes() and tries to
 // make the API update for volume binding.
 // This function runs forever until the volume BindQueue is closed.
@@ -391,6 +400,7 @@ func (sched *Scheduler) assume(assumed *v1.Pod, host string) error {
 			Reason:  "SchedulerError",
 			Message: err.Error(),
 		})
+
 		return err
 	}
 
@@ -480,12 +490,14 @@ func (sched *Scheduler) scheduleOne() {
 	// This function modifies 'assumedPod' if volume binding is required.
 	err = sched.assumeAndBindVolumes(assumedPod, suggestedHost)
 	if err != nil {
+		sched.invalideEcacheOnAssumeErr(assumedPod, suggestedHost)
 		return
 	}
 
 	// assume modifies `assumedPod` by setting NodeName=suggestedHost
 	err = sched.assume(assumedPod, suggestedHost)
 	if err != nil {
+		sched.invalideEcacheOnAssumeErr(assumedPod, suggestedHost)
 		return
 	}
 	// bind the pod to its host asynchronously (we can do this b/c of the assumption step above).
