@@ -389,10 +389,10 @@ func (g *genericScheduler) findNodesThatFit(pod *v1.Pod, nodes []*v1.Node) ([]*v
 		}
 
 		checkNode := func(i int) {
-			var nodeCache *equivalence.NodeCache
+			var ecache *equivalence.Cache
 			nodeName := g.cache.NodeTree().Next()
 			if g.equivalenceCache != nil {
-				nodeCache, _ = g.equivalenceCache.GetNodeCache(nodeName)
+				ecache = g.equivalenceCache
 			}
 			fits, failedPredicates, err := podFitsOnNode(
 				pod,
@@ -400,7 +400,7 @@ func (g *genericScheduler) findNodesThatFit(pod *v1.Pod, nodes []*v1.Node) ([]*v
 				g.cachedNodeInfoMap[nodeName],
 				g.predicates,
 				g.cache,
-				nodeCache,
+				ecache,
 				g.schedulingQueue,
 				g.alwaysCheckAllPredicates,
 				equivClass,
@@ -514,7 +514,7 @@ func podFitsOnNode(
 	info *schedulercache.NodeInfo,
 	predicateFuncs map[string]algorithm.FitPredicate,
 	cache schedulercache.Cache,
-	nodeCache *equivalence.NodeCache,
+	eCache *equivalence.Cache,
 	queue SchedulingQueue,
 	alwaysCheckAllPredicates bool,
 	equivClass *equivalence.Class,
@@ -554,7 +554,7 @@ func podFitsOnNode(
 		// Bypass eCache if node has any nominated pods.
 		// TODO(bsalamat): consider using eCache and adding proper eCache invalidations
 		// when pods are nominated or their nominations change.
-		eCacheAvailable = equivClass != nil && nodeCache != nil && !podsAdded
+		eCacheAvailable = equivClass != nil && eCache != nil && !podsAdded
 		for _, predicateKey := range predicates.Ordering() {
 			var (
 				fit     bool
@@ -564,7 +564,7 @@ func podFitsOnNode(
 			//TODO (yastij) : compute average predicate restrictiveness to export it as Prometheus metric
 			if predicate, exist := predicateFuncs[predicateKey]; exist {
 				if eCacheAvailable {
-					fit, reasons, err = nodeCache.RunPredicate(predicate, predicateKey, pod, metaToUse, nodeInfoToUse, equivClass, cache)
+					fit, reasons, err = eCache.RunPredicate(predicate, predicateKey, pod, metaToUse, nodeInfoToUse, equivClass, cache)
 				} else {
 					fit, reasons, err = predicate(pod, metaToUse, nodeInfoToUse)
 				}

@@ -194,7 +194,7 @@ type predicateResult struct {
 // run and its results cached for the next call.
 //
 // NOTE: RunPredicate will not update the equivalence cache if the given NodeInfo is stale.
-func (n *NodeCache) RunPredicate(
+func (c *Cache) RunPredicate(
 	pred algorithm.FitPredicate,
 	predicateKey string,
 	pod *v1.Pod,
@@ -207,6 +207,9 @@ func (n *NodeCache) RunPredicate(
 		// This may happen during tests.
 		return false, []algorithm.PredicateFailureReason{}, fmt.Errorf("nodeInfo is nil or node is invalid")
 	}
+
+	// POC(harry): call this per predicate.
+	n, _ := c.GetNodeCache(nodeInfo.Node().GetName())
 
 	result, ok := n.lookupResult(pod.GetName(), nodeInfo.Node().GetName(), predicateKey, equivClass.hash)
 	if ok {
