@@ -81,6 +81,13 @@ func (c *Cache) GetNodeCache(name string) (nodeCache *NodeCache, exists bool) {
 	return
 }
 
+// LoadNodeCache only load.
+func (c *Cache) LoadNodeCache(name string) (nodeCache *NodeCache, exists bool) {
+	v, exists := c.Load(name)
+	nodeCache = v.(*NodeCache)
+	return
+}
+
 // InvalidatePredicates clears all cached results for the given predicates.
 func (c *Cache) InvalidatePredicates(predicateKeys sets.String) {
 	if len(predicateKeys) == 0 {
@@ -209,7 +216,7 @@ func (c *Cache) RunPredicate(
 	}
 
 	// POC(harry): call this per predicate.
-	n, _ := c.GetNodeCache(nodeInfo.Node().GetName())
+	n, _ := c.LoadNodeCache(nodeInfo.Node().GetName())
 
 	result, ok := n.lookupResult(pod.GetName(), nodeInfo.Node().GetName(), predicateKey, equivClass.hash)
 	if ok {

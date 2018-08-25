@@ -393,6 +393,8 @@ func (g *genericScheduler) findNodesThatFit(pod *v1.Pod, nodes []*v1.Node) ([]*v
 			nodeName := g.cache.NodeTree().Next()
 			if g.equivalenceCache != nil {
 				ecache = g.equivalenceCache
+				// Init nodeCache
+				ecache.GetNodeCache(nodeName)
 			}
 			fits, failedPredicates, err := podFitsOnNode(
 				pod,
