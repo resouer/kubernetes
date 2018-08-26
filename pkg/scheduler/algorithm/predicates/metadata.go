@@ -35,7 +35,11 @@ import (
 
 // PredicateMetadataFactory defines a factory of predicate metadata.
 type PredicateMetadataFactory struct {
-	podLister algorithm.PodLister
+	podLister  algorithm.PodLister
+	nodeLister algorithm.NodeLister
+
+	// Predicate cache for equivalence class pods.
+	predicateCache *Cache
 }
 
 // AntiAffinityTerm's topology key value used in predicate metadata
@@ -87,6 +91,9 @@ type predicateMetadata struct {
 	// which should be accounted only by the extenders. This set is synthesized
 	// from scheduler extender configuration and does not change per pod.
 	ignoredExtendedResources sets.String
+
+	// A cache predicates results of equivalence class pods.
+	predicateCache *Cache
 }
 
 // Ensure that predicateMetadata implements algorithm.PredicateMetadata.
@@ -117,10 +124,29 @@ func RegisterPredicateMetadataProducerWithExtendedResourceOptions(ignoredExtende
 }
 
 // NewPredicateMetadataFactory creates a PredicateMetadataFactory.
-func NewPredicateMetadataFactory(podLister algorithm.PodLister) algorithm.PredicateMetadataProducer {
+func NewPredicateMetadataFactory(podLister algorithm.PodLister, nodeLister algorithm.NodeLister) algorithm.PredicateMetadataProducer {
 	factory := &PredicateMetadataFactory{
-		podLister,
+		podLister:      podLister,
+		nodeLister:     nodeLister,
+		predicateCache: NewCache(),
 	}
+
+	// Populate predicate cache for all nodes.
+	nodes, err := nodeLister.List()
+	if err != nil {
+		glog.Errorf("[predicate meta factory] can't list nodes: %v", err)
+	} else {
+		if len(nodes) == 0 {
+			glog.Warningf("[predicate meta factory] node list is empty, predicate cache will not be initialized.")
+		} else {
+			// GetNodeCache will create NodeCache if not exists.
+			for _, node := range nodes {
+				factory.predicateCache.GetNodeCache(node.Name)
+			}
+			fmt.Println("harry, successfully populated")
+		}
+	}
+
 	return factory.GetMetadata
 }
 
@@ -147,6 +173,7 @@ func (pfactory *PredicateMetadataFactory) GetMetadata(pod *v1.Pod, nodeNameToInf
 		nodeNameToMatchingAffinityPods:     affinityPods,
 		nodeNameToMatchingAntiAffinityPods: antiAffinityPods,
 		topologyPairsAntiAffinityPodsMap:   topologyPairsMaps,
+		predicateCache:                     pfactory.predicateCache,
 	}
 	for predicateName, precomputeFunc := range predicateMetadataProducers {
 		glog.V(10).Infof("Precompute: %v", predicateName)

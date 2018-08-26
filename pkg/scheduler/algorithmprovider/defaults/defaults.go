@@ -39,7 +39,7 @@ func init() {
 	// Register functions that extract metadata used by predicates and priorities computations.
 	factory.RegisterPredicateMetadataProducerFactory(
 		func(args factory.PluginFactoryArgs) algorithm.PredicateMetadataProducer {
-			return predicates.NewPredicateMetadataFactory(args.PodLister)
+			return predicates.NewPredicateMetadataFactory(args.PodLister, args.NodeLister)
 		})
 	factory.RegisterPriorityMetadataProducerFactory(
 		func(args factory.PluginFactoryArgs) algorithm.PriorityMetadataProducer {
