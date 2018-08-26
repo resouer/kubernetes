@@ -131,22 +131,6 @@ func NewPredicateMetadataFactory(podLister algorithm.PodLister, nodeLister algor
 		predicateCache: NewCache(),
 	}
 
-	// Populate predicate cache for all nodes.
-	nodes, err := nodeLister.List()
-	if err != nil {
-		glog.Errorf("[predicate meta factory] can't list nodes: %v", err)
-	} else {
-		if len(nodes) == 0 {
-			glog.Warningf("[predicate meta factory] node list is empty, predicate cache will not be initialized.")
-		} else {
-			// GetNodeCache will create NodeCache if not exists.
-			for _, node := range nodes {
-				factory.predicateCache.GetNodeCache(node.Name)
-			}
-			fmt.Println("harry, successfully populated")
-		}
-	}
-
 	return factory.GetMetadata
 }
 
@@ -165,6 +149,13 @@ func (pfactory *PredicateMetadataFactory) GetMetadata(pod *v1.Pod, nodeNameToInf
 		glog.Errorf("[predicate meta data generation] error finding pods that match affinity terms: %v", err)
 		return nil
 	}
+
+	if pfactory.predicateCache != nil {
+		for nodeName, _ := range nodeNameToInfoMap {
+			pfactory.predicateCache.GetNodeCache(nodeName)
+		}
+	}
+
 	predicateMetadata := &predicateMetadata{
 		pod:                                pod,
 		podBestEffort:                      isPodBestEffort(pod),

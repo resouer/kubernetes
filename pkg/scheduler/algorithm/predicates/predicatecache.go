@@ -82,6 +82,15 @@ func (c *Cache) GetNodeCache(name string) (nodeCache *NodeCache, exists bool) {
 	return
 }
 
+// LoadNodeCache returns the existing NodeCache for given node if present. Otherwise,
+// it creates the NodeCache and returns it.
+// The boolean flag is true if the value was loaded, false if created.
+func (c *Cache) LoadNodeCache(name string) (nodeCache *NodeCache, exists bool) {
+	v, exists := c.Load(name)
+	nodeCache = v.(*NodeCache)
+	return
+}
+
 // InvalidatePredicates clears all cached results for the given
 func (c *Cache) InvalidatePredicates(predicateKeys sets.String) {
 	if len(predicateKeys) == 0 {

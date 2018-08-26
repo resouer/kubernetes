@@ -280,6 +280,11 @@ func isVolumeConflict(volume v1.Volume, pod *v1.Pod) bool {
 // - ISCSI forbids if any two pods share at least same IQN, LUN and Target
 // TODO: migrate this into some per-volume specific code?
 func NoDiskConflict(pod *v1.Pod, meta algorithm.PredicateMetadata, nodeInfo *schedulercache.NodeInfo) (bool, []algorithm.PredicateFailureReason, error) {
+	if predicateMeta, ok := meta.(*predicateMetadata); ok {
+		if predicateMeta.predicateCache != nil {
+			predicateMeta.predicateCache.LoadNodeCache(nodeInfo.Node().Name)
+		}
+	}
 	for _, v := range pod.Spec.Volumes {
 		for _, ev := range nodeInfo.Pods() {
 			if isVolumeConflict(v, ev) {
@@ -453,6 +458,11 @@ func (c *MaxPDVolumeCountChecker) filterVolumes(volumes []v1.Volume, namespace s
 }
 
 func (c *MaxPDVolumeCountChecker) predicate(pod *v1.Pod, meta algorithm.PredicateMetadata, nodeInfo *schedulercache.NodeInfo) (bool, []algorithm.PredicateFailureReason, error) {
+	if predicateMeta, ok := meta.(*predicateMetadata); ok {
+		if predicateMeta.predicateCache != nil {
+			predicateMeta.predicateCache.LoadNodeCache(nodeInfo.Node().Name)
+		}
+	}
 	// If a pod doesn't have any volume attached to it, the predicate will always be true.
 	// Thus we make a fast path for it, to avoid unnecessary computations in this case.
 	if len(pod.Spec.Volumes) == 0 {
@@ -590,6 +600,11 @@ func NewVolumeZonePredicate(pvInfo PersistentVolumeInfo, pvcInfo PersistentVolum
 }
 
 func (c *VolumeZoneChecker) predicate(pod *v1.Pod, meta algorithm.PredicateMetadata, nodeInfo *schedulercache.NodeInfo) (bool, []algorithm.PredicateFailureReason, error) {
+	if predicateMeta, ok := meta.(*predicateMetadata); ok {
+		if predicateMeta.predicateCache != nil {
+			predicateMeta.predicateCache.LoadNodeCache(nodeInfo.Node().Name)
+		}
+	}
 	// If a pod doesn't have any volume attached to it, the predicate will always be true.
 	// Thus we make a fast path for it, to avoid unnecessary computations in this case.
 	if len(pod.Spec.Volumes) == 0 {
@@ -856,6 +871,11 @@ func podMatchesNodeSelectorAndAffinityTerms(pod *v1.Pod, node *v1.Node) bool {
 
 // PodMatchNodeSelector checks if a pod node selector matches the node label.
 func PodMatchNodeSelector(pod *v1.Pod, meta algorithm.PredicateMetadata, nodeInfo *schedulercache.NodeInfo) (bool, []algorithm.PredicateFailureReason, error) {
+	if predicateMeta, ok := meta.(*predicateMetadata); ok {
+		if predicateMeta.predicateCache != nil {
+			predicateMeta.predicateCache.LoadNodeCache(nodeInfo.Node().Name)
+		}
+	}
 	node := nodeInfo.Node()
 	if node == nil {
 		return false, nil, fmt.Errorf("node not found")
@@ -910,6 +930,11 @@ func NewNodeLabelPredicate(labels []string, presence bool) algorithm.FitPredicat
 // A node may have a label with "retiring" as key and the date as the value
 // and it may be desirable to avoid scheduling new pods on this node
 func (n *NodeLabelChecker) CheckNodeLabelPresence(pod *v1.Pod, meta algorithm.PredicateMetadata, nodeInfo *schedulercache.NodeInfo) (bool, []algorithm.PredicateFailureReason, error) {
+	if predicateMeta, ok := meta.(*predicateMetadata); ok {
+		if predicateMeta.predicateCache != nil {
+			predicateMeta.predicateCache.LoadNodeCache(nodeInfo.Node().Name)
+		}
+	}
 	node := nodeInfo.Node()
 	if node == nil {
 		return false, nil, fmt.Errorf("node not found")
@@ -995,6 +1020,11 @@ func NewServiceAffinityPredicate(podLister algorithm.PodLister, serviceLister al
 // WARNING: This Predicate is NOT guaranteed to work if some of the predicateMetadata data isn't precomputed...
 // For that reason it is not exported, i.e. it is highly coupled to the implementation of the FitPredicate construction.
 func (s *ServiceAffinity) checkServiceAffinity(pod *v1.Pod, meta algorithm.PredicateMetadata, nodeInfo *schedulercache.NodeInfo) (bool, []algorithm.PredicateFailureReason, error) {
+	if predicateMeta, ok := meta.(*predicateMetadata); ok {
+		if predicateMeta.predicateCache != nil {
+			predicateMeta.predicateCache.LoadNodeCache(nodeInfo.Node().Name)
+		}
+	}
 	var services []*v1.Service
 	var pods []*v1.Pod
 	if pm, ok := meta.(*predicateMetadata); ok && (pm.serviceAffinityMatchingPodList != nil || pm.serviceAffinityMatchingPodServices != nil) {
@@ -1034,6 +1064,11 @@ func (s *ServiceAffinity) checkServiceAffinity(pod *v1.Pod, meta algorithm.Predi
 
 // PodFitsHostPorts checks if a node has free ports for the requested pod ports.
 func PodFitsHostPorts(pod *v1.Pod, meta algorithm.PredicateMetadata, nodeInfo *schedulercache.NodeInfo) (bool, []algorithm.PredicateFailureReason, error) {
+	if predicateMeta, ok := meta.(*predicateMetadata); ok {
+		if predicateMeta.predicateCache != nil {
+			predicateMeta.predicateCache.LoadNodeCache(nodeInfo.Node().Name)
+		}
+	}
 	var wantPorts []*v1.ContainerPort
 	if predicateMeta, ok := meta.(*predicateMetadata); ok {
 		wantPorts = predicateMeta.podPorts
@@ -1074,6 +1109,11 @@ func haveOverlap(a1, a2 []string) bool {
 // GeneralPredicates checks whether noncriticalPredicates and EssentialPredicates pass. noncriticalPredicates are the predicates
 // that only non-critical pods need and EssentialPredicates are the predicates that all pods, including critical pods, need
 func GeneralPredicates(pod *v1.Pod, meta algorithm.PredicateMetadata, nodeInfo *schedulercache.NodeInfo) (bool, []algorithm.PredicateFailureReason, error) {
+	if predicateMeta, ok := meta.(*predicateMetadata); ok {
+		if predicateMeta.predicateCache != nil {
+			predicateMeta.predicateCache.LoadNodeCache(nodeInfo.Node().Name)
+		}
+	}
 	var predicateFails []algorithm.PredicateFailureReason
 	fit, reasons, err := noncriticalPredicates(pod, meta, nodeInfo)
 	if err != nil {
@@ -1096,6 +1136,11 @@ func GeneralPredicates(pod *v1.Pod, meta algorithm.PredicateMetadata, nodeInfo *
 
 // noncriticalPredicates are the predicates that only non-critical pods need
 func noncriticalPredicates(pod *v1.Pod, meta algorithm.PredicateMetadata, nodeInfo *schedulercache.NodeInfo) (bool, []algorithm.PredicateFailureReason, error) {
+	if predicateMeta, ok := meta.(*predicateMetadata); ok {
+		if predicateMeta.predicateCache != nil {
+			predicateMeta.predicateCache.LoadNodeCache(nodeInfo.Node().Name)
+		}
+	}
 	var predicateFails []algorithm.PredicateFailureReason
 	fit, reasons, err := PodFitsResources(pod, meta, nodeInfo)
 	if err != nil {
@@ -1110,6 +1155,11 @@ func noncriticalPredicates(pod *v1.Pod, meta algorithm.PredicateMetadata, nodeIn
 
 // EssentialPredicates are the predicates that all pods, including critical pods, need
 func EssentialPredicates(pod *v1.Pod, meta algorithm.PredicateMetadata, nodeInfo *schedulercache.NodeInfo) (bool, []algorithm.PredicateFailureReason, error) {
+	if predicateMeta, ok := meta.(*predicateMetadata); ok {
+		if predicateMeta.predicateCache != nil {
+			predicateMeta.predicateCache.LoadNodeCache(nodeInfo.Node().Name)
+		}
+	}
 	var predicateFails []algorithm.PredicateFailureReason
 	fit, reasons, err := PodFitsHost(pod, meta, nodeInfo)
 	if err != nil {
@@ -1158,6 +1208,11 @@ func NewPodAffinityPredicate(info NodeInfo, podLister algorithm.PodLister) algor
 // First return value indicates whether a pod can be scheduled on the specified node while the second return value indicates the
 // predicate failure reasons if the pod cannot be scheduled on the specified node.
 func (c *PodAffinityChecker) InterPodAffinityMatches(pod *v1.Pod, meta algorithm.PredicateMetadata, nodeInfo *schedulercache.NodeInfo) (bool, []algorithm.PredicateFailureReason, error) {
+	if predicateMeta, ok := meta.(*predicateMetadata); ok {
+		if predicateMeta.predicateCache != nil {
+			predicateMeta.predicateCache.LoadNodeCache(nodeInfo.Node().Name)
+		}
+	}
 	node := nodeInfo.Node()
 	if node == nil {
 		return false, nil, fmt.Errorf("node not found")
@@ -1353,6 +1408,11 @@ func (c *PodAffinityChecker) getMatchingAntiAffinityTopologyPairs(pod *v1.Pod, a
 // Checks if scheduling the pod onto this node would break any anti-affinity
 // rules indicated by the existing pods.
 func (c *PodAffinityChecker) satisfiesExistingPodsAntiAffinity(pod *v1.Pod, meta algorithm.PredicateMetadata, nodeInfo *schedulercache.NodeInfo) (algorithm.PredicateFailureReason, error) {
+	if predicateMeta, ok := meta.(*predicateMetadata); ok {
+		if predicateMeta.predicateCache != nil {
+			predicateMeta.predicateCache.LoadNodeCache(nodeInfo.Node().Name)
+		}
+	}
 	node := nodeInfo.Node()
 	if node == nil {
 		return ErrExistingPodsAntiAffinityRulesNotMatch, fmt.Errorf("Node is nil")
@@ -1528,6 +1588,11 @@ func (c *PodAffinityChecker) satisfiesPodsAffinityAntiAffinity(pod *v1.Pod,
 
 // CheckNodeUnschedulablePredicate checks if a pod can be scheduled on a node with Unschedulable spec.
 func CheckNodeUnschedulablePredicate(pod *v1.Pod, meta algorithm.PredicateMetadata, nodeInfo *schedulercache.NodeInfo) (bool, []algorithm.PredicateFailureReason, error) {
+	if predicateMeta, ok := meta.(*predicateMetadata); ok {
+		if predicateMeta.predicateCache != nil {
+			predicateMeta.predicateCache.LoadNodeCache(nodeInfo.Node().Name)
+		}
+	}
 	if nodeInfo == nil || nodeInfo.Node() == nil {
 		return false, []algorithm.PredicateFailureReason{ErrNodeUnknownCondition}, nil
 	}
@@ -1541,6 +1606,11 @@ func CheckNodeUnschedulablePredicate(pod *v1.Pod, meta algorithm.PredicateMetada
 
 // PodToleratesNodeTaints checks if a pod tolerations can tolerate the node taints
 func PodToleratesNodeTaints(pod *v1.Pod, meta algorithm.PredicateMetadata, nodeInfo *schedulercache.NodeInfo) (bool, []algorithm.PredicateFailureReason, error) {
+	if predicateMeta, ok := meta.(*predicateMetadata); ok {
+		if predicateMeta.predicateCache != nil {
+			predicateMeta.predicateCache.LoadNodeCache(nodeInfo.Node().Name)
+		}
+	}
 	if nodeInfo == nil || nodeInfo.Node() == nil {
 		return false, []algorithm.PredicateFailureReason{ErrNodeUnknownCondition}, nil
 	}
@@ -1553,6 +1623,11 @@ func PodToleratesNodeTaints(pod *v1.Pod, meta algorithm.PredicateMetadata, nodeI
 
 // PodToleratesNodeNoExecuteTaints checks if a pod tolerations can tolerate the node's NoExecute taints
 func PodToleratesNodeNoExecuteTaints(pod *v1.Pod, meta algorithm.PredicateMetadata, nodeInfo *schedulercache.NodeInfo) (bool, []algorithm.PredicateFailureReason, error) {
+	if predicateMeta, ok := meta.(*predicateMetadata); ok {
+		if predicateMeta.predicateCache != nil {
+			predicateMeta.predicateCache.LoadNodeCache(nodeInfo.Node().Name)
+		}
+	}
 	return podToleratesNodeTaints(pod, nodeInfo, func(t *v1.Taint) bool {
 		return t.Effect == v1.TaintEffectNoExecute
 	})
@@ -1578,6 +1653,11 @@ func isPodBestEffort(pod *v1.Pod) bool {
 // CheckNodeMemoryPressurePredicate checks if a pod can be scheduled on a node
 // reporting memory pressure condition.
 func CheckNodeMemoryPressurePredicate(pod *v1.Pod, meta algorithm.PredicateMetadata, nodeInfo *schedulercache.NodeInfo) (bool, []algorithm.PredicateFailureReason, error) {
+	if predicateMeta, ok := meta.(*predicateMetadata); ok {
+		if predicateMeta.predicateCache != nil {
+			predicateMeta.predicateCache.LoadNodeCache(nodeInfo.Node().Name)
+		}
+	}
 	var podBestEffort bool
 	if predicateMeta, ok := meta.(*predicateMetadata); ok {
 		podBestEffort = predicateMeta.podBestEffort
@@ -1600,6 +1680,11 @@ func CheckNodeMemoryPressurePredicate(pod *v1.Pod, meta algorithm.PredicateMetad
 // CheckNodeDiskPressurePredicate checks if a pod can be scheduled on a node
 // reporting disk pressure condition.
 func CheckNodeDiskPressurePredicate(pod *v1.Pod, meta algorithm.PredicateMetadata, nodeInfo *schedulercache.NodeInfo) (bool, []algorithm.PredicateFailureReason, error) {
+	if predicateMeta, ok := meta.(*predicateMetadata); ok {
+		if predicateMeta.predicateCache != nil {
+			predicateMeta.predicateCache.LoadNodeCache(nodeInfo.Node().Name)
+		}
+	}
 	// check if node is under disk pressure
 	if nodeInfo.DiskPressureCondition() == v1.ConditionTrue {
 		return false, []algorithm.PredicateFailureReason{ErrNodeUnderDiskPressure}, nil
@@ -1610,6 +1695,11 @@ func CheckNodeDiskPressurePredicate(pod *v1.Pod, meta algorithm.PredicateMetadat
 // CheckNodePIDPressurePredicate checks if a pod can be scheduled on a node
 // reporting pid pressure condition.
 func CheckNodePIDPressurePredicate(pod *v1.Pod, meta algorithm.PredicateMetadata, nodeInfo *schedulercache.NodeInfo) (bool, []algorithm.PredicateFailureReason, error) {
+	if predicateMeta, ok := meta.(*predicateMetadata); ok {
+		if predicateMeta.predicateCache != nil {
+			predicateMeta.predicateCache.LoadNodeCache(nodeInfo.Node().Name)
+		}
+	}
 	// check if node is under pid pressure
 	if nodeInfo.PIDPressureCondition() == v1.ConditionTrue {
 		return false, []algorithm.PredicateFailureReason{ErrNodeUnderPIDPressure}, nil
@@ -1620,6 +1710,11 @@ func CheckNodePIDPressurePredicate(pod *v1.Pod, meta algorithm.PredicateMetadata
 // CheckNodeConditionPredicate checks if a pod can be scheduled on a node reporting out of disk,
 // network unavailable and not ready condition. Only node conditions are accounted in this predicate.
 func CheckNodeConditionPredicate(pod *v1.Pod, meta algorithm.PredicateMetadata, nodeInfo *schedulercache.NodeInfo) (bool, []algorithm.PredicateFailureReason, error) {
+	if predicateMeta, ok := meta.(*predicateMetadata); ok {
+		if predicateMeta.predicateCache != nil {
+			predicateMeta.predicateCache.LoadNodeCache(nodeInfo.Node().Name)
+		}
+	}
 	reasons := []algorithm.PredicateFailureReason{}
 
 	if nodeInfo == nil || nodeInfo.Node() == nil {
@@ -1672,6 +1767,11 @@ func NewVolumeBindingPredicate(binder *volumebinder.VolumeBinder) algorithm.FitP
 }
 
 func (c *VolumeBindingChecker) predicate(pod *v1.Pod, meta algorithm.PredicateMetadata, nodeInfo *schedulercache.NodeInfo) (bool, []algorithm.PredicateFailureReason, error) {
+	if predicateMeta, ok := meta.(*predicateMetadata); ok {
+		if predicateMeta.predicateCache != nil {
+			predicateMeta.predicateCache.LoadNodeCache(nodeInfo.Node().Name)
+		}
+	}
 	if !utilfeature.DefaultFeatureGate.Enabled(features.VolumeScheduling) {
 		return true, nil, nil
 	}
