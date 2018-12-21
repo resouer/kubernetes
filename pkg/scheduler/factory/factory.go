@@ -1189,7 +1189,7 @@ func (c *configFactory) MakeDefaultErrorFunc(backoff *util.PodBackoff, podQueue 
 				if getBackoff = getBackoff * 2; getBackoff > maximalGetBackoff {
 					getBackoff = maximalGetBackoff
 				}
-				time.Sleep(getBackoff)
+				//time.Sleep(getBackoff)
 			}
 		}()
 	}

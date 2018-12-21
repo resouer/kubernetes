@@ -357,13 +357,13 @@ func (p *PriorityQueue) Add(pod *v1.Pod) error {
 			//p.deleteNominatedPodIfExists(pod)
 			//p.unschedulableQ.delete(pod)
 		} else {
+			klog.Infof("p.activeQ %v", p.activeQ.Len())
+			klog.Infof("len(p.unschedulableQ.equivalenceClasses) %v", len(p.unschedulableQ.equivalenceClasses))
 			// equivalenceClass is new to activeQ, add it.
 			if err := p.activeQ.Add(equivalenceClass); err != nil  {
 				klog.Errorf("Error adding pod %v/%v to the scheduling queue: %v", pod.Namespace, pod.Name, err)
 				return err
 			}
-			klog.Infof("p.activeQ %v", p.activeQ.Len())
-
 			var len int
 			equivalenceClass.PodSet.Range(func(k, v interface{}) bool {
 				len++
