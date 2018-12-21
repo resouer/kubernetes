@@ -65,6 +65,7 @@ import (
 	pluginsv1alpha1 "k8s.io/kubernetes/pkg/scheduler/plugins/v1alpha1"
 	"k8s.io/kubernetes/pkg/scheduler/util"
 	"k8s.io/kubernetes/pkg/scheduler/volumebinder"
+	"k8s.io/kubernetes/pkg/scheduler/core/equivalence"
 )
 
 const (
@@ -97,6 +98,9 @@ type Config struct {
 	// It is expected that changes made via SchedulerCache will be observed
 	// by NodeLister and Algorithm.
 	SchedulerCache schedulerinternalcache.Cache
+
+	// EClass
+	EClass     *equivalence.EquivalenceClass
 
 	NodeLister algorithm.NodeLister
 	Algorithm  core.ScheduleAlgorithm
@@ -221,6 +225,12 @@ type configFactory struct {
 	// HardPodAffinitySymmetricWeight represents the weight of implicit PreferredDuringScheduling affinity rule, in the range 0-100.
 	hardPodAffinitySymmetricWeight int32
 
+	// Equivalence class
+	equivalenceClass *equivalence.EquivalenceClass
+
+	// Enable equivalence class
+	enableEquivalenceClass bool
+
 	// Handles volume binding decisions
 	volumeBinder *volumebinder.VolumeBinder
 
@@ -249,6 +259,7 @@ type ConfigFactoryArgs struct {
 	PdbInformer                    policyinformers.PodDisruptionBudgetInformer
 	StorageClassInformer           storageinformers.StorageClassInformer
 	HardPodAffinitySymmetricWeight int32
+	EnableEquivalenceClass    bool
 	DisablePreemption              bool
 	PercentageOfNodesToScore       int32
 	BindTimeoutSeconds             int64
@@ -286,6 +297,7 @@ func NewConfigFactory(args *ConfigFactoryArgs) Configurator {
 		StopEverything:                 stopEverything,
 		schedulerName:                  args.SchedulerName,
 		hardPodAffinitySymmetricWeight: args.HardPodAffinitySymmetricWeight,
+		enableEquivalenceClass:    args.EnableEquivalenceClass,
 		disablePreemption:              args.DisablePreemption,
 		percentageOfNodesToScore:       args.PercentageOfNodesToScore,
 	}
@@ -676,6 +688,7 @@ func (c *configFactory) updateNodeInCache(oldObj, newObj interface{}) {
 		klog.Errorf("scheduler cache UpdateNode failed: %v", err)
 	}
 
+	//klog.Infof("updateNodeInCache")
 	// Only activate unschedulable pods if the node became more schedulable.
 	// We skip the node property comparison when there is no unschedulable pods in the queue
 	// to save processing cycles. We still trigger a move to active queue to cover the case
@@ -890,8 +903,17 @@ func (c *configFactory) CreateFromKeys(predicateKeys, priorityKeys sets.String, 
 	// TODO(bsalamat): the default registrar should be able to process config files.
 	c.pluginSet = plugins.NewDefaultPluginSet(pluginsv1alpha1.NewPluginContext(), &c.schedulerCache)
 
+	// Init equivalence class
+	if c.enableEquivalenceClass {
+		c.equivalenceClass = equivalence.NewEquivalenceClass()
+		klog.Info("Created equivalence class")
+	}
+	klog.Info("equivalence")
+	klog.Info(c.enableEquivalenceClass)
+
 	algo := core.NewGenericScheduler(
 		c.schedulerCache,
+		c.equivalenceClass,
 		c.podQueue,
 		predicateFuncs,
 		predicateMetaProducer,
@@ -904,12 +926,14 @@ func (c *configFactory) CreateFromKeys(predicateKeys, priorityKeys sets.String, 
 		c.pdbLister,
 		c.alwaysCheckAllPredicates,
 		c.disablePreemption,
+		c.enableEquivalenceClass,
 		c.percentageOfNodesToScore,
 	)
 
 	podBackoff := util.CreateDefaultPodBackoff()
 	return &Config{
 		SchedulerCache: c.schedulerCache,
+		EClass:         c.equivalenceClass,
 		// The scheduler only needs to consider schedulable nodes.
 		NodeLister:          &nodeLister{c.nodeLister},
 		Algorithm:           algo,

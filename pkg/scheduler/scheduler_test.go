@@ -650,6 +650,7 @@ func setupTestScheduler(queuedPodStore *clientcache.FIFO, scache schedulerintern
 		informerFactory.Policy().V1beta1().PodDisruptionBudgets().Lister(),
 		false,
 		false,
+		false,
 		api.DefaultPercentageOfNodesToScore)
 	bindingChan := make(chan *v1.Binding, 1)
 	errChan := make(chan error, 1)
@@ -700,6 +701,7 @@ func setupTestSchedulerLongBindingWithRetry(queuedPodStore *clientcache.FIFO, sc
 		nil,
 		informerFactory.Core().V1().PersistentVolumeClaims().Lister(),
 		informerFactory.Policy().V1beta1().PodDisruptionBudgets().Lister(),
+		false,
 		false,
 		false,
 		api.DefaultPercentageOfNodesToScore)

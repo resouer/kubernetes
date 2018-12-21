@@ -433,9 +433,9 @@ func TestGenericScheduler(t *testing.T) {
 			predicates:               map[string]algorithm.FitPredicate{"true": truePredicate, "matches": matchesPredicate, "false": falsePredicate},
 			prioritizers:             []algorithm.PriorityConfig{{Map: EqualPriorityMap, Weight: 1}},
 			alwaysCheckAllPredicates: true,
-			nodes:                    []string{"1"},
-			pod:                      &v1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "2", UID: types.UID("2")}},
-			name:                     "test alwaysCheckAllPredicates is true",
+			nodes: []string{"1"},
+			pod:   &v1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "2", UID: types.UID("2")}},
+			name:  "test alwaysCheckAllPredicates is true",
 			wErr: &FitError{
 				Pod:         &v1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "2", UID: types.UID("2")}},
 				NumAllNodes: 1,
@@ -469,6 +469,7 @@ func TestGenericScheduler(t *testing.T) {
 
 			scheduler := NewGenericScheduler(
 				cache,
+				nil,
 				internalqueue.NewSchedulingQueue(nil),
 				test.predicates,
 				algorithm.EmptyPredicateMetadataProducer,
@@ -480,6 +481,7 @@ func TestGenericScheduler(t *testing.T) {
 				pvcLister,
 				schedulertesting.FakePDBLister{},
 				test.alwaysCheckAllPredicates,
+				false,
 				false,
 				schedulerapi.DefaultPercentageOfNodesToScore)
 			machine, err := scheduler.Schedule(test.pod, schedulertesting.FakeNodeLister(makeNodeList(test.nodes)))
@@ -505,6 +507,7 @@ func makeScheduler(predicates map[string]algorithm.FitPredicate, nodes []*v1.Nod
 
 	s := NewGenericScheduler(
 		cache,
+		nil,
 		internalqueue.NewSchedulingQueue(nil),
 		predicates,
 		algorithm.EmptyPredicateMetadataProducer,
@@ -512,7 +515,7 @@ func makeScheduler(predicates map[string]algorithm.FitPredicate, nodes []*v1.Nod
 		algorithm.EmptyPriorityMetadataProducer,
 		emptyPluginSet,
 		nil, nil, nil, nil, false, false,
-		schedulerapi.DefaultPercentageOfNodesToScore)
+		false, schedulerapi.DefaultPercentageOfNodesToScore)
 	cache.UpdateNodeNameToInfoMap(s.(*genericScheduler).cachedNodeInfoMap)
 	return s.(*genericScheduler)
 
@@ -1431,6 +1434,7 @@ func TestPreempt(t *testing.T) {
 			}
 			scheduler := NewGenericScheduler(
 				cache,
+				nil,
 				internalqueue.NewSchedulingQueue(nil),
 				map[string]algorithm.FitPredicate{"matches": algorithmpredicates.PodFitsResources},
 				algorithm.EmptyPredicateMetadataProducer,
@@ -1441,6 +1445,7 @@ func TestPreempt(t *testing.T) {
 				nil,
 				schedulertesting.FakePersistentVolumeClaimLister{},
 				schedulertesting.FakePDBLister{},
+				false,
 				false,
 				false,
 				schedulerapi.DefaultPercentageOfNodesToScore)

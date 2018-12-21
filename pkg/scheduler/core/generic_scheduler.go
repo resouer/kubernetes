@@ -39,6 +39,7 @@ import (
 	"k8s.io/kubernetes/pkg/scheduler/algorithm"
 	"k8s.io/kubernetes/pkg/scheduler/algorithm/predicates"
 	schedulerapi "k8s.io/kubernetes/pkg/scheduler/api"
+	"k8s.io/kubernetes/pkg/scheduler/core/equivalence"
 	schedulerinternalcache "k8s.io/kubernetes/pkg/scheduler/internal/cache"
 	internalqueue "k8s.io/kubernetes/pkg/scheduler/internal/queue"
 	"k8s.io/kubernetes/pkg/scheduler/metrics"
@@ -115,6 +116,7 @@ type ScheduleAlgorithm interface {
 
 type genericScheduler struct {
 	cache                    schedulerinternalcache.Cache
+	equivalenceClass         *equivalence.EquivalenceClass
 	schedulingQueue          internalqueue.SchedulingQueue
 	predicates               map[string]algorithm.FitPredicate
 	priorityMetaProducer     algorithm.PriorityMetadataProducer
@@ -129,6 +131,7 @@ type genericScheduler struct {
 	pvcLister                corelisters.PersistentVolumeClaimLister
 	pdbLister                algorithm.PDBLister
 	disablePreemption        bool
+	enableEquivalenceClass   bool
 	percentageOfNodesToScore int32
 }
 
@@ -1129,6 +1132,7 @@ func podPassesBasicChecks(pod *v1.Pod, pvcLister corelisters.PersistentVolumeCla
 // NewGenericScheduler creates a genericScheduler object.
 func NewGenericScheduler(
 	cache schedulerinternalcache.Cache,
+	eClass *equivalence.EquivalenceClass,
 	podQueue internalqueue.SchedulingQueue,
 	predicates map[string]algorithm.FitPredicate,
 	predicateMetaProducer algorithm.PredicateMetadataProducer,
@@ -1141,10 +1145,12 @@ func NewGenericScheduler(
 	pdbLister algorithm.PDBLister,
 	alwaysCheckAllPredicates bool,
 	disablePreemption bool,
+	enableEquivalenceClass bool,
 	percentageOfNodesToScore int32,
 ) ScheduleAlgorithm {
 	return &genericScheduler{
 		cache:                    cache,
+		equivalenceClass:         eClass,
 		schedulingQueue:          podQueue,
 		predicates:               predicates,
 		predicateMetaProducer:    predicateMetaProducer,
@@ -1158,6 +1164,7 @@ func NewGenericScheduler(
 		pdbLister:                pdbLister,
 		alwaysCheckAllPredicates: alwaysCheckAllPredicates,
 		disablePreemption:        disablePreemption,
+		enableEquivalenceClass:   enableEquivalenceClass,
 		percentageOfNodesToScore: percentageOfNodesToScore,
 	}
 }

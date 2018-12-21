@@ -522,6 +522,7 @@ func TestGenericSchedulerWithExtenders(t *testing.T) {
 				schedulertesting.FakePDBLister{},
 				false,
 				false,
+				false,
 				schedulerapi.DefaultPercentageOfNodesToScore)
 			podIgnored := &v1.Pod{}
 			machine, err := scheduler.Schedule(podIgnored, schedulertesting.FakeNodeLister(makeNodeList(test.nodes)))
