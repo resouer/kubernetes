@@ -110,5 +110,6 @@ func createSchedulerConfigurator(
 		DisablePreemption:              false,
 		PercentageOfNodesToScore:       schedulerapi.DefaultPercentageOfNodesToScore,
 		StopCh:                         stopCh,
+		EnableEquivalenceClass:         true,
 	})
 }
