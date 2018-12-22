@@ -40,10 +40,10 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/cache"
 	podutil "k8s.io/kubernetes/pkg/api/v1/pod"
-	"k8s.io/kubernetes/pkg/scheduler/core/equivalence"
-	"k8s.io/kubernetes/pkg/scheduler/util"
 	"k8s.io/kubernetes/pkg/scheduler/algorithm/predicates"
 	priorityutil "k8s.io/kubernetes/pkg/scheduler/algorithm/priorities/util"
+	"k8s.io/kubernetes/pkg/scheduler/core/equivalence"
+	"k8s.io/kubernetes/pkg/scheduler/util"
 )
 
 var (
@@ -259,12 +259,12 @@ func NewPriorityQueue(stop <-chan struct{}) *PriorityQueue {
 // NewPriorityQueueWithClock creates a PriorityQueue which uses the passed clock for time.
 func NewPriorityQueueWithClock(stop <-chan struct{}, clock util.Clock) *PriorityQueue {
 	pq := &PriorityQueue{
-		clock:          clock,
-		stop:           stop,
-		podBackoff:     util.CreatePodBackoffWithClock(1*time.Second, 10*time.Second, clock),
-		activeQ:        util.NewHeap(cache.MetaNamespaceKeyFunc, activeQComp),
-		unschedulableQ: newUnschedulablePodsMap(),
-		nominatedPods:  map[string][]*v1.Pod{},
+		clock:            clock,
+		stop:             stop,
+		podBackoff:       util.CreatePodBackoffWithClock(1*time.Second, 10*time.Second, clock),
+		activeQ:          util.NewHeap(cache.MetaNamespaceKeyFunc, activeQComp),
+		unschedulableQ:   newUnschedulablePodsMap(),
+		nominatedPods:    map[string][]*v1.Pod{},
 		equivalenceClass: equivalence.NewEquivalenceClass(),
 	}
 
@@ -337,30 +337,22 @@ func (p *PriorityQueue) Add(pod *v1.Pod) error {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 
-	klog.Infof("p.enableEquivalenceClass %v", p.enableEquivalenceClass)
 	if p.enableEquivalenceClass {
-		klog.Infof("pod.Name %v pod.UID %v", pod.Name, pod.UID)
 		equivalenceClass := equivalence.NewClass(pod)
 		equivalenceClass.PodSet.Store(pod.UID, pod)
 		p.equivalenceClass.ClassMap[equivalence.GetEquivHash(pod)] = equivalenceClass
 
 		if p.unschedulableQ.get(pod) != nil {
-			klog.Infof("equivalenceClass %v/%v is already in the unschedulable queue.",
-				pod.Namespace, equivalenceClass.Hash)
-
 			var len int
 			equivalenceClass.PodSet.Range(func(k, v interface{}) bool {
 				len++
 				return true
 			})
-			klog.Infof("PodSet len %v", len)
 			//p.deleteNominatedPodIfExists(pod)
 			//p.unschedulableQ.delete(pod)
 		} else {
-			klog.Infof("p.activeQ %v", p.activeQ.Len())
-			klog.Infof("len(p.unschedulableQ.equivalenceClasses) %v", len(p.unschedulableQ.equivalenceClasses))
 			// equivalenceClass is new to activeQ, add it.
-			if err := p.activeQ.Add(equivalenceClass); err != nil  {
+			if err := p.activeQ.Add(equivalenceClass); err != nil {
 				klog.Errorf("Error adding pod %v/%v to the scheduling queue: %v", pod.Namespace, pod.Name, err)
 				return err
 			}
@@ -369,7 +361,6 @@ func (p *PriorityQueue) Add(pod *v1.Pod) error {
 				len++
 				return true
 			})
-			klog.Infof("PodSet len %v", len)
 			// Delete pod from backoffQ if it is backing off
 			if err := p.podBackoffQ.Delete(pod); err == nil {
 				klog.Errorf("Error: pod %v/%v is already in the podBackoff queue.", pod.Namespace, pod.Name)
@@ -495,7 +486,6 @@ func (p *PriorityQueue) AddUnschedulableIfNotPresent(pod *v1.Pod) error {
 		if _, exists, _ := p.activeQ.Get(equivalenceClass); exists {
 			//return fmt.Errorf("pod is already present in the activeQ")
 			p.activeQ.Delete(equivalenceClass)
-			klog.Infof("p.activeQ.Delete(equivalenceClass)")
 		}
 		//klog.Info("p.podBackoffQ.Get(pod)")
 		if _, exists, _ := p.podBackoffQ.Get(pod); exists {
@@ -641,7 +631,6 @@ func (p *PriorityQueue) Pop() (*v1.Pod, error) {
 			})
 			if pod != nil {
 				//p.unschedulableQ.delete(pod)
-				klog.Infof("p.unschedulableQ.equivalenceClasses %v", len(p.unschedulableQ.equivalenceClasses))
 				return pod, err
 			}
 		}
@@ -960,7 +949,6 @@ func (p *PriorityQueue) WaitingPodsForNode(nodeName string) []*v1.Pod {
 	return nil
 }
 
-
 // WaitingPods returns all the waiting pods in the queue.
 func (p *PriorityQueue) WaitingPods() []*v1.Pod {
 	p.lock.Lock()
@@ -1031,9 +1019,9 @@ func (p *PriorityQueue) NumUnschedulablePods() int {
 // is used to implement unschedulableQ.
 type UnschedulablePodsMap struct {
 	// pods is a map key by a pod's full-name and the value is a pointer to the pod.
-	pods                        map[string]*v1.Pod
-	keyFunc                     func(*v1.Pod) string
-	equivalenceClasses          map[ktypes.UID]*equivalence.Class
+	pods                   map[string]*v1.Pod
+	keyFunc                func(*v1.Pod) string
+	equivalenceClasses     map[ktypes.UID]*equivalence.Class
 	enableEquivalenceClass bool
 }
 
@@ -1102,9 +1090,9 @@ func (u *UnschedulablePodsMap) clear() {
 // newUnschedulablePodsMap initializes a new object of UnschedulablePodsMap.
 func newUnschedulablePodsMap() *UnschedulablePodsMap {
 	var (
-		pods                        map[string]*v1.Pod
-		keyFunc                     func(*v1.Pod) string
-		equivalenceClasses          map[ktypes.UID]*equivalence.Class
+		pods                   map[string]*v1.Pod
+		keyFunc                func(*v1.Pod) string
+		equivalenceClasses     map[ktypes.UID]*equivalence.Class
 		enableEquivalenceClass bool
 	)
 
@@ -1118,9 +1106,9 @@ func newUnschedulablePodsMap() *UnschedulablePodsMap {
 	}
 
 	return &UnschedulablePodsMap{
-		pods:                        pods,
-		keyFunc:                     keyFunc,
-		equivalenceClasses:          equivalenceClasses,
+		pods:                   pods,
+		keyFunc:                keyFunc,
+		equivalenceClasses:     equivalenceClasses,
 		enableEquivalenceClass: enableEquivalenceClass,
 	}
 }

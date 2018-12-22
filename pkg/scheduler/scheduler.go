@@ -485,7 +485,6 @@ func (sched *Scheduler) scheduleOne() {
 		podSet[pod.UID] = pod
 	}
 
-	klog.Infof("podSet length %v", len(podSet))
 	for k, v := range podSet {
 		if v.DeletionTimestamp != nil {
 			sched.config.Recorder.Eventf(v, v1.EventTypeWarning, "FailedScheduling", "skip schedule deleting pod: %v/%v", v.Namespace, v.Name)
